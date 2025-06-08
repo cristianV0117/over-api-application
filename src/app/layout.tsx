@@ -8,7 +8,7 @@ import "./globals.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "react-toastify/dist/ReactToastify.css";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, Zoom } from "react-toastify";
 
 export const metadata: Metadata = {
   title: "OVER APP",
@@ -36,7 +36,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} d-flex flex-column min-vh-100 bg-dark`}
       >
         {children}
-        <ToastContainer position="top-right" autoClose={3000} />
+        <ToastContainer
+          position="top-right"
+          autoClose={4000}
+          transition={Zoom}
+          theme="dark"
+        />
       </body>
     </html>
   );
