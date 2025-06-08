@@ -1,6 +1,23 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
+
 export default function Navbar() {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+
+    toast.info("¡Hasta pronto!");
+    setTimeout(() => {
+      router.push("/");
+    }, 900);
+  };
+
   return (
     <nav
       className="navbar navbar-expand-lg"
@@ -39,12 +56,13 @@ export default function Navbar() {
               </a>
             </li>
             <li className="nav-item">
-              <a
+              <button
+                type="button"
+                onClick={handleLogout}
                 className="btn btn-sm custom-button"
-                href="#"
               >
                 Cerrar sesión
-              </a>
+              </button>
             </li>
           </ul>
         </div>

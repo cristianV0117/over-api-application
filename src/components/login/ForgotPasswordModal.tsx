@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 interface ForgotPasswordModalProps {
   show: boolean;
@@ -12,17 +13,51 @@ export default function ForgotPasswordModal({
   onClose,
 }: ForgotPasswordModalProps) {
   const [visible, setVisible] = useState(false);
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (show) {
-      // inicia animación de entrada
       setTimeout(() => setVisible(true), 10);
     } else {
-      setVisible(false); // oculta inmediatamente
+      setVisible(false);
     }
   }, [show]);
 
-  if (!show && !visible) return null; // ni renderiza
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/email/forgot`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, name: "Usuario" }), // si no tienes nombre real
+        }
+      );
+
+      if (!res.ok) throw new Error("Error al enviar el correo");
+
+      toast.info("¡Se ha envíado un mensaje a tu correo electronico!");
+
+      setMessage("¡Correo enviado correctamente!");
+      setEmail("");
+      onClose();
+    } catch (err) {
+      setMessage("Hubo un error al enviar el correo.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!show && !visible) return null;
 
   return (
     <div
@@ -45,13 +80,7 @@ export default function ForgotPasswordModal({
             ></button>
           </div>
           <div className="modal-body">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                console.log("Enviando enlace de recuperación...");
-                onClose();
-              }}
-            >
+            <form onSubmit={handleSubmit}>
               <div className="mb-3">
                 <label htmlFor="forgotEmail" className="form-label">
                   Correo electrónico
@@ -59,6 +88,8 @@ export default function ForgotPasswordModal({
                 <input
                   type="email"
                   id="forgotEmail"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="form-control bg-secondary text-white border-0"
                   placeholder="usuario@correo.com"
                   required
@@ -68,9 +99,13 @@ export default function ForgotPasswordModal({
                 type="submit"
                 className="btn w-100"
                 style={{ backgroundColor: "#702CF4", color: "white" }}
+                disabled={loading}
               >
-                Enviar enlace
+                {loading ? "Enviando..." : "Enviar enlace"}
               </button>
+              {message && (
+                <p className="mt-3 text-center small text-warning">{message}</p>
+              )}
             </form>
           </div>
         </div>

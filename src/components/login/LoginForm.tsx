@@ -3,22 +3,50 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
 import ForgotPasswordModal from "@/components/login/ForgotPasswordModal";
+import { useRouter } from "next/navigation";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showForgotModal, setShowForgotModal] = useState(false);
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Inicio de sesión exitoso");
-    toast.error("Credenciales incorrectas");
-    toast.info("Cargando datos...");
-    console.log({ email, password });
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const message = Array.isArray(data.message)
+          ? data.message[0]
+          : data.message || "credenciales incorrectas";
+        toast.error(message);
+        return;
+      }
+
+      toast.success("Inicio de sesión exitoso");
+      document.cookie = `token=${data.token}; path=/; secure; samesite=lax`;
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Error al iniciar sesión", error);
+      toast.error("Error en el servidor");
+    }
   };
 
   const handleGoogleLogin = () => {
-    toast.info("Iniciando sesión con Google...");
+    window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google`;
   };
 
   return (
@@ -53,7 +81,6 @@ export default function LoginForm() {
               type="password"
               className="form-control bg-dark text-white border-0"
               id="password"
-              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
