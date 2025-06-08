@@ -6,13 +6,9 @@ import { toast } from "react-toastify";
 export default function Navbar() {
   const router = useRouter();
 
-  const handleLogout = async () => {
-    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
-
-    toast.info("¡Hasta pronto!");
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    toast.success("¡Hasta pronto!");
     setTimeout(() => {
       router.push("/");
     }, 900);

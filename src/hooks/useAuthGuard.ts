@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 export function useAuthGuard() {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [checking, setChecking] = useState(true); // renombrado
   const [user, setUser] = useState<{ name: string; email: string } | null>(
     null
   );
@@ -14,8 +14,12 @@ export function useAuthGuard() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        const token = localStorage.getItem("token");
+
         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/me`, {
-          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
 
         if (!res.ok) throw new Error("Unauthorized");
@@ -24,17 +28,17 @@ export function useAuthGuard() {
         setUser(data);
         setAuthorized(true);
       } catch (err) {
-        console.log(err);
+        console.error("Auth error:", err);
         setUser(null);
         setAuthorized(false);
-        router.push("/"); // 👈 Redirige si no está autorizado
+        router.replace("/"); // replace en vez de push para evitar ir hacia atrás
       } finally {
-        setLoading(false);
+        setChecking(false);
       }
     };
 
     checkAuth();
   }, [router]);
 
-  return { authorized, loading, user };
+  return { authorized, checking, user };
 }

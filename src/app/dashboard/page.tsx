@@ -1,12 +1,8 @@
 "use client";
-
-import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { useUser } from "@/context/userContext";
 
 export default function DashboardPage() {
-  const { authorized, loading, user } = useAuthGuard();
-
-  if (loading) return <div className="text-white p-4">Validando sesión...</div>;
-  if (!authorized) return null; // ya se redirige desde el hook
+  const user = useUser();
 
   return (
     <div className="text-white p-4">

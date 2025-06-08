@@ -37,6 +37,7 @@ export default function LoginForm() {
         return;
       }
 
+      localStorage.setItem("token", data.token);
       toast.success("Inicio de sesión exitoso");
       router.push("/dashboard");
     } catch (error) {
