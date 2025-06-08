@@ -22,6 +22,7 @@ export default function LoginForm() {
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({ email, password }),
         }
       );
@@ -37,7 +38,6 @@ export default function LoginForm() {
       }
 
       toast.success("Inicio de sesión exitoso");
-      document.cookie = `token=${data.token}; path=/; secure; samesite=lax`;
       router.push("/dashboard");
     } catch (error) {
       console.error("Error al iniciar sesión", error);
