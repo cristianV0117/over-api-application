@@ -12,12 +12,12 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { authorized, checking, user } = useAuthGuard();
+  const { authorized, checking, user, setUser } = useAuthGuard();
 
   if (checking || !authorized) return null;
 
   return (
-    <UserContext.Provider value={user}>
+    <UserContext.Provider value={{ user, setUser }}>
       <div className="d-flex flex-column min-vh-100">
         <Navbar />
         <div className="d-flex flex-grow-1">

@@ -7,9 +7,12 @@ export function useAuthGuard() {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
   const [checking, setChecking] = useState(true); // renombrado
-  const [user, setUser] = useState<{ name: string; email: string } | null>(
-    null
-  );
+  const [user, setUser] = useState<{
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+  } | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -40,5 +43,5 @@ export function useAuthGuard() {
     checkAuth();
   }, [router]);
 
-  return { authorized, checking, user };
+  return { authorized, checking, user, setUser };
 }

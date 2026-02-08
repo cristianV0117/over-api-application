@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useUser } from "@/context/userContext";
+import { avatarUrl } from "@/lib/api/profile";
 
 export default function Sidebar() {
+  const user = useUser();
+
   return (
     <div
       className="d-flex flex-column flex-shrink-0 p-3 text-white"
@@ -21,6 +25,11 @@ export default function Sidebar() {
           </Link>
         </li>
         <li>
+          <Link href="/dashboard/profile" className="nav-link text-white">
+            <i className="bi bi-person me-2"></i>Perfil
+          </Link>
+        </li>
+        <li>
           <Link href="#" className="nav-link text-white">
             <i className="bi bi-gear me-2"></i>Configuración
           </Link>
@@ -28,23 +37,24 @@ export default function Sidebar() {
       </ul>
       <hr />
       <div className="dropdown">
-        <a
+        <Link
           href="#"
           className="d-flex align-items-center text-white text-decoration-none dropdown-toggle"
           data-bs-toggle="dropdown"
         >
           <img
-            src="https://via.placeholder.com/32"
+            src={avatarUrl(user?.avatarUrl)}
             alt="avatar"
             className="rounded-circle me-2"
+            style={{ width: 32, height: 32, objectFit: "cover" }}
           />
-          <strong>Usuario</strong>
-        </a>
+          <strong>{user?.name ?? "Usuario"}</strong>
+        </Link>
         <ul className="dropdown-menu dropdown-menu-dark text-small shadow">
           <li>
-            <a className="dropdown-item" href="#">
+            <Link href="/dashboard/profile" className="dropdown-item">
               Perfil
-            </a>
+            </Link>
           </li>
           <li>
             <a className="dropdown-item" href="#">
