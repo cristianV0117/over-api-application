@@ -16,8 +16,8 @@ export default function Sidebar() {
           </Link>
         </li>
         <li>
-          <Link href="#" className="nav-link text-white">
-            <i className="bi bi-kanban me-2"></i>Tablero
+          <Link href="/dashboard/tasks" className="nav-link text-white">
+            <i className="bi bi-kanban me-2"></i>Tareas
           </Link>
         </li>
         <li>

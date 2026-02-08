@@ -5,6 +5,7 @@ import { UserContext } from "@/context/userContext";
 import Navbar from "@/components/menus/Navbar";
 import Sidebar from "@/components/menus/Sidebar";
 import Footer from "@/components/Footer";
+import AssistantWidget from "@/components/assistant/AssistantWidget";
 
 export default function DashboardLayout({
   children,
@@ -24,6 +25,7 @@ export default function DashboardLayout({
           <main className="flex-grow-1 p-4 bg-dark text-white">{children}</main>
         </div>
         <Footer />
+        <AssistantWidget />
       </div>
     </UserContext.Provider>
   );
