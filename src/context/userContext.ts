@@ -2,9 +2,23 @@
 
 import { createContext, useContext } from "react";
 
-export const UserContext = createContext<{
+export type UserContextValue = {
+  id: string;
   name: string;
   email: string;
-} | null>(null);
+  avatarUrl?: string | null;
+};
 
-export const useUser = () => useContext(UserContext);
+export type UserContextState = {
+  user: UserContextValue | null;
+  setUser: (user: UserContextValue | null) => void;
+};
+
+export const UserContext = createContext<UserContextState | null>(null);
+
+export const useUser = () => {
+  const ctx = useContext(UserContext);
+  return ctx?.user ?? null;
+};
+
+export const useSetUser = () => useContext(UserContext)?.setUser ?? (() => { });
