@@ -31,9 +31,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" data-bs-theme="dark">
+    <html lang="es" data-bs-theme="dark" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} d-flex flex-column min-vh-100 bg-dark`}
+        suppressHydrationWarning
       >
         {children}
         <ToastContainer
