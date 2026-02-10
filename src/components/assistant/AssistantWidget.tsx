@@ -76,7 +76,7 @@ export default function AssistantWidget() {
       const noIntentMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
-        content: 'No entendí. Puedes pedirme crear una tarea, por ejemplo: "Crea una tarea: Revisar PRs"',
+        content: `No entendí. Puedes pedirme crear una tarea, por ejemplo: "Crea una tarea: Revisar PRs"`,
       };
       setMessages((prev) => [...prev, noIntentMessage]);
     }
