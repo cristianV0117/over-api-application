@@ -10,8 +10,21 @@ import Container from "@mui/material/Container";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import Avatar from "@mui/material/Avatar";
+import Chip from "@mui/material/Chip";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemText from "@mui/material/ListItemText";
+import Accordion from "@mui/material/Accordion";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
 import LaunchIcon from "@mui/icons-material/Launch";
 import LoginIcon from "@mui/icons-material/Login";
+import WorkOutlineIcon from "@mui/icons-material/WorkOutline";
+import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
+import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { certificationEntries, educationEntries, experienceEntries } from "./professionalData";
 
 const bg = "#060608";
 const accentFrom = "#6b2fb8";
@@ -198,7 +211,10 @@ export default function CristianDevPage() {
                   <Typography sx={sectionTitleSx}>Sobre mí</Typography>
                   <Stack spacing={1.5}>
                     <Typography variant="body2" sx={{ color: muted, lineHeight: 1.75 }}>
-                      👨‍💻 FullStack hace <Box component="strong" sx={{ color: "#fff" }}>6 años</Box> y estudiante de Ingeniería de Sistemas.
+                      👨‍💻 Desarrollador FullStack con experiencia en backend y frontend (alrededor de <Box component="strong" sx={{ color: "#fff" }}>6 años</Box>).
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: muted, lineHeight: 1.75 }}>
+                      🎓 <Box component="strong" sx={{ color: "#fff" }}>Ingeniero en sistemas</Box> — Fundación de Educación Superior San José.
                     </Typography>
                     <Typography variant="body2" sx={{ color: muted, lineHeight: 1.75 }}>
                       💼 Experiencia en empresas de comercio y tecnología, backend y frontend.
@@ -211,6 +227,292 @@ export default function CristianDevPage() {
               </Card>
             </Stack>
           </Box>
+
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1, mt: 0.5 }}>
+            <WorkOutlineIcon sx={{ color: "primary.main", fontSize: 22 }} />
+            <Typography sx={{ ...sectionTitleSx, mb: 0 }}>Experiencia profesional</Typography>
+          </Stack>
+          <Typography variant="caption" sx={{ color: muted, mb: 1.5, display: "block" }}>
+            Toca cada cargo para ver el detalle · mismo contenido que en LinkedIn
+          </Typography>
+          <Card sx={{ ...bentoCardSx, borderRadius: 2, mb: 3, overflow: "hidden", py: 0 }}>
+            {experienceEntries.map((job, index) => (
+              <Accordion
+                key={`${job.company}-${job.period}`}
+                disableGutters
+                defaultExpanded={false}
+                sx={{
+                  bgcolor: "transparent",
+                  color: "inherit",
+                  boxShadow: "none",
+                  "&:before": { display: "none" },
+                  borderBottom:
+                    index < experienceEntries.length - 1 ? `1px solid ${line}` : "none",
+                }}
+              >
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon sx={{ color: muted, fontSize: 22 }} />}
+                  sx={{
+                    minHeight: 48,
+                    px: 1.5,
+                    py: 0.5,
+                    "& .MuiAccordionSummary-content": {
+                      my: 1,
+                      alignItems: "center",
+                      gap: 1.25,
+                    },
+                  }}
+                >
+                  <Avatar
+                    sx={{
+                      width: 34,
+                      height: 34,
+                      fontSize: "0.9rem",
+                      bgcolor: "rgba(124, 58, 237, 0.25)",
+                      color: "#e8deff",
+                      fontWeight: 800,
+                      border: `1px solid ${line}`,
+                    }}
+                    aria-hidden
+                  >
+                    {job.company.charAt(0)}
+                  </Avatar>
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography
+                      sx={{
+                        ...display,
+                        fontWeight: 700,
+                        fontSize: "0.9rem",
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {job.role}{" "}
+                      <Box component="span" sx={{ color: muted, fontWeight: 600 }}>
+                        · {job.company}
+                      </Box>
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: muted, display: "block", lineHeight: 1.35 }}
+                    >
+                      {job.period} · {job.duration}
+                      {" · "}
+                      {job.location}
+                      {job.modality && job.modality !== "—" ? ` · ${job.modality}` : ""}
+                    </Typography>
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails sx={{ pt: 0, px: 1.5, pb: 1.5, pl: { xs: 1.5, sm: 7 } }}>
+                  <Typography variant="caption" sx={{ color: muted, display: "block", mb: 1 }}>
+                    {job.employment}
+                  </Typography>
+                  {job.skills && job.skills.length > 0 && (
+                    <Stack direction="row" flexWrap="wrap" useFlexGap spacing={0.5} sx={{ mb: 1 }}>
+                      {job.skills.map((s) => (
+                        <Chip
+                          key={s}
+                          label={s}
+                          size="small"
+                          variant="outlined"
+                          sx={{
+                            borderColor: line,
+                            color: muted,
+                            height: 22,
+                            fontSize: "0.7rem",
+                          }}
+                        />
+                      ))}
+                    </Stack>
+                  )}
+                  <List
+                    dense
+                    disablePadding
+                    sx={{
+                      listStyleType: "disc",
+                      pl: 2,
+                      "& .MuiListItem-root": { display: "list-item", py: 0.15 },
+                    }}
+                  >
+                    {job.bullets.map((b, i) => (
+                      <ListItem key={`${job.company}-${i}`} disableGutters sx={{ alignItems: "flex-start" }}>
+                        <ListItemText
+                          primary={b}
+                          primaryTypographyProps={{
+                            variant: "caption",
+                            sx: { color: muted, lineHeight: 1.5, fontSize: "0.8rem" },
+                          }}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                </AccordionDetails>
+              </Accordion>
+            ))}
+          </Card>
+
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+            <SchoolOutlinedIcon sx={{ color: "primary.main", fontSize: 22 }} />
+            <Typography sx={{ ...sectionTitleSx, mb: 0 }}>Educación</Typography>
+          </Stack>
+          <Card sx={{ ...bentoCardSx, borderRadius: 2, mb: 3 }}>
+            <CardContent sx={{ py: 2, px: 2.5, "&:last-child": { pb: 2 } }}>
+              {educationEntries.map((edu) => (
+                <Stack key={edu.institution} direction="row" spacing={1.5} alignItems="flex-start">
+                  <Avatar
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      fontSize: "0.85rem",
+                      bgcolor: "rgba(201, 75, 109, 0.2)",
+                      color: "#ffc8d4",
+                      fontWeight: 800,
+                      border: `1px solid ${line}`,
+                    }}
+                    aria-hidden
+                  >
+                    {edu.institution.charAt(0)}
+                  </Avatar>
+                  <Box>
+                    <Typography sx={{ ...display, fontWeight: 800, fontSize: "0.95rem", lineHeight: 1.3 }}>
+                      {edu.degree}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "#fff", fontWeight: 600, fontSize: "0.85rem" }}>
+                      {edu.institution}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: muted }}>
+                      {edu.period}
+                    </Typography>
+                  </Box>
+                </Stack>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+            <MenuBookOutlinedIcon sx={{ color: "primary.main", fontSize: 22 }} />
+            <Typography sx={{ ...sectionTitleSx, mb: 0 }}>Cursos y certificaciones</Typography>
+          </Stack>
+          <Typography variant="caption" sx={{ color: muted, mb: 1.5, display: "block" }}>
+            Licencias finalizadas (Platzi y Codely). Si añades{" "}
+            <Box component="code" sx={{ fontSize: "0.75rem", color: "#e8deff" }}>diplomaUrl</Box> en{" "}
+            <Box component="code" sx={{ fontSize: "0.75rem" }}>professionalData.ts</Box>, aparecerá el enlace a la credencial.
+          </Typography>
+          <Card sx={{ ...bentoCardSx, borderRadius: 2, mb: 3, overflow: "hidden" }}>
+            {certificationEntries.map((c, index) => {
+              const isPlatzi = c.issuer === "Platzi";
+              return (
+                <Box
+                  key={`${c.title}-${c.date}`}
+                  sx={{
+                    px: 2,
+                    py: 1.25,
+                    borderBottom:
+                      index < certificationEntries.length - 1 ? `1px solid ${line}` : "none",
+                  }}
+                >
+                  <Stack direction="row" spacing={1.25} alignItems="flex-start">
+                    <Avatar
+                      sx={{
+                        width: 34,
+                        height: 34,
+                        fontSize: "0.8rem",
+                        fontWeight: 800,
+                        flexShrink: 0,
+                        ...(isPlatzi
+                          ? {
+                              bgcolor: "#0f9d58",
+                              color: "#fff",
+                            }
+                          : {
+                              bgcolor: "#111",
+                              color: "#3cff85",
+                              border: `1px solid rgba(60,255,133,0.35)`,
+                            }),
+                      }}
+                      aria-hidden
+                    >
+                      {isPlatzi ? "P" : "C"}
+                    </Avatar>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography
+                        sx={{
+                          ...display,
+                          fontWeight: 700,
+                          fontSize: "0.9rem",
+                          lineHeight: 1.35,
+                          mb: 0.25,
+                        }}
+                      >
+                        {c.title}
+                      </Typography>
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        flexWrap="wrap"
+                        useFlexGap
+                        spacing={1}
+                        sx={{ gap: 0.75, mb: c.skills?.length ? 0.75 : 0 }}
+                      >
+                        <Typography variant="caption" sx={{ color: muted }}>
+                          {c.issuer} · {c.date}
+                        </Typography>
+                        {c.diplomaUrl && (
+                          <Link
+                            href={c.diplomaUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 0.25,
+                              fontSize: "0.75rem",
+                              fontWeight: 600,
+                              color: "#f5b4ff",
+                            }}
+                          >
+                            Ver credencial <LaunchIcon sx={{ fontSize: 14 }} />
+                          </Link>
+                        )}
+                      </Stack>
+                      {c.credentialId && (
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            display: "block",
+                            color: "rgba(255,255,255,0.38)",
+                            fontFamily: "ui-monospace, monospace",
+                            fontSize: "0.65rem",
+                            mt: 0.25,
+                            wordBreak: "break-all",
+                          }}
+                        >
+                          ID: {c.credentialId}
+                        </Typography>
+                      )}
+                      {c.skills && c.skills.length > 0 && (
+                        <Stack direction="row" flexWrap="wrap" useFlexGap spacing={0.5} sx={{ mt: 0.75 }}>
+                          {c.skills.map((s) => (
+                            <Chip
+                              key={s}
+                              label={s}
+                              size="small"
+                              variant="outlined"
+                              sx={{
+                                borderColor: line,
+                                color: muted,
+                                height: 22,
+                                fontSize: "0.68rem",
+                              }}
+                            />
+                          ))}
+                        </Stack>
+                      )}
+                    </Box>
+                  </Stack>
+                </Box>
+              );
+            })}
+          </Card>
 
           {/* Bento grid */}
           <Box
