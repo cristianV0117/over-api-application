@@ -78,8 +78,7 @@ export const appTheme = createTheme({
     MuiDrawer: {
       styleOverrides: {
         paper: {
-          borderRight: "1px solid",
-          borderColor: "divider",
+          borderRight: "1px solid rgba(255, 255, 255, 0.04)",
           backgroundImage:
             "linear-gradient(180deg, rgba(124, 58, 237, 0.06) 0%, transparent 40%)",
         },
