@@ -2,12 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useUser, useSetUser } from "@/context/userContext";
-import {
-  getProfile,
-  updateProfile,
-  avatarUrl,
-} from "@/lib/api/profile";
+import { getProfile, updateProfile, avatarUrl } from "@/lib/api/profile";
 import { toast } from "react-toastify";
+import Avatar from "@mui/material/Avatar";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import PhotoCamera from "@mui/icons-material/PhotoCamera";
+import CircularProgress from "@mui/material/CircularProgress";
 
 export default function ProfilePage() {
   const contextUser = useUser();
@@ -73,85 +79,90 @@ export default function ProfilePage() {
   };
 
   if (initialLoading) {
-    return <p className="text-secondary">Cargando perfil...</p>;
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
-    <div className="text-white">
-      <h1 className="display-6 mb-4">Editar perfil</h1>
+    <Box>
+      <Typography variant="h4" gutterBottom>
+        Editar perfil
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 560 }}>
+        Actualiza tu nombre y foto. El correo queda vinculado a tu cuenta.
+      </Typography>
 
-      <div
-        className="rounded p-4"
-        style={{ backgroundColor: "#1B1F22", maxWidth: "400px" }}
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 3, sm: 4 },
+          maxWidth: 480,
+          border: 1,
+          borderColor: "divider",
+        }}
       >
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4 text-center">
-            <label className="d-block mb-2 small text-secondary">
+        <Stack spacing={3} component="form" onSubmit={handleSubmit}>
+          <Box textAlign="center">
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
               Foto de perfil
-            </label>
-            <div className="position-relative d-inline-block">
-              <img
+            </Typography>
+            <Box sx={{ position: "relative", display: "inline-block" }}>
+              <Avatar
                 src={avatarPreview || avatarUrl(contextUser?.avatarUrl)}
-                alt="Avatar"
-                className="rounded-circle"
-                style={{ width: 96, height: 96, objectFit: "cover" }}
+                alt=""
+                sx={{ width: 104, height: 104, border: "3px solid", borderColor: "primary.main" }}
               />
-              <label
-                className="position-absolute bottom-0 end-0 rounded-circle bg-primary d-flex align-items-center justify-content-center text-white cursor-pointer"
-                style={{
-                  width: 32,
-                  height: 32,
-                  cursor: "pointer",
+              <IconButton
+                component="label"
+                color="primary"
+                sx={{
+                  position: "absolute",
+                  bottom: 4,
+                  right: 4,
+                  bgcolor: "background.paper",
+                  border: 1,
+                  borderColor: "divider",
+                  "&:hover": { bgcolor: "action.hover" },
                 }}
+                size="small"
+                aria-label="Subir foto"
               >
-                <i className="bi bi-camera-fill small" />
+                <PhotoCamera fontSize="small" />
                 <input
                   type="file"
                   accept="image/*"
-                  className="d-none"
+                  hidden
                   onChange={handleAvatarChange}
-                  aria-label="Subir foto"
                 />
-              </label>
-            </div>
-          </div>
+              </IconButton>
+            </Box>
+          </Box>
 
-          <div className="mb-3">
-            <label htmlFor="profileName" className="form-label">
-              Nombre
-            </label>
-            <input
-              type="text"
-              id="profileName"
-              className="form-control bg-dark text-white border-secondary"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Tu nombre"
-            />
-          </div>
+          <TextField
+            label="Nombre"
+            id="profileName"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Tu nombre"
+            fullWidth
+          />
 
-          <div className="mb-3">
-            <label className="form-label text-secondary">Email</label>
-            <input
-              type="text"
-              className="form-control bg-dark text-secondary border-secondary"
-              value={contextUser?.email ?? ""}
-              readOnly
-              disabled
-            />
-            <small className="text-secondary">El email no se puede cambiar</small>
-          </div>
+          <TextField
+            label="Email"
+            value={contextUser?.email ?? ""}
+            fullWidth
+            disabled
+            helperText="El email no se puede cambiar"
+          />
 
-          <button
-            type="submit"
-            className="btn w-100"
-            style={{ backgroundColor: "#702CF4", color: "white" }}
-            disabled={loading}
-          >
-            {loading ? "Guardando..." : "Guardar cambios"}
-          </button>
-        </form>
-      </div>
-    </div>
+          <Button type="submit" variant="contained" color="primary" size="large" disabled={loading} fullWidth>
+            {loading ? "Guardando…" : "Guardar cambios"}
+          </Button>
+        </Stack>
+      </Paper>
+    </Box>
   );
 }

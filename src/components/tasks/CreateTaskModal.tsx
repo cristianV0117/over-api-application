@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 import { toast } from "react-toastify";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import IconButton from "@mui/material/IconButton";
+import MenuItem from "@mui/material/MenuItem";
+import TextField from "@mui/material/TextField";
+import CloseIcon from "@mui/icons-material/Close";
 import {
   createTask,
   TASK_PRIORITIES,
@@ -24,6 +33,10 @@ export default function CreateTaskModal({
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("normal");
   const [loading, setLoading] = useState(false);
+
+  const handleClose = () => {
+    if (!loading) onClose();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,98 +62,77 @@ export default function CreateTaskModal({
     }
   };
 
-  if (!show) return null;
-
   return (
-    <div
-      className="modal fade d-block show"
-      tabIndex={-1}
-      role="dialog"
-      style={{
-        backgroundColor: "rgba(0,0,0,0.7)",
-      }}
-    >
-      <div className="modal-dialog modal-dialog-centered" role="document">
-        <div className="modal-content bg-dark text-white">
-          <div className="modal-header">
-            <h5 className="modal-title">Nueva tarea</h5>
-            <button
-              type="button"
-              className="btn-close btn-close-white"
-              onClick={onClose}
-              aria-label="Cerrar"
-            />
-          </div>
-          <div className="modal-body">
-            <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <label htmlFor="taskTitle" className="form-label">
-                  Título
-                </label>
-                <input
-                  type="text"
-                  id="taskTitle"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="form-control bg-secondary text-white border-0"
-                  placeholder="Ej: Revisar PRs"
-                  required
-                />
-              </div>
-              <div className="mb-3">
-                <label htmlFor="taskDescription" className="form-label">
-                  Descripción (opcional)
-                </label>
-                <textarea
-                  id="taskDescription"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="form-control bg-secondary text-white border-0"
-                  rows={3}
-                  placeholder="Detalles de la tarea..."
-                />
-              </div>
-              <div className="mb-3">
-                <label htmlFor="taskPriority" className="form-label">
-                  Prioridad
-                </label>
-                <select
-                  id="taskPriority"
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                  className="form-select bg-secondary text-white border-0"
-                >
-                  {TASK_PRIORITIES.map((p) => (
-                    <option key={p.value} value={p.value}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="mb-3">
-                <label htmlFor="taskDueDate" className="form-label">
-                  Fecha límite (opcional)
-                </label>
-                <input
-                  type="datetime-local"
-                  id="taskDueDate"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="form-control bg-secondary text-white border-0"
-                />
-              </div>
-              <button
-                type="submit"
-                className="btn w-100"
-                style={{ backgroundColor: "#702CF4", color: "white" }}
-                disabled={loading}
-              >
-                {loading ? "Creando..." : "Crear tarea"}
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
+    <Dialog open={show} onClose={handleClose} maxWidth="sm" fullWidth scroll="body">
+      <form onSubmit={handleSubmit}>
+        <DialogTitle sx={{ pr: 6 }}>
+          Nueva tarea
+          <IconButton
+            aria-label="cerrar"
+            onClick={handleClose}
+            disabled={loading}
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <TextField
+            label="Título"
+            id="taskTitle"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Ej: Revisar PRs"
+            required
+            fullWidth
+            sx={{ mb: 2 }}
+            autoFocus
+          />
+          <TextField
+            label="Descripción (opcional)"
+            id="taskDescription"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Detalles de la tarea…"
+            multiline
+            rows={3}
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            select
+            label="Prioridad"
+            id="taskPriority"
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as TaskPriority)}
+            fullWidth
+            sx={{ mb: 2 }}
+          >
+            {TASK_PRIORITIES.map((p) => (
+              <MenuItem key={p.value} value={p.value}>
+                {p.label}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            label="Fecha límite (opcional)"
+            type="datetime-local"
+            id="taskDueDate"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            fullWidth
+            InputLabelProps={{ shrink: true }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={handleClose} color="inherit" disabled={loading}>
+            Cancelar
+          </Button>
+          <Button type="submit" variant="contained" color="primary" disabled={loading}>
+            {loading ? "Creando…" : "Crear tarea"}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 }

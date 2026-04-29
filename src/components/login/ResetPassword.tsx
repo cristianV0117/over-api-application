@@ -1,6 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Button from "@mui/material/Button";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
@@ -14,57 +20,61 @@ export default function ResetPassword() {
       return;
     }
 
-    // Aquí iría la llamada a tu backend con el token
     console.log("Nueva contraseña:", password);
   };
 
   return (
-    <div className="d-flex justify-content-center align-items-center vh-100 bg-dark text-white">
-      <div
-        className="card p-4"
-        style={{ backgroundColor: "#1B1F22", width: "100%", maxWidth: "420px" }}
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        bgcolor: "background.default",
+        px: 2,
+      }}
+    >
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 3, sm: 4 },
+          width: "100%",
+          maxWidth: 420,
+          border: 1,
+          borderColor: "divider",
+        }}
       >
-        <h2 className="text-center mb-4" style={{ color: "#A259FF" }}>
-          Restablecer contraseña
-        </h2>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label htmlFor="password" className="form-label">
-              Nueva contraseña
-            </label>
-            <input
-              type="password"
-              id="password"
-              className="form-control bg-secondary text-white border-0"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-            />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="confirmPassword" className="form-label">
-              Confirmar contraseña
-            </label>
-            <input
-              type="password"
-              id="confirmPassword"
-              className="form-control bg-secondary text-white border-0"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-            />
-          </div>
-          <button
-            type="submit"
-            className="btn w-100"
-            style={{ backgroundColor: "#702CF4", color: "#fff" }}
-          >
+        <Stack spacing={2.5} component="form" onSubmit={handleSubmit}>
+          <Typography variant="h5" fontWeight={700} textAlign="center" color="primary">
+            Restablecer contraseña
+          </Typography>
+          <TextField
+            label="Nueva contraseña"
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            fullWidth
+            placeholder="••••••••"
+            autoComplete="new-password"
+          />
+          <TextField
+            label="Confirmar contraseña"
+            type="password"
+            id="confirmPassword"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            fullWidth
+            placeholder="••••••••"
+            autoComplete="new-password"
+          />
+          <Button type="submit" variant="contained" color="primary" size="large" fullWidth>
             Guardar nueva contraseña
-          </button>
-        </form>
-      </div>
-    </div>
+          </Button>
+        </Stack>
+      </Paper>
+    </Box>
   );
 }

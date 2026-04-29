@@ -1,15 +1,1 @@
-.gradient-title {
-  font-weight: bold;
-  font-size: 6rem; /* más grande */
-  background: linear-gradient(90deg, #702CF4, #a55cf7);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-align: center;
-}
-
-
-
-.custom-button {
-  background-color: #702CF4 !important;
-  color: white !important;
-}
+/* Reservado para overrides mínimos; la mayoría del estilo vive en MUI theme */

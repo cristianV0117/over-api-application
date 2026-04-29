@@ -1,9 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "react-toastify";
-import ForgotPasswordModal from "@/components/login/ForgotPasswordModal";
+import NextLink from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Divider from "@mui/material/Divider";
+import Link from "@mui/material/Link";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import LoginIcon from "@mui/icons-material/Login";
+import ForgotPasswordModal from "@/components/login/ForgotPasswordModal";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -32,7 +42,7 @@ export default function LoginForm() {
       if (!response.ok) {
         const message = Array.isArray(data.message)
           ? data.message[0]
-          : data.message || "credenciales incorrectas";
+          : data.message || "Credenciales incorrectas";
         toast.error(message);
         return;
       }
@@ -52,83 +62,86 @@ export default function LoginForm() {
 
   return (
     <>
-      <div className="card col-md-6 p-4" style={{ backgroundColor: "#1B1F22" }}>
-        <form onSubmit={handleSubmit}>
-          <h2 className="mb-4 text-white text-center d-flex align-items-center justify-content-center gap-2">
-            <i className="bi bi-box-arrow-in-right"></i>
-            Iniciar sesión
-          </h2>
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 3, sm: 4 },
+          width: "100%",
+          maxWidth: 440,
+          border: 1,
+          borderColor: "divider",
+          bgcolor: "background.paper",
+        }}
+      >
+        <Stack spacing={2.5} component="form" onSubmit={handleSubmit}>
+          <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+            <LoginIcon color="primary" />
+            <Typography variant="h5" fontWeight={700}>
+              Iniciar sesión
+            </Typography>
+          </Stack>
 
-          <div className="mb-3">
-            <label htmlFor="email" className="form-label text-white">
-              Correo electrónico
-            </label>
-            <input
-              type="email"
-              className="form-control bg-dark text-white border-0"
-              id="email"
-              placeholder="usuario@correo.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+          <TextField
+            label="Correo electrónico"
+            type="email"
+            id="email"
+            placeholder="usuario@correo.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            fullWidth
+            autoComplete="email"
+          />
 
-          <div className="mb-2">
-            <label htmlFor="password" className="form-label text-white">
-              Contraseña
-            </label>
-            <input
-              type="password"
-              className="form-control bg-dark text-white border-0"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+          <TextField
+            label="Contraseña"
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            fullWidth
+            autoComplete="current-password"
+          />
 
-          <div className="text-end mb-3">
-            <button
+          <Box textAlign="right">
+            <Link
+              component="button"
               type="button"
+              variant="body2"
               onClick={() => setShowForgotModal(true)}
-              className="btn btn-link p-0"
-              style={{ color: "#702CF4" }}
+              sx={{ cursor: "pointer", border: "none", background: "none", font: "inherit" }}
             >
               ¿Olvidaste tu contraseña?
-            </button>
-          </div>
+            </Link>
+          </Box>
 
-          <button
-            type="submit"
-            className="btn w-100 mb-3"
-            style={{ backgroundColor: "#702CF4", color: "white" }}
-          >
+          <Button type="submit" variant="contained" color="primary" size="large" fullWidth>
             Ingresar
-          </button>
+          </Button>
 
-          <div className="text-center text-white mb-3">o</div>
+          <Divider sx={{ color: "text.secondary" }}>o</Divider>
 
-          <button
+          <Button
             type="button"
+            variant="outlined"
+            color="inherit"
+            size="large"
+            fullWidth
             onClick={handleGoogleLogin}
-            className="btn btn-outline-light w-100 d-flex align-items-center justify-content-center gap-2"
+            sx={{ borderColor: "divider" }}
           >
-            <i className="bi bi-google"></i> Iniciar sesión con Google
-          </button>
+            Continuar con Google
+          </Button>
 
-          <div className="text-center mt-4">
-            <span className="text-white">¿No tienes cuenta? </span>
-            <a
-              href="#"
-              className="text-decoration-none"
-              style={{ color: "#702CF4" }}
-            >
+          <Typography variant="body2" color="text.secondary" textAlign="center">
+            ¿No tienes cuenta?{" "}
+            <Link component={NextLink} href="#" color="primary" underline="hover">
               Regístrate
-            </a>
-          </div>
-        </form>
-      </div>
+            </Link>
+          </Typography>
+        </Stack>
+      </Paper>
 
       <ForgotPasswordModal
         show={showForgotModal}

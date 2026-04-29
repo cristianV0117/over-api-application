@@ -13,9 +13,22 @@ import {
 } from "@/lib/api/tasks";
 import CreateTaskModal from "@/components/tasks/CreateTaskModal";
 import { toast } from "react-toastify";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Chip from "@mui/material/Chip";
+import FormControl from "@mui/material/FormControl";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
+import Skeleton from "@mui/material/Skeleton";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import AddIcon from "@mui/icons-material/Add";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 
 const COLUMN_ORDER = ["To Do", "In Progress", "Done"];
-const DUE_SOON_MS = 24 * 60 * 60 * 1000; // 1 día
+const DUE_SOON_MS = 24 * 60 * 60 * 1000;
 
 function getDueWarning(
   dueDate?: string,
@@ -46,14 +59,16 @@ function priorityLabel(p: TaskPriority): string {
   return TASK_PRIORITIES.find((x) => x.value === p)?.label ?? p;
 }
 
-function priorityBadgeClass(p: TaskPriority): string {
+function priorityColor(
+  p: TaskPriority
+): "error" | "default" | "primary" | "warning" {
   switch (p) {
     case "high":
-      return "bg-danger";
+      return "error";
     case "low":
-      return "bg-secondary";
+      return "default";
     default:
-      return "bg-primary";
+      return "primary";
   }
 }
 
@@ -65,7 +80,7 @@ function getStatusColor(statusName?: string): string {
       return "#f59e0b";
     case "to do":
     default:
-      return "#702CF4";
+      return "#7c3aed";
   }
 }
 
@@ -76,9 +91,7 @@ function orderedStatuses(statuses: TaskStatus[]): TaskStatus[] {
     );
     return i === -1 ? 999 : i;
   };
-  return [...statuses].sort(
-    (a, b) => indexOf(a.name) - indexOf(b.name)
-  );
+  return [...statuses].sort((a, b) => indexOf(a.name) - indexOf(b.name));
 }
 
 export default function TasksPage() {
@@ -117,7 +130,6 @@ export default function TasksPage() {
     loadTasks();
   }, []);
 
-  // Alerta al cargar si hay tareas por vencer o vencidas (solo una vez por conjunto de tareas)
   useEffect(() => {
     if (loading || tasks.length === 0) return;
     const key = tasks.map((t) => `${t.id}-${t.dueDate ?? ""}`).join(",");
@@ -137,12 +149,12 @@ export default function TasksPage() {
         );
       } else if (overdue.length > 0) {
         toast.warning(
-          `${overdue.length} tarea(s) vencida(s): ${overdue.map((t) => t.title).slice(0, 2).join(", ")}${overdue.length > 2 ? "..." : ""}`,
+          `${overdue.length} tarea(s) vencida(s): ${overdue.map((t) => t.title).slice(0, 2).join(", ")}${overdue.length > 2 ? "…" : ""}`,
           { autoClose: 6000 }
         );
       } else {
         toast.warning(
-          `${dueSoon.length} tarea(s) por vencer en menos de 1 día: ${dueSoon.map((t) => t.title).slice(0, 2).join(", ")}${dueSoon.length > 2 ? "..." : ""}`,
+          `${dueSoon.length} tarea(s) por vencer en menos de 1 día: ${dueSoon.map((t) => t.title).slice(0, 2).join(", ")}${dueSoon.length > 2 ? "…" : ""}`,
           { autoClose: 6000 }
         );
       }
@@ -166,9 +178,7 @@ export default function TasksPage() {
     setUpdatingTaskId(taskId);
     try {
       const updated = await updateTaskStatus(taskId, statusId);
-      setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? updated : t))
-      );
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
       toast.success("Estado actualizado");
     } catch {
       toast.error("Error al actualizar estado");
@@ -178,172 +188,199 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="text-white">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="display-6 mb-0">Tareas</h1>
-        <button
-          type="button"
-          className="btn d-flex align-items-center gap-2"
-          style={{ backgroundColor: "#702CF4", color: "white" }}
+    <Box>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        alignItems={{ xs: "stretch", sm: "center" }}
+        justifyContent="space-between"
+        gap={2}
+        sx={{ mb: 3 }}
+      >
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            Tareas
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Organiza el trabajo con columnas por estado. Arrastra mentalmente; aquí cambias el estado con el selector.
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
           onClick={() => setShowModal(true)}
+          sx={{ alignSelf: { sm: "center" } }}
         >
-          <i className="bi bi-plus-lg" />
           Nueva tarea
-        </button>
-      </div>
+        </Button>
+      </Stack>
 
       {loading ? (
-        <p className="text-secondary">Cargando tareas...</p>
+        <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} variant="rounded" height={420} sx={{ flex: 1, borderRadius: 2 }} />
+          ))}
+        </Stack>
       ) : (
-        <div
-          className="d-flex gap-3 overflow-x-auto pb-2"
-          style={{ minHeight: "70vh" }}
+        <Box
+          sx={{
+            display: "flex",
+            gap: 2,
+            overflowX: "auto",
+            pb: 1,
+            minHeight: "65vh",
+            alignItems: "flex-start",
+          }}
         >
           {columns.map((status) => {
             const columnTasks = tasksByStatus.get(status.id) ?? [];
             const headerColor = getStatusColor(status.name);
             return (
-              <div
+              <Box
                 key={status.id}
-                className="flex-shrink-0 rounded-3 d-flex flex-column"
-                style={{
-                  width: "min(320px, 100%)",
-                  backgroundColor: "rgba(27, 31, 34, 0.6)",
-                  border: `1px solid ${headerColor}40`,
+                sx={{
+                  flex: "0 0 auto",
+                  width: "min(320px, 88vw)",
+                  borderRadius: 2,
+                  border: 1,
+                  borderColor: `${headerColor}55`,
+                  bgcolor: "background.paper",
+                  display: "flex",
+                  flexDirection: "column",
+                  maxHeight: "calc(100vh - 220px)",
                 }}
               >
-                <div
-                  className="rounded-top-3 px-3 py-2 d-flex align-items-center justify-content-between"
-                  style={{
-                    backgroundColor: `${headerColor}30`,
-                    borderBottom: `2px solid ${headerColor}`,
+                <Box
+                  sx={{
+                    px: 2,
+                    py: 1.5,
+                    borderTopLeftRadius: 8,
+                    borderTopRightRadius: 8,
+                    bgcolor: `${headerColor}22`,
+                    borderBottom: 2,
+                    borderColor: headerColor,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                   }}
                 >
-                  <span className="fw-semibold text-white">{status.name}</span>
-                  <span
-                    className="badge rounded-pill"
-                    style={{ backgroundColor: headerColor }}
-                  >
-                    {columnTasks.length}
-                  </span>
-                </div>
-                <div
-                  className="flex-grow-1 p-2 overflow-y-auto"
-                  style={{ minHeight: "200px" }}
-                >
+                  <Typography fontWeight={700}>{status.name}</Typography>
+                  <Chip
+                    size="small"
+                    label={columnTasks.length}
+                    sx={{ bgcolor: headerColor, color: "#fff", fontWeight: 700 }}
+                  />
+                </Box>
+                <Box sx={{ p: 1.5, overflowY: "auto", flex: 1, minHeight: 120 }}>
                   {columnTasks.length === 0 ? (
-                    <p className="text-secondary small text-center py-4 mb-0">
+                    <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ py: 4 }}>
                       Sin tareas
-                    </p>
+                    </Typography>
                   ) : (
                     columnTasks.map((t) => {
                       const dueWarning = getDueWarning(t.dueDate, t.statusName);
                       return (
-                        <div
+                        <Card
                           key={t.id}
-                          className="card border-0 shadow-sm mb-2"
-                          style={{
-                            backgroundColor: "#1B1F22",
-                            ...(dueWarning
-                              ? {
-                                borderLeft: `3px solid ${dueWarning === "overdue" ? "#dc3545" : "#f59e0b"}`,
-                              }
-                              : {}),
+                          variant="outlined"
+                          sx={{
+                            mb: 1.5,
+                            bgcolor: "action.hover",
+                            borderLeftWidth: dueWarning ? 3 : 1,
+                            borderLeftColor:
+                              dueWarning === "overdue"
+                                ? "error.main"
+                                : dueWarning === "due_soon"
+                                  ? "warning.main"
+                                  : "divider",
                           }}
                         >
-                          <div className="card-body py-2 px-3">
-                            <div className="d-flex align-items-center gap-1 flex-wrap">
-                              <h6 className="card-title text-white mb-0 text-truncate small flex-grow-1">
+                          <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
+                            <Stack direction="row" alignItems="flex-start" spacing={0.5} flexWrap="wrap" useFlexGap>
+                              <Typography variant="subtitle2" sx={{ flex: "1 1 auto", fontWeight: 700 }} noWrap>
                                 {t.title}
-                              </h6>
+                              </Typography>
                               {dueWarning && (
-                                <span
-                                  className="badge rounded-pill flex-shrink-0"
-                                  style={{
-                                    fontSize: "0.6rem",
-                                    backgroundColor:
-                                      dueWarning === "overdue"
-                                        ? "#dc3545"
-                                        : "#f59e0b",
-                                  }}
-                                >
-                                  {dueWarning === "overdue"
-                                    ? "Vencida"
-                                    : "Por vencer"}
-                                </span>
+                                <Chip
+                                  size="small"
+                                  label={dueWarning === "overdue" ? "Vencida" : "Por vencer"}
+                                  color={dueWarning === "overdue" ? "error" : "warning"}
+                                  sx={{ height: 22, fontSize: "0.65rem" }}
+                                />
                               )}
-                            </div>
-                            <p
-                              className="card-text text-secondary small mb-2"
-                              style={{
+                            </Stack>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{
                                 display: "-webkit-box",
                                 WebkitLineClamp: 2,
                                 WebkitBoxOrient: "vertical",
                                 overflow: "hidden",
+                                mt: 0.5,
+                                minHeight: 32,
+                                fontStyle: t.description ? "normal" : "italic",
                               }}
                             >
-                              {t.description ? (
-                                t.description.length > 60
-                                  ? `${t.description.slice(0, 60)}...`
+                              {t.description
+                                ? t.description.length > 60
+                                  ? `${t.description.slice(0, 60)}…`
                                   : t.description
-                              ) : (
-                                <span className="fst-italic">Sin descripción</span>
-                              )}
-                            </p>
-                            <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
-                              <span
-                                className={`badge rounded-pill ${priorityBadgeClass(
-                                  t.priority ?? "normal"
-                                )}`}
-                                style={{ fontSize: "0.65rem" }}
-                              >
-                                {priorityLabel(t.priority ?? "normal")}
-                              </span>
+                                : "Sin descripción"}
+                            </Typography>
+                            <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
+                              <Chip
+                                size="small"
+                                label={priorityLabel(t.priority ?? "normal")}
+                                color={priorityColor(t.priority ?? "normal")}
+                                variant={t.priority === "low" ? "outlined" : "filled"}
+                                sx={{ height: 22, fontSize: "0.65rem" }}
+                              />
                               {statuses.length > 0 && (
-                                <select
-                                  className="form-select form-select-sm border-0 rounded-pill text-white"
-                                  style={{
-                                    backgroundColor: getStatusColor(t.statusName),
-                                    width: "auto",
-                                    minWidth: "90px",
-                                    cursor: "pointer",
-                                    fontSize: "0.65rem",
-                                    padding: "0.2rem 0.4rem",
-                                  }}
-                                  value={t.statusId}
-                                  onChange={(e) =>
-                                    handleStatusChange(t.id, e.target.value)
-                                  }
-                                  disabled={updatingTaskId === t.id}
-                                  aria-label="Cambiar estado"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {statuses.map((s) => (
-                                    <option
-                                      key={s.id}
-                                      value={s.id}
-                                      className="bg-dark text-white"
-                                    >
-                                      {s.name}
-                                    </option>
-                                  ))}
-                                </select>
+                                <FormControl size="small" sx={{ minWidth: 110 }}>
+                                  <Select
+                                    value={t.statusId}
+                                    onChange={(e) =>
+                                      handleStatusChange(t.id, e.target.value as string)
+                                    }
+                                    disabled={updatingTaskId === t.id}
+                                    sx={{
+                                      fontSize: "0.75rem",
+                                      bgcolor: getStatusColor(t.statusName),
+                                      color: "#fff",
+                                      borderRadius: 10,
+                                      "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+                                    }}
+                                    inputProps={{ "aria-label": "Cambiar estado" }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {statuses.map((s) => (
+                                      <MenuItem key={s.id} value={s.id} dense>
+                                        {s.name}
+                                      </MenuItem>
+                                    ))}
+                                  </Select>
+                                </FormControl>
                               )}
-                            </div>
-                            <div className="text-secondary small mt-1" style={{ fontSize: "0.7rem" }}>
-                              <i className="bi bi-calendar3 me-1" />
+                            </Stack>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ mt: 1, display: "flex", alignItems: "center", gap: 0.5 }}
+                            >
+                              <CalendarMonthOutlinedIcon sx={{ fontSize: 14 }} />
                               {formatDueDate(t.dueDate)}
-                            </div>
-                          </div>
-                        </div>
+                            </Typography>
+                          </CardContent>
+                        </Card>
                       );
                     })
                   )}
-                </div>
-              </div>
+                </Box>
+              </Box>
             );
           })}
-        </div>
+        </Box>
       )}
 
       <CreateTaskModal
@@ -351,6 +388,6 @@ export default function TasksPage() {
         onClose={() => setShowModal(false)}
         onCreated={loadTasks}
       />
-    </div>
+    </Box>
   );
 }

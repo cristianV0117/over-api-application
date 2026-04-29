@@ -1,7 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "react-toastify";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import IconButton from "@mui/material/IconButton";
+import TextField from "@mui/material/TextField";
+import CloseIcon from "@mui/icons-material/Close";
 
 interface ForgotPasswordModalProps {
   show: boolean;
@@ -12,23 +20,12 @@ export default function ForgotPasswordModal({
   show,
   onClose,
 }: ForgotPasswordModalProps) {
-  const [visible, setVisible] = useState(false);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    if (show) {
-      setTimeout(() => setVisible(true), 10);
-    } else {
-      setVisible(false);
-    }
-  }, [show]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setMessage("");
 
     try {
       const res = await fetch(
@@ -38,78 +35,58 @@ export default function ForgotPasswordModal({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email, name: "Usuario" }), // si no tienes nombre real
+          body: JSON.stringify({ email, name: "Usuario" }),
         }
       );
 
       if (!res.ok) throw new Error("Error al enviar el correo");
 
-      toast.info("¡Se ha envíado un mensaje a tu correo electronico!");
-
-      setMessage("¡Correo enviado correctamente!");
+      toast.info("Revisa tu bandeja de correo");
       setEmail("");
       onClose();
     } catch (err) {
-      setMessage("Hubo un error al enviar el correo.");
+      toast.error("No se pudo enviar el enlace");
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  if (!show && !visible) return null;
-
   return (
-    <div
-      className={`modal fade ${show ? "d-block" : "d-none"} ${visible ? "show" : ""}`}
-      tabIndex={-1}
-      role="dialog"
-      style={{
-        backgroundColor: "rgba(0,0,0,0.7)",
-        transition: "opacity 0.3s ease",
-      }}
-    >
-      <div className="modal-dialog modal-dialog-centered" role="document">
-        <div className="modal-content bg-dark text-white">
-          <div className="modal-header">
-            <h5 className="modal-title">Recuperar contraseña</h5>
-            <button
-              type="button"
-              className="btn-close btn-close-white"
-              onClick={onClose}
-            ></button>
-          </div>
-          <div className="modal-body">
-            <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <label htmlFor="forgotEmail" className="form-label">
-                  Correo electrónico
-                </label>
-                <input
-                  type="email"
-                  id="forgotEmail"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="form-control bg-secondary text-white border-0"
-                  placeholder="usuario@correo.com"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="btn w-100"
-                style={{ backgroundColor: "#702CF4", color: "white" }}
-                disabled={loading}
-              >
-                {loading ? "Enviando..." : "Enviar enlace"}
-              </button>
-              {message && (
-                <p className="mt-3 text-center small text-warning">{message}</p>
-              )}
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
+    <Dialog open={show} onClose={onClose} maxWidth="sm" fullWidth scroll="body">
+      <DialogTitle sx={{ pr: 6 }}>
+        Recuperar contraseña
+        <IconButton
+          aria-label="cerrar"
+          onClick={onClose}
+          sx={{ position: "absolute", right: 8, top: 8 }}
+        >
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <form onSubmit={handleSubmit}>
+        <DialogContent dividers>
+          <TextField
+            label="Correo electrónico"
+            type="email"
+            id="forgotEmail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="usuario@correo.com"
+            required
+            fullWidth
+            autoFocus
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={onClose} color="inherit">
+            Cancelar
+          </Button>
+          <Button type="submit" variant="contained" color="primary" disabled={loading}>
+            {loading ? "Enviando…" : "Enviar enlace"}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 }

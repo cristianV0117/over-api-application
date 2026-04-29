@@ -1,14 +1,9 @@
-// ✅ NUEVA ORGANIZACIÓN DE COMPONENTES Y CLASES
-
-// --- layout.tsx ---
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "simple-datatables/dist/style.css";
 import "./globals.css";
-import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap-icons/font/bootstrap-icons.css";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer, Zoom } from "react-toastify";
+import AppProviders from "@/components/providers/AppProviders";
 
 export const metadata: Metadata = {
   title: "OVER APP",
@@ -31,18 +26,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" data-bs-theme="dark" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} d-flex flex-column min-vh-100 bg-dark`}
+        className={`${geistSans.variable} ${geistMono.variable}`}
         suppressHydrationWarning
       >
-        {children}
-        <ToastContainer
-          position="top-right"
-          autoClose={4000}
-          transition={Zoom}
-          theme="dark"
-        />
+        <AppProviders>
+          {children}
+          <ToastContainer
+            position="top-right"
+            autoClose={4000}
+            transition={Zoom}
+            theme="dark"
+          />
+        </AppProviders>
       </body>
     </html>
   );
