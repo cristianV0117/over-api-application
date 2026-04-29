@@ -1,8 +1,21 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import NextLink from "next/link";
 import { createTask, type Task } from "@/lib/api/tasks";
 import { parseCreateTaskIntent } from "@/lib/chat/parseCreateTask";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Fab from "@mui/material/Fab";
+import IconButton from "@mui/material/IconButton";
+import Paper from "@mui/material/Paper";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import Link from "@mui/material/Link";
+import Fade from "@mui/material/Fade";
+import ChatIcon from "@mui/icons-material/Chat";
+import CloseIcon from "@mui/icons-material/Close";
+import SendIcon from "@mui/icons-material/Send";
 
 type MessageRole = "user" | "assistant";
 
@@ -76,7 +89,8 @@ export default function AssistantWidget() {
       const noIntentMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
-        content: `No entendí. Puedes pedirme crear una tarea, por ejemplo: "Crea una tarea: Revisar PRs"`,
+        content:
+          'No entendí. Prueba algo como: "Crea una tarea: Revisar PRs"',
       };
       setMessages((prev) => [...prev, noIntentMessage]);
     }
@@ -86,90 +100,112 @@ export default function AssistantWidget() {
 
   return (
     <>
-      {/* Botón flotante */}
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="border-0 rounded-3 shadow d-flex align-items-center gap-2 px-3 py-2 text-white"
-        style={{
-          position: "fixed",
-          bottom: "24px",
-          right: "24px",
-          backgroundColor: "#702CF4",
-          zIndex: 1040,
-        }}
+      <Fab
+        color="primary"
         aria-label={open ? "Cerrar asistente" : "Abrir asistente"}
+        onClick={() => setOpen((o) => !o)}
+        sx={{
+          position: "fixed",
+          right: 24,
+          bottom: 24,
+          zIndex: (t) => t.zIndex.drawer + 2,
+          px: 2,
+          gap: 1,
+          borderRadius: 3,
+          boxShadow: "0 8px 32px rgba(124, 58, 237, 0.35)",
+        }}
+        variant="extended"
       >
-        <i className="bi bi-chat-dots-fill" />
-        <span>Asistente</span>
-      </button>
+        <ChatIcon />
+        Asistente
+      </Fab>
 
-      {/* Panel tipo modal */}
-      {open && (
-        <>
-          <div
-            role="button"
-            tabIndex={0}
-            className="border-0"
-            style={{
-              position: "fixed",
-              inset: 0,
-              backgroundColor: "rgba(0,0,0,0.4)",
-              zIndex: 1041,
-            }}
+      <Fade in={open}>
+        <Box
+          sx={{
+            display: open ? "block" : "none",
+            position: "fixed",
+            inset: 0,
+            zIndex: (t) => t.zIndex.drawer + 1,
+            pointerEvents: open ? "auto" : "none",
+          }}
+        >
+          <Box
+            role="presentation"
             onClick={() => setOpen(false)}
-            onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
-            aria-label="Cerrar"
+            sx={{
+              position: "absolute",
+              inset: 0,
+              bgcolor: "rgba(0,0,0,0.5)",
+              backdropFilter: "blur(2px)",
+            }}
           />
-          <div
-            className="rounded-3 shadow-lg d-flex flex-column text-white overflow-hidden"
-            style={{
+          <Paper
+            elevation={12}
+            sx={{
               position: "fixed",
-              bottom: "80px",
-              right: "24px",
+              right: 24,
+              bottom: 96,
               width: "min(420px, calc(100vw - 48px))",
               height: "min(520px, calc(100vh - 120px))",
-              backgroundColor: "#1B1F22",
-              zIndex: 1042,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              border: 1,
+              borderColor: "divider",
+              zIndex: 2,
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom border-secondary">
-              <span className="fw-semibold">
-                <i className="bi bi-chat-dots me-2" />
+            <Box
+              sx={{
+                px: 2,
+                py: 1.5,
+                borderBottom: 1,
+                borderColor: "divider",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Typography variant="subtitle1" fontWeight={700}>
+                <ChatIcon sx={{ mr: 1, verticalAlign: "text-bottom", fontSize: 20 }} />
                 {BOT_NAME}
-              </span>
-              <button
-                type="button"
-                className="btn btn-sm btn-link text-white p-0"
-                onClick={() => setOpen(false)}
-                aria-label="Cerrar"
-              >
-                <i className="bi bi-x-lg" />
-              </button>
-            </div>
+              </Typography>
+              <IconButton size="small" onClick={() => setOpen(false)} aria-label="Cerrar">
+                <CloseIcon />
+              </IconButton>
+            </Box>
 
-            <div className="p-3 overflow-auto flex-grow-1" style={{ minHeight: 0 }}>
+            <Box sx={{ flex: 1, overflow: "auto", p: 2, minHeight: 0 }}>
               {messages.map((msg) => (
-                <div
+                <Box
                   key={msg.id}
-                  className={`d-flex mb-3 ${msg.role === "user" ? "justify-content-end" : "justify-content-start"}`}
+                  sx={{
+                    display: "flex",
+                    justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
+                    mb: 2,
+                  }}
                 >
-                  <div
-                    className="rounded-3 px-3 py-2 shadow-sm"
-                    style={{
+                  <Box
+                    sx={{
                       maxWidth: "85%",
-                      backgroundColor:
+                      px: 2,
+                      py: 1.25,
+                      borderRadius: 3,
+                      bgcolor:
                         msg.role === "user"
-                          ? "#702CF4"
-                          : "rgba(255,255,255,0.08)",
+                          ? "primary.main"
+                          : "action.hover",
+                      color: msg.role === "user" ? "primary.contrastText" : "text.primary",
                     }}
                   >
                     {msg.role === "assistant" && (
-                      <span className="small text-secondary d-block mb-1">
+                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
                         {BOT_NAME}
-                      </span>
+                      </Typography>
                     )}
-                    <div style={{ whiteSpace: "pre-wrap" }}>
+                    <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
                       {msg.content.split("**").map((part, i) =>
                         i % 2 === 1 ? (
                           <strong key={i}>{part}</strong>
@@ -177,62 +213,60 @@ export default function AssistantWidget() {
                           <span key={i}>{part}</span>
                         )
                       )}
-                    </div>
+                    </Typography>
                     {msg.taskCreated && (
-                      <a
+                      <Link
+                        component={NextLink}
                         href="/dashboard/tasks"
-                        className="small mt-2 d-inline-block"
-                        style={{ color: "#702CF4" }}
+                        color="inherit"
+                        underline="always"
+                        sx={{ display: "inline-block", mt: 1, fontSize: "0.8rem", opacity: 0.9 }}
                         onClick={() => setOpen(false)}
                       >
                         Ver tareas →
-                      </a>
+                      </Link>
                     )}
-                  </div>
-                </div>
+                  </Box>
+                </Box>
               ))}
               {loading && (
-                <div className="d-flex justify-content-start mb-3">
-                  <div
-                    className="rounded-3 px-3 py-2"
-                    style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
-                  >
-                    <span className="small text-secondary">Pensando...</span>
-                  </div>
-                </div>
+                <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 2 }}>
+                  <Box sx={{ px: 2, py: 1, borderRadius: 3, bgcolor: "action.hover" }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Pensando…
+                    </Typography>
+                  </Box>
+                </Box>
               )}
               <div ref={messagesEndRef} />
-            </div>
+            </Box>
 
-            <form
-              onSubmit={handleSubmit}
-              className="p-3 border-top border-secondary"
-              style={{ backgroundColor: "rgba(0,0,0,0.2)" }}
-            >
-              <div className="input-group input-group-sm">
-                <input
-                  type="text"
-                  className="form-control bg-dark text-white border-secondary"
-                  placeholder="Crea una tarea: ..."
+            <Box component="form" onSubmit={handleSubmit} sx={{ p: 2, borderTop: 1, borderColor: "divider", bgcolor: "action.hover" }}>
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  placeholder="Crea una tarea: …"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   disabled={loading}
                   aria-label="Mensaje"
                 />
-                <button
+                <Button
                   type="submit"
-                  className="btn btn-sm"
-                  style={{ backgroundColor: "#702CF4", color: "white" }}
+                  variant="contained"
+                  color="primary"
                   disabled={loading || !input.trim()}
+                  sx={{ minWidth: 48, px: 1.5 }}
                   aria-label="Enviar"
                 >
-                  <i className="bi bi-send-fill" />
-                </button>
-              </div>
-            </form>
-          </div>
-        </>
-      )}
+                  <SendIcon fontSize="small" />
+                </Button>
+              </Box>
+            </Box>
+          </Paper>
+        </Box>
+      </Fade>
     </>
   );
 }
