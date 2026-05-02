@@ -136,7 +136,7 @@ export default function LoginForm() {
 
           <Typography variant="body2" color="text.secondary" textAlign="center">
             ¿No tienes cuenta?{" "}
-            <Link component={NextLink} href="#" color="primary" underline="hover">
+            <Link component={NextLink} href="/register" color="primary" underline="hover">
               Regístrate
             </Link>
           </Typography>
