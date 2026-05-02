@@ -62,6 +62,12 @@ export type FinanceRecurringRule = {
   isActive: boolean;
 };
 
+export type FinanceLiquiditySnapshot = {
+  currency: "COP";
+  total: number;
+  accounts: { label: string; amount: number }[];
+};
+
 export type FinanceSummary = {
   year: number;
   month: number;
@@ -73,7 +79,24 @@ export type FinanceSummary = {
   expenseBreakdown: { categoryId: string; categoryName: string; total: number }[];
   expenses: FinanceExpense[];
   remaining: number;
+  liquidity: FinanceLiquiditySnapshot;
 };
+
+export async function putFinanceLiquidity(data: {
+  accounts: { label: string; amount: number }[];
+}): Promise<FinanceLiquiditySnapshot> {
+  const res = await fetch(`${BASE}/finance/liquidity`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const message = Array.isArray(err.message) ? err.message[0] : err.message;
+    throw new Error(message || "Error al guardar saldos");
+  }
+  return res.json();
+}
 
 export async function getFinanceSummary(
   params: FinanceMonthParams
@@ -82,7 +105,15 @@ export async function getFinanceSummary(
     headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error("Error al cargar resumen");
-  return res.json();
+  const data = await res.json();
+  return {
+    ...data,
+    liquidity: data.liquidity ?? {
+      currency: "COP" as const,
+      total: 0,
+      accounts: [],
+    },
+  };
 }
 
 export async function listIncomeCategories(): Promise<IncomeCategory[]> {
