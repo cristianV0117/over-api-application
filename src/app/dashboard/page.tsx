@@ -18,6 +18,7 @@ import Typography from "@mui/material/Typography";
 import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
 import ViewKanbanOutlinedIcon from "@mui/icons-material/ViewKanbanOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
@@ -275,6 +276,27 @@ export default function DashboardPage() {
           <CardActions sx={{ px: 2, pb: 2 }}>
             <Button component={NextLink} href="/dashboard/tasks" variant="contained" size="small">
               Ir a tareas
+            </Button>
+          </CardActions>
+        </Card>
+        <Card variant="outlined" sx={{ flex: "1 1 260px", maxWidth: 360 }}>
+          <CardContent>
+            <AccountBalanceWalletOutlinedIcon color="primary" sx={{ mb: 1 }} />
+            <Typography variant="h6" fontWeight={700}>
+              Contabilidad
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Ingresos del mes, categorías y gastos en COP.
+            </Typography>
+          </CardContent>
+          <CardActions sx={{ px: 2, pb: 2 }}>
+            <Button
+              component={NextLink}
+              href="/dashboard/contabilidad"
+              variant="contained"
+              size="small"
+            >
+              Ir a contabilidad
             </Button>
           </CardActions>
         </Card>

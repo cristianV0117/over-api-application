@@ -17,6 +17,7 @@ import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
 import ViewKanbanOutlinedIcon from "@mui/icons-material/ViewKanbanOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import { useUser } from "@/context/userContext";
 import { avatarUrl } from "@/lib/api/profile";
 
@@ -25,6 +26,11 @@ const DRAWER_WIDTH = 268;
 const items = [
   { href: "/dashboard/users", label: "Usuarios", Icon: PeopleOutlineIcon },
   { href: "/dashboard/tasks", label: "Tareas", Icon: ViewKanbanOutlinedIcon },
+  {
+    href: "/dashboard/contabilidad",
+    label: "Contabilidad",
+    Icon: AccountBalanceWalletOutlinedIcon,
+  },
   { href: "/dashboard/profile", label: "Perfil", Icon: PersonOutlineIcon },
   { href: "#", label: "Configuración", Icon: SettingsOutlinedIcon, disabled: true },
 ];
