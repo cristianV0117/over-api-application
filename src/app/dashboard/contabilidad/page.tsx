@@ -36,6 +36,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import {
   createExpenseCategory,
   createFinanceExpense,
@@ -52,6 +53,7 @@ import {
   listExpenseCategories,
   listIncomeCategories,
   listRecurringExpenses,
+  putFinanceLiquidity,
   type ExpenseCategory,
   type FinanceExpense,
   type FinanceIncomeLine,
@@ -140,6 +142,11 @@ export default function ContabilidadPage() {
   const [recLabel, setRecLabel] = useState("");
   const [recNotes, setRecNotes] = useState("");
   const [recActive, setRecActive] = useState(true);
+
+  const [liquidityDialogOpen, setLiquidityDialogOpen] = useState(false);
+  const [liquidityRows, setLiquidityRows] = useState<
+    { label: string; amount: string }[]
+  >([{ label: "", amount: "" }]);
 
   const loadIncomeCategories = useCallback(async () => {
     setIncomeCategories(await listIncomeCategories());
@@ -484,6 +491,34 @@ export default function ContabilidadPage() {
     }
   };
 
+  const openConfigureLiquidity = () => {
+    const acc = summary?.liquidity?.accounts ?? [];
+    setLiquidityRows(
+      acc.length > 0
+        ? acc.map((a) => ({ label: a.label, amount: String(a.amount) }))
+        : [{ label: "", amount: "" }]
+    );
+    setLiquidityDialogOpen(true);
+  };
+
+  const saveLiquidity = async () => {
+    const accounts = liquidityRows
+      .map((r) => ({
+        label: r.label.trim(),
+        amount:
+          Number(String(r.amount).replace(/\./g, "").replace(/,/g, "")) || 0,
+      }))
+      .filter((r) => r.label.length > 0);
+    try {
+      await putFinanceLiquidity({ accounts });
+      toast.success("Saldos guardados");
+      setLiquidityDialogOpen(false);
+      await loadSummary();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al guardar");
+    }
+  };
+
   const remaining = summary?.remaining ?? 0;
   const remainingColor = remaining >= 0 ? "success.main" : "error.main";
 
@@ -599,6 +634,56 @@ export default function ContabilidadPage() {
               </CardContent>
             </Card>
           </Stack>
+
+          <Card
+            sx={{
+              mb: 3,
+              borderColor: "primary.main",
+              borderWidth: 1,
+              borderStyle: "solid",
+            }}
+            variant="outlined"
+          >
+            <CardContent>
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={2}
+                alignItems={{ sm: "center" }}
+                justifyContent="space-between"
+              >
+                <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                  <AccountBalanceWalletOutlinedIcon
+                    color="primary"
+                    sx={{ mt: 0.5, fontSize: 36 }}
+                  />
+                  <Box>
+                    <Typography color="text.secondary" variant="body2">
+                      Total en tus cuentas (saldos reales)
+                    </Typography>
+                    <Typography variant="h5" fontWeight={800}>
+                      {formatCop(summary.liquidity?.total ?? 0)}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      display="block"
+                      sx={{ mt: 0.5, maxWidth: 560 }}
+                    >
+                      Suma de lo que tienes en bancos, Nequi, Daviplata… Tú lo actualizas a mano; no es lo mismo
+                      que «ingresos del mes» (que solo suma movimientos registrados).
+                    </Typography>
+                  </Box>
+                </Stack>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={openConfigureLiquidity}
+                >
+                  Configurar o agregar cuentas
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
 
           <Paper sx={{ p: 2, mb: 3 }}>
             <Stack
@@ -1234,6 +1319,81 @@ export default function ContabilidadPage() {
         <DialogActions>
           <Button onClick={() => setRecDialogOpen(false)}>Cancelar</Button>
           <Button onClick={saveRec} variant="contained">
+            Guardar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={liquidityDialogOpen}
+        onClose={() => setLiquidityDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Saldos por cuenta</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Indica cuánto tienes hoy en cada sitio. El total de arriba es la suma
+            de estas filas.
+          </Typography>
+          <Stack spacing={2} sx={{ mt: 0.5 }}>
+            {liquidityRows.map((row, idx) => (
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1} key={idx} alignItems="flex-start">
+                <TextField
+                  label="Nombre (ej. Banco BBVA)"
+                  value={row.label}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setLiquidityRows((prev) =>
+                      prev.map((p, i) => (i === idx ? { ...p, label: v } : p))
+                    );
+                  }}
+                  fullWidth
+                  size="small"
+                />
+                <TextField
+                  label="Saldo COP"
+                  value={row.amount}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setLiquidityRows((prev) =>
+                      prev.map((p, i) => (i === idx ? { ...p, amount: v } : p))
+                    );
+                  }}
+                  size="small"
+                  sx={{ minWidth: { sm: 160 } }}
+                />
+                <IconButton
+                  aria-label="Quitar fila"
+                  size="small"
+                  onClick={() =>
+                    setLiquidityRows((prev) =>
+                      prev.filter((_, i) => i !== idx)
+                    )
+                  }
+                  sx={{ mt: { xs: 0, sm: 0.5 } }}
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              </Stack>
+            ))}
+            <Button
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() =>
+                setLiquidityRows((prev) => [
+                  ...prev,
+                  { label: "", amount: "" },
+                ])
+              }
+            >
+              Agregar cuenta
+            </Button>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLiquidityDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={saveLiquidity} variant="contained">
             Guardar
           </Button>
         </DialogActions>
