@@ -10,6 +10,7 @@ import Sidebar from "@/components/menus/Sidebar";
 import Footer from "@/components/Footer";
 import AssistantWidget from "@/components/assistant/AssistantWidget";
 import ImpersonationBanner from "@/components/users/ImpersonationBanner";
+import InstallPWABanner from "@/components/pwa/InstallPWABanner";
 
 export default function DashboardLayout({
   children,
@@ -64,6 +65,7 @@ export default function DashboardLayout({
                 py: { xs: 2, md: 3 },
               }}
             >
+              <InstallPWABanner />
               {children}
             </Box>
           </Box>

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
@@ -12,7 +12,23 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "OVER APP",
-  description: "Over app application",
+  description: "Tareas, contabilidad y perfil en un solo lugar.",
+  applicationName: "OVER APP",
+  appleWebApp: {
+    capable: true,
+    title: "OVER APP",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#7c3aed",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 const geistSans = Geist({
