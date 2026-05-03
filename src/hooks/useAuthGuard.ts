@@ -11,6 +11,7 @@ export function useAuthGuard() {
     id: string;
     name: string;
     email: string;
+    role?: "admin" | "user";
     avatarUrl?: string | null;
   } | null>(null);
 

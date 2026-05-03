@@ -48,6 +48,7 @@ export type FinanceExpense = {
   label?: string;
   isRecurring?: boolean;
   recurringRuleId?: string;
+  paid?: boolean;
 };
 
 export type FinanceRecurringRule = {
@@ -307,13 +308,23 @@ export async function updateFinanceExpense(
     amount?: number;
     occurredAt?: string;
     notes?: string;
-  }
+    paid?: boolean;
+  },
+  monthForRecurring?: FinanceMonthParams
 ): Promise<FinanceExpense> {
-  const res = await fetch(`${BASE}/finance/expenses/${id}`, {
-    method: "PATCH",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(data),
-  });
+  const isRecurring = id.startsWith("recurring:");
+  const q =
+    isRecurring && monthForRecurring
+      ? `?${monthQuery(monthForRecurring)}`
+      : "";
+  const res = await fetch(
+    `${BASE}/finance/expenses/${encodeURIComponent(id)}${q}`,
+    {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    }
+  );
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     const message = Array.isArray(err.message) ? err.message[0] : err.message;

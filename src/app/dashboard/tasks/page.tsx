@@ -5,6 +5,7 @@ import {
   getTasks,
   getTaskStatuses,
   updateTaskStatus,
+  patchTask,
   sortTasksByPriority,
   type Task,
   type TaskPriority,
@@ -23,9 +24,9 @@ import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import AddIcon from "@mui/icons-material/Add";
-import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 
 const COLUMN_ORDER = ["To Do", "In Progress", "Done"];
 const DUE_SOON_MS = 24 * 60 * 60 * 1000;
@@ -43,33 +44,11 @@ function getDueWarning(
   return null;
 }
 
-function formatDueDate(iso?: string) {
-  if (!iso) return "—";
+function toDatetimeLocalValue(iso?: string) {
+  if (!iso) return "";
   const d = new Date(iso);
-  return d.toLocaleDateString("es", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function priorityLabel(p: TaskPriority): string {
-  return TASK_PRIORITIES.find((x) => x.value === p)?.label ?? p;
-}
-
-function priorityColor(
-  p: TaskPriority
-): "error" | "default" | "primary" | "warning" {
-  switch (p) {
-    case "high":
-      return "error";
-    case "low":
-      return "default";
-    default:
-      return "primary";
-  }
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function getStatusColor(statusName?: string): string {
@@ -101,6 +80,9 @@ export default function TasksPage() {
   const [showModal, setShowModal] = useState(false);
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
   const alertedForTasksRef = useRef<string>("");
+  const titleBeforeEdit = useRef<Record<string, string>>({});
+  const descBeforeEdit = useRef<Record<string, string>>({});
+  const dueBeforeEdit = useRef<Record<string, string>>({});
 
   const loadTasks = async () => {
     try {
@@ -182,6 +164,18 @@ export default function TasksPage() {
       toast.success("Estado actualizado");
     } catch {
       toast.error("Error al actualizar estado");
+    } finally {
+      setUpdatingTaskId(null);
+    }
+  };
+
+  const handlePriorityChange = async (taskId: string, priority: TaskPriority) => {
+    setUpdatingTaskId(taskId);
+    try {
+      const updated = await patchTask(taskId, { priority });
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
+    } catch {
+      toast.error("No se pudo actualizar la prioridad");
     } finally {
       setUpdatingTaskId(null);
     }
@@ -296,46 +290,130 @@ export default function TasksPage() {
                           }}
                         >
                           <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-                            <Stack direction="row" alignItems="flex-start" spacing={0.5} flexWrap="wrap" useFlexGap>
-                              <Typography variant="subtitle2" sx={{ flex: "1 1 auto", fontWeight: 700 }} noWrap>
-                                {t.title}
-                              </Typography>
+                            <Stack direction="row" alignItems="flex-start" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mb: 0.5 }}>
+                              <TextField
+                                size="small"
+                                fullWidth
+                                label="Título"
+                                value={t.title}
+                                onChange={(e) =>
+                                  setTasks((prev) =>
+                                    prev.map((x) =>
+                                      x.id === t.id ? { ...x, title: e.target.value } : x
+                                    )
+                                  )
+                                }
+                                onFocus={() => {
+                                  titleBeforeEdit.current[t.id] = t.title;
+                                }}
+                                onBlur={async (e) => {
+                                  const v = e.target.value.trim();
+                                  if (v === titleBeforeEdit.current[t.id]) return;
+                                  if (!v) {
+                                    setTasks((prev) =>
+                                      prev.map((x) =>
+                                        x.id === t.id
+                                          ? { ...x, title: titleBeforeEdit.current[t.id] }
+                                          : x
+                                      )
+                                    );
+                                    return;
+                                  }
+                                  try {
+                                    const updated = await patchTask(t.id, { title: v });
+                                    setTasks((prev) =>
+                                      prev.map((x) => (x.id === t.id ? updated : x))
+                                    );
+                                  } catch {
+                                    toast.error("No se pudo guardar el título");
+                                    setTasks((prev) =>
+                                      prev.map((x) =>
+                                        x.id === t.id
+                                          ? { ...x, title: titleBeforeEdit.current[t.id] }
+                                          : x
+                                      )
+                                    );
+                                  }
+                                }}
+                                variant="standard"
+                                InputProps={{ disableUnderline: false }}
+                              />
                               {dueWarning && (
                                 <Chip
                                   size="small"
                                   label={dueWarning === "overdue" ? "Vencida" : "Por vencer"}
                                   color={dueWarning === "overdue" ? "error" : "warning"}
-                                  sx={{ height: 22, fontSize: "0.65rem" }}
+                                  sx={{ height: 22, fontSize: "0.65rem", flexShrink: 0 }}
                                 />
                               )}
                             </Stack>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              sx={{
-                                display: "-webkit-box",
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: "vertical",
-                                overflow: "hidden",
-                                mt: 0.5,
-                                minHeight: 32,
-                                fontStyle: t.description ? "normal" : "italic",
+                            <TextField
+                              size="small"
+                              fullWidth
+                              label="Descripción"
+                              multiline
+                              minRows={2}
+                              placeholder="Sin descripción"
+                              value={t.description ?? ""}
+                              onChange={(e) =>
+                                setTasks((prev) =>
+                                  prev.map((x) =>
+                                    x.id === t.id ? { ...x, description: e.target.value } : x
+                                  )
+                                )
+                              }
+                              onFocus={() => {
+                                descBeforeEdit.current[t.id] = t.description ?? "";
                               }}
-                            >
-                              {t.description
-                                ? t.description.length > 60
-                                  ? `${t.description.slice(0, 60)}…`
-                                  : t.description
-                                : "Sin descripción"}
-                            </Typography>
+                              onBlur={async (e) => {
+                                const v = e.target.value;
+                                if (v === descBeforeEdit.current[t.id]) return;
+                                try {
+                                  const updated = await patchTask(t.id, {
+                                    description: v.trim() || undefined,
+                                  });
+                                  setTasks((prev) =>
+                                    prev.map((x) => (x.id === t.id ? updated : x))
+                                  );
+                                } catch {
+                                  toast.error("No se pudo guardar la descripción");
+                                  setTasks((prev) =>
+                                    prev.map((x) =>
+                                      x.id === t.id
+                                        ? {
+                                            ...x,
+                                            description: descBeforeEdit.current[t.id],
+                                          }
+                                        : x
+                                    )
+                                  );
+                                }
+                              }}
+                              variant="outlined"
+                              sx={{ mt: 1 }}
+                            />
                             <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
-                              <Chip
-                                size="small"
-                                label={priorityLabel(t.priority ?? "normal")}
-                                color={priorityColor(t.priority ?? "normal")}
-                                variant={t.priority === "low" ? "outlined" : "filled"}
-                                sx={{ height: 22, fontSize: "0.65rem" }}
-                              />
+                              <FormControl size="small" sx={{ minWidth: 120 }}>
+                                <Select
+                                  value={t.priority ?? "normal"}
+                                  onChange={(e) =>
+                                    handlePriorityChange(
+                                      t.id,
+                                      e.target.value as TaskPriority
+                                    )
+                                  }
+                                  disabled={updatingTaskId === t.id}
+                                  displayEmpty
+                                  sx={{ fontSize: "0.8rem" }}
+                                  inputProps={{ "aria-label": "Prioridad" }}
+                                >
+                                  {TASK_PRIORITIES.map((p) => (
+                                    <MenuItem key={p.value} value={p.value} dense>
+                                      {p.label}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
                               {statuses.length > 0 && (
                                 <FormControl size="small" sx={{ minWidth: 110 }}>
                                   <Select
@@ -363,14 +441,53 @@ export default function TasksPage() {
                                 </FormControl>
                               )}
                             </Stack>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              sx={{ mt: 1, display: "flex", alignItems: "center", gap: 0.5 }}
-                            >
-                              <CalendarMonthOutlinedIcon sx={{ fontSize: 14 }} />
-                              {formatDueDate(t.dueDate)}
-                            </Typography>
+                            <TextField
+                              type="datetime-local"
+                              size="small"
+                              fullWidth
+                              label="Vencimiento"
+                              value={toDatetimeLocalValue(t.dueDate)}
+                              onChange={(e) => {
+                                const iso = e.target.value
+                                  ? new Date(e.target.value).toISOString()
+                                  : undefined;
+                                setTasks((prev) =>
+                                  prev.map((x) =>
+                                    x.id === t.id ? { ...x, dueDate: iso } : x
+                                  )
+                                );
+                              }}
+                              onFocus={() => {
+                                dueBeforeEdit.current[t.id] = t.dueDate ?? "";
+                              }}
+                              onBlur={async (e) => {
+                                const localVal = e.target.value;
+                                const newIso = localVal
+                                  ? new Date(localVal).toISOString()
+                                  : undefined;
+                                const prev = dueBeforeEdit.current[t.id] || undefined;
+                                if (newIso === prev || (!newIso && !prev)) return;
+                                try {
+                                  const updated = await patchTask(t.id, {
+                                    dueDate: newIso,
+                                  });
+                                  setTasks((prevTasks) =>
+                                    prevTasks.map((x) => (x.id === t.id ? updated : x))
+                                  );
+                                } catch {
+                                  toast.error("No se pudo guardar la fecha");
+                                  setTasks((prevTasks) =>
+                                    prevTasks.map((x) =>
+                                      x.id === t.id
+                                        ? { ...x, dueDate: prev }
+                                        : x
+                                    )
+                                  );
+                                }
+                              }}
+                              sx={{ mt: 1 }}
+                              InputLabelProps={{ shrink: true }}
+                            />
                           </CardContent>
                         </Card>
                       );

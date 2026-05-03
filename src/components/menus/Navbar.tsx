@@ -86,6 +86,18 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
           >
             Inicio
           </Button>
+          <Button
+            component={Link}
+            href="/cristiandev"
+            color="inherit"
+            sx={{
+              color: "text.secondary",
+              "&:hover": { color: "primary.light" },
+              ...(pathname.startsWith("/cristiandev") && { color: "text.primary" }),
+            }}
+          >
+            CristianDev
+          </Button>
           <Button href="#" color="inherit" sx={{ color: "text.secondary" }}>
             Funciones
           </Button>

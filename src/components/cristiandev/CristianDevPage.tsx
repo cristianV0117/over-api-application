@@ -388,130 +388,160 @@ export default function CristianDevPage() {
             </CardContent>
           </Card>
 
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-            <MenuBookOutlinedIcon sx={{ color: "primary.main", fontSize: 22 }} />
-            <Typography sx={{ ...sectionTitleSx, mb: 0 }}>Cursos y certificaciones</Typography>
-          </Stack>
-          <Typography variant="caption" sx={{ color: muted, mb: 1.5, display: "block" }}>
-            Licencias finalizadas (Platzi y Codely). Si añades{" "}
-            <Box component="code" sx={{ fontSize: "0.75rem", color: "#e8deff" }}>diplomaUrl</Box> en{" "}
-            <Box component="code" sx={{ fontSize: "0.75rem" }}>professionalData.ts</Box>, aparecerá el enlace a la credencial.
-          </Typography>
-          <Card sx={{ ...bentoCardSx, borderRadius: 2, mb: 3, overflow: "hidden" }}>
-            {certificationEntries.map((c, index) => {
-              const isPlatzi = c.issuer === "Platzi";
-              return (
-                <Box
-                  key={`${c.title}-${c.date}`}
-                  sx={{
-                    px: 2,
-                    py: 1.25,
-                    borderBottom:
-                      index < certificationEntries.length - 1 ? `1px solid ${line}` : "none",
-                  }}
-                >
-                  <Stack direction="row" spacing={1.25} alignItems="flex-start">
-                    <Avatar
+          <Card sx={{ ...bentoCardSx, borderRadius: 2, mb: 3, overflow: "hidden", py: 0 }}>
+            <Accordion
+              disableGutters
+              defaultExpanded={false}
+              sx={{
+                bgcolor: "transparent",
+                color: "inherit",
+                boxShadow: "none",
+                "&:before": { display: "none" },
+              }}
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon sx={{ color: muted, fontSize: 22 }} />}
+                sx={{
+                  minHeight: 56,
+                  px: 2,
+                  py: 0.75,
+                  "& .MuiAccordionSummary-content": {
+                    my: 1,
+                    alignItems: "center",
+                    gap: 1.25,
+                  },
+                }}
+              >
+                <MenuBookOutlinedIcon sx={{ color: "primary.main", fontSize: 22, flexShrink: 0 }} />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography sx={{ ...sectionTitleSx, mb: 0 }}>Cursos y certificaciones</Typography>
+                  <Typography variant="caption" sx={{ color: muted, display: "block", lineHeight: 1.35 }}>
+                    {certificationEntries.length} licencias · Platzi y Codely
+                  </Typography>
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails sx={{ pt: 0, px: 0, pb: 0 }}>
+                <Typography variant="caption" sx={{ color: muted, mb: 1.5, display: "block", px: 2, pt: 0.5 }}>
+                  Licencias finalizadas. Si añades{" "}
+                  <Box component="code" sx={{ fontSize: "0.75rem", color: "#e8deff" }}>diplomaUrl</Box> en{" "}
+                  <Box component="code" sx={{ fontSize: "0.75rem" }}>professionalData.ts</Box>, aparecerá el enlace a la credencial.
+                </Typography>
+                {certificationEntries.map((c, index) => {
+                  const isPlatzi = c.issuer === "Platzi";
+                  return (
+                    <Box
+                      key={`${c.title}-${c.date}`}
                       sx={{
-                        width: 34,
-                        height: 34,
-                        fontSize: "0.8rem",
-                        fontWeight: 800,
-                        flexShrink: 0,
-                        ...(isPlatzi
-                          ? {
-                              bgcolor: "#0f9d58",
-                              color: "#fff",
-                            }
-                          : {
-                              bgcolor: "#111",
-                              color: "#3cff85",
-                              border: `1px solid rgba(60,255,133,0.35)`,
-                            }),
+                        px: 2,
+                        py: 1.25,
+                        borderBottom:
+                          index < certificationEntries.length - 1 ? `1px solid ${line}` : "none",
                       }}
-                      aria-hidden
                     >
-                      {isPlatzi ? "P" : "C"}
-                    </Avatar>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography
-                        sx={{
-                          ...display,
-                          fontWeight: 700,
-                          fontSize: "0.9rem",
-                          lineHeight: 1.35,
-                          mb: 0.25,
-                        }}
-                      >
-                        {c.title}
-                      </Typography>
-                      <Stack
-                        direction="row"
-                        alignItems="center"
-                        flexWrap="wrap"
-                        useFlexGap
-                        spacing={1}
-                        sx={{ gap: 0.75, mb: c.skills?.length ? 0.75 : 0 }}
-                      >
-                        <Typography variant="caption" sx={{ color: muted }}>
-                          {c.issuer} · {c.date}
-                        </Typography>
-                        {c.diplomaUrl && (
-                          <Link
-                            href={c.diplomaUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                      <Stack direction="row" spacing={1.25} alignItems="flex-start">
+                        <Avatar
+                          sx={{
+                            width: 34,
+                            height: 34,
+                            fontSize: "0.8rem",
+                            fontWeight: 800,
+                            flexShrink: 0,
+                            ...(isPlatzi
+                              ? {
+                                  bgcolor: "#0f9d58",
+                                  color: "#fff",
+                                }
+                              : {
+                                  bgcolor: "#111",
+                                  color: "#3cff85",
+                                  border: `1px solid rgba(60,255,133,0.35)`,
+                                }),
+                          }}
+                          aria-hidden
+                        >
+                          {isPlatzi ? "P" : "C"}
+                        </Avatar>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography
                             sx={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 0.25,
-                              fontSize: "0.75rem",
-                              fontWeight: 600,
-                              color: "#f5b4ff",
+                              ...display,
+                              fontWeight: 700,
+                              fontSize: "0.9rem",
+                              lineHeight: 1.35,
+                              mb: 0.25,
                             }}
                           >
-                            Ver credencial <LaunchIcon sx={{ fontSize: 14 }} />
-                          </Link>
-                        )}
-                      </Stack>
-                      {c.credentialId && (
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            display: "block",
-                            color: "rgba(255,255,255,0.38)",
-                            fontFamily: "ui-monospace, monospace",
-                            fontSize: "0.65rem",
-                            mt: 0.25,
-                            wordBreak: "break-all",
-                          }}
-                        >
-                          ID: {c.credentialId}
-                        </Typography>
-                      )}
-                      {c.skills && c.skills.length > 0 && (
-                        <Stack direction="row" flexWrap="wrap" useFlexGap spacing={0.5} sx={{ mt: 0.75 }}>
-                          {c.skills.map((s) => (
-                            <Chip
-                              key={s}
-                              label={s}
-                              size="small"
-                              variant="outlined"
+                            {c.title}
+                          </Typography>
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            flexWrap="wrap"
+                            useFlexGap
+                            spacing={1}
+                            sx={{ gap: 0.75, mb: c.skills?.length ? 0.75 : 0 }}
+                          >
+                            <Typography variant="caption" sx={{ color: muted }}>
+                              {c.issuer} · {c.date}
+                            </Typography>
+                            {c.diplomaUrl && (
+                              <Link
+                                href={c.diplomaUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                sx={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 0.25,
+                                  fontSize: "0.75rem",
+                                  fontWeight: 600,
+                                  color: "#f5b4ff",
+                                }}
+                              >
+                                Ver credencial <LaunchIcon sx={{ fontSize: 14 }} />
+                              </Link>
+                            )}
+                          </Stack>
+                          {c.credentialId && (
+                            <Typography
+                              variant="caption"
                               sx={{
-                                borderColor: line,
-                                color: muted,
-                                height: 22,
-                                fontSize: "0.68rem",
+                                display: "block",
+                                color: "rgba(255,255,255,0.38)",
+                                fontFamily: "ui-monospace, monospace",
+                                fontSize: "0.65rem",
+                                mt: 0.25,
+                                wordBreak: "break-all",
                               }}
-                            />
-                          ))}
-                        </Stack>
-                      )}
+                            >
+                              ID: {c.credentialId}
+                            </Typography>
+                          )}
+                          {c.skills && c.skills.length > 0 && (
+                            <Stack direction="row" flexWrap="wrap" useFlexGap spacing={0.5} sx={{ mt: 0.75 }}>
+                              {c.skills.map((s) => (
+                                <Chip
+                                  key={s}
+                                  label={s}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{
+                                    borderColor: line,
+                                    color: muted,
+                                    height: 22,
+                                    fontSize: "0.68rem",
+                                  }}
+                                />
+                              ))}
+                            </Stack>
+                          )}
+                        </Box>
+                      </Stack>
                     </Box>
-                  </Stack>
-                </Box>
-              );
-            })}
+                  );
+                })}
+              </AccordionDetails>
+            </Accordion>
           </Card>
 
           {/* Bento grid */}
