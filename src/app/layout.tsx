@@ -4,6 +4,11 @@ import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer, Zoom } from "react-toastify";
 import AppProviders from "@/components/providers/AppProviders";
+import MaintenanceScreen from "@/components/maintenance/MaintenanceScreen";
+import { isMaintenanceMode } from "@/lib/isMaintenanceMode";
+
+/** Permite activar mantenimiento con MAINTENANCE_MODE sin rebuild fijado en el HTML estático. */
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "OVER APP",
@@ -25,6 +30,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const maintenance = isMaintenanceMode();
+
   return (
     <html lang="es" suppressHydrationWarning>
       <body
@@ -32,13 +39,15 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <AppProviders>
-          {children}
-          <ToastContainer
-            position="top-right"
-            autoClose={4000}
-            transition={Zoom}
-            theme="dark"
-          />
+          {maintenance ? <MaintenanceScreen /> : children}
+          {!maintenance && (
+            <ToastContainer
+              position="top-right"
+              autoClose={4000}
+              transition={Zoom}
+              theme="dark"
+            />
+          )}
         </AppProviders>
       </body>
     </html>

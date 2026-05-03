@@ -68,6 +68,7 @@ export default function ProfilePage() {
         id: updated.id,
         name: updated.name,
         email: updated.email,
+        role: updated.role,
         avatarUrl: updated.avatarUrl,
       });
       toast.success("Perfil actualizado");
@@ -87,23 +88,36 @@ export default function ProfilePage() {
   }
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        Editar perfil
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 560 }}>
-        Actualiza tu nombre y foto. El correo queda vinculado a tu cuenta.
-      </Typography>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "calc(100vh - 160px)",
+        py: 2,
+      }}
+    >
+      <Box sx={{ width: "100%", maxWidth: 520 }}>
+        <Typography variant="h4" gutterBottom textAlign="center">
+          Editar perfil
+        </Typography>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mb: 3, textAlign: "center" }}
+        >
+          Actualiza tu nombre y foto. El correo queda vinculado a tu cuenta.
+        </Typography>
 
-      <Paper
-        elevation={0}
-        sx={{
-          p: { xs: 3, sm: 4 },
-          maxWidth: 480,
-          border: 1,
-          borderColor: "divider",
-        }}
-      >
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 3, sm: 4 },
+            border: 1,
+            borderColor: "divider",
+          }}
+        >
         <Stack spacing={3} component="form" onSubmit={handleSubmit}>
           <Box textAlign="center">
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
@@ -163,6 +177,7 @@ export default function ProfilePage() {
           </Button>
         </Stack>
       </Paper>
+      </Box>
     </Box>
   );
 }

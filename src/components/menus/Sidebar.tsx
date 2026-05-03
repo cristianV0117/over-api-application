@@ -23,8 +23,8 @@ import { avatarUrl } from "@/lib/api/profile";
 
 const DRAWER_WIDTH = 268;
 
-const items = [
-  { href: "/dashboard/users", label: "Usuarios", Icon: PeopleOutlineIcon },
+const allItems = [
+  { href: "/dashboard/users", label: "Usuarios", Icon: PeopleOutlineIcon, adminOnly: true },
   { href: "/dashboard/tasks", label: "Tareas", Icon: ViewKanbanOutlinedIcon },
   {
     href: "/dashboard/contabilidad",
@@ -45,6 +45,10 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const user = useUser();
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up("md"));
+
+  const items = allItems.filter(
+    (i) => !("adminOnly" in i && i.adminOnly) || user?.role === "admin"
+  );
 
   const drawer = (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>

@@ -80,6 +80,33 @@ export async function updateTaskStatus(
   return res.json();
 }
 
+export async function patchTask(
+  taskId: string,
+  data: {
+    title?: string;
+    description?: string;
+    dueDate?: string;
+    priority?: TaskPriority;
+  }
+): Promise<Task> {
+  const body: Record<string, unknown> = {};
+  if (data.title !== undefined) body.title = data.title;
+  if (data.description !== undefined) body.description = data.description;
+  if (data.dueDate !== undefined) body.dueDate = data.dueDate;
+  if (data.priority !== undefined) body.priority = data.priority;
+  const res = await fetch(`${BASE}/tasks/${taskId}`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const message = Array.isArray(err.message) ? err.message[0] : err.message;
+    throw new Error(message || "Error al actualizar tarea");
+  }
+  return res.json();
+}
+
 const PRIORITY_SORT_ORDER: Record<TaskPriority, number> = {
   high: 0,
   normal: 1,

@@ -30,6 +30,7 @@ import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
 import Chip from "@mui/material/Chip";
+import Checkbox from "@mui/material/Checkbox";
 import Switch from "@mui/material/Switch";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -92,6 +93,13 @@ function toYmdLocal(d: Date) {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+function recurringExpenseForMonth(
+  ruleId: string,
+  expenses: FinanceExpense[]
+): FinanceExpense | undefined {
+  return expenses.find((e) => e.isRecurring && e.recurringRuleId === ruleId);
 }
 
 export default function ContabilidadPage() {
@@ -413,6 +421,20 @@ export default function ContabilidadPage() {
     }
   };
 
+  const toggleExpensePaid = async (row: FinanceExpense, paid: boolean) => {
+    try {
+      if (row.isRecurring) {
+        await updateFinanceExpense(row.id, { paid }, { year, month });
+      } else {
+        await updateFinanceExpense(row.id, { paid });
+      }
+      toast.success(paid ? "Marcado como pagado" : "Marcado como pendiente");
+      await loadSummary();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al actualizar");
+    }
+  };
+
   const openNewRec = () => {
     setEditingRec(null);
     setRecCategoryId(expenseCategories[0]?.id ?? "");
@@ -699,7 +721,9 @@ export default function ContabilidadPage() {
                   Gastos recurrentes mensuales
                 </Typography>
                 <Typography variant="caption" color="text.secondary" display="block">
-                  Ej. gimnasio: se suma automáticamente en cada mes (según el día que elijas).
+                  Ej. gimnasio: se suma automáticamente en cada mes (según el día que elijas). La columna
+                  «Pagado» es para el mes que ves arriba ({MONTHS.find((x) => x.v === month)?.label}{" "}
+                  {year}).
                 </Typography>
               </Box>
               <Button
@@ -721,11 +745,16 @@ export default function ContabilidadPage() {
                     <TableCell>Categoría</TableCell>
                     <TableCell align="right">Monto</TableCell>
                     <TableCell align="center">Día mes</TableCell>
+                    <TableCell align="center">Pagado (este mes)</TableCell>
                     <TableCell align="right">Acciones</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {recurringRules.map((r) => (
+                  {recurringRules.map((r) => {
+                    const syntheticRow = r.isActive
+                      ? recurringExpenseForMonth(r.id, expenses)
+                      : undefined;
+                    return (
                     <TableRow key={r.id}>
                       <TableCell>
                         <Switch
@@ -739,6 +768,31 @@ export default function ContabilidadPage() {
                       <TableCell>{r.categoryName ?? "—"}</TableCell>
                       <TableCell align="right">{formatCop(r.amount)}</TableCell>
                       <TableCell align="center">{r.dayOfMonth}</TableCell>
+                      <TableCell align="center" padding="checkbox">
+                        {syntheticRow ? (
+                          <Checkbox
+                            checked={!!syntheticRow.paid}
+                            onChange={(_, v) => toggleExpensePaid(syntheticRow, v)}
+                            size="small"
+                            color="success"
+                            inputProps={{
+                              "aria-label": `${r.label || r.categoryName || "Recurrente"} pagado este mes`,
+                            }}
+                          />
+                        ) : (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            title={
+                              r.isActive
+                                ? undefined
+                                : "Activa la regla para incluirla en el mes y poder marcarla como pagada"
+                            }
+                          >
+                            —
+                          </Typography>
+                        )}
+                      </TableCell>
                       <TableCell align="right">
                         <IconButton size="small" onClick={() => openEditRec(r)} aria-label="Editar">
                           <EditOutlinedIcon fontSize="small" />
@@ -748,7 +802,8 @@ export default function ContabilidadPage() {
                         </IconButton>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -1037,6 +1092,7 @@ export default function ContabilidadPage() {
                       <TableRow>
                         <TableCell>Fecha</TableCell>
                         <TableCell>Categoría</TableCell>
+                        <TableCell align="center">Pagado</TableCell>
                         <TableCell align="right">Monto</TableCell>
                         <TableCell align="right" width={100}>
                           Acciones
@@ -1062,6 +1118,17 @@ export default function ContabilidadPage() {
                             {row.label
                               ? `${row.label} · ${row.categoryName ?? ""}`
                               : row.categoryName ?? "—"}
+                          </TableCell>
+                          <TableCell align="center" padding="checkbox">
+                            <Checkbox
+                              checked={!!row.paid}
+                              onChange={(_, v) => toggleExpensePaid(row, v)}
+                              size="small"
+                              color="success"
+                              inputProps={{
+                                "aria-label": `Gasto ${row.label || row.categoryName || ""} pagado`,
+                              }}
+                            />
                           </TableCell>
                           <TableCell align="right">{formatCop(row.amount)}</TableCell>
                           <TableCell align="right">
