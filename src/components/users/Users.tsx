@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { esES } from "@mui/x-data-grid/locales";
-import { useUser } from "@/context/userContext";
-import { listAdminUsers, type AdminUserRow } from "@/lib/api/adminUsers";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import { useUser, useSetUser } from "@/context/userContext";
+import { adminImpersonate, listAdminUsers, type AdminUserRow } from "@/lib/api/adminUsers";
 import { toast } from "react-toastify";
 
 function roleLabel(role: string) {
@@ -20,8 +23,39 @@ function roleLabel(role: string) {
 export default function Users() {
   const router = useRouter();
   const ctxUser = useUser();
+  const setUser = useSetUser();
   const [rows, setRows] = useState<AdminUserRow[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleImpersonate = useCallback(
+    async (row: AdminUserRow) => {
+      if (row.role === "admin") return;
+      if (
+        !confirm(
+          `¿Ver la aplicación como «${row.name}» (${row.email})?\n\n` +
+            "Podrás reproducir bugs con los mismos permisos que ese usuario. " +
+            "Usa solo cuando sea necesario y con consentimiento si aplica."
+        )
+      ) {
+        return;
+      }
+      try {
+        const { token } = await adminImpersonate(row.id);
+        localStorage.setItem("token", token);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("No se pudo cargar el perfil del usuario");
+        const data = await res.json();
+        setUser(data);
+        toast.success(`Modo infiltración: ${row.name}`);
+        router.push("/dashboard");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Error al infiltrarse");
+      }
+    },
+    [router, setUser]
+  );
 
   useEffect(() => {
     if (!ctxUser) return;
@@ -57,11 +91,49 @@ export default function Users() {
           />
         ),
       },
+      {
+        field: "impersonate",
+        headerName: "Infiltrarse",
+        width: 110,
+        sortable: false,
+        align: "center",
+        headerAlign: "center",
+        renderCell: (params) => {
+          const row = params.row;
+          if (row.role === "admin") {
+            return (
+              <Typography variant="caption" color="text.secondary">
+                —
+              </Typography>
+            );
+          }
+          return (
+            <Tooltip title="Ver la app como este usuario (debug / soporte)">
+              <IconButton
+                size="small"
+                color="secondary"
+                aria-label={`Infiltrarse como ${row.name}`}
+                onClick={() => handleImpersonate(row)}
+              >
+                <VisibilityOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          );
+        },
+      },
     ],
-    []
+    [handleImpersonate]
   );
 
-  if (!ctxUser || ctxUser.role !== "admin") {
+  if (!ctxUser) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (ctxUser.role !== "admin") {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
         <CircularProgress />

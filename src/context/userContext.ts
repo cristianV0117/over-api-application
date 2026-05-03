@@ -8,6 +8,11 @@ export type UserContextValue = {
   email: string;
   role?: "admin" | "user";
   avatarUrl?: string | null;
+  impersonation?: {
+    impersonatorId: string;
+    impersonatorName: string;
+    impersonatorEmail: string | null;
+  };
 };
 
 export type UserContextState = {

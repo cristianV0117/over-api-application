@@ -107,6 +107,18 @@ export async function patchTask(
   return res.json();
 }
 
+export async function deleteTask(taskId: string): Promise<void> {
+  const res = await fetch(`${BASE}/tasks/${taskId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const message = Array.isArray(err.message) ? err.message[0] : err.message;
+    throw new Error(message || "Error al eliminar tarea");
+  }
+}
+
 const PRIORITY_SORT_ORDER: Record<TaskPriority, number> = {
   high: 0,
   normal: 1,

@@ -6,6 +6,7 @@ import {
   getTaskStatuses,
   updateTaskStatus,
   patchTask,
+  deleteTask,
   sortTasksByPriority,
   type Task,
   type TaskPriority,
@@ -26,7 +27,10 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
 import AddIcon from "@mui/icons-material/Add";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 const COLUMN_ORDER = ["To Do", "In Progress", "Done"];
 const DUE_SOON_MS = 24 * 60 * 60 * 1000;
@@ -79,6 +83,7 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const alertedForTasksRef = useRef<string>("");
   const titleBeforeEdit = useRef<Record<string, string>>({});
   const descBeforeEdit = useRef<Record<string, string>>({});
@@ -181,6 +186,20 @@ export default function TasksPage() {
     }
   };
 
+  const handleDeleteTask = async (taskId: string, title: string) => {
+    if (!confirm(`¿Eliminar la tarea «${title}»? No se puede deshacer.`)) return;
+    setDeletingTaskId(taskId);
+    try {
+      await deleteTask(taskId);
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      toast.success("Tarea eliminada");
+    } catch {
+      toast.error("No se pudo eliminar la tarea");
+    } finally {
+      setDeletingTaskId(null);
+    }
+  };
+
   return (
     <Box>
       <Stack
@@ -210,22 +229,44 @@ export default function TasksPage() {
       </Stack>
 
       {loading ? (
-        <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} variant="rounded" height={420} sx={{ flex: 1, borderRadius: 2 }} />
-          ))}
-        </Stack>
+        <Box
+          sx={{
+            width: "100%",
+            display: "flex",
+            justifyContent: "center",
+            overflowX: "auto",
+          }}
+        >
+          <Stack direction="row" spacing={2} sx={{ flex: "0 0 auto", py: 0.5 }}>
+            {[1, 2, 3].map((i) => (
+              <Skeleton
+                key={i}
+                variant="rounded"
+                height={420}
+                sx={{ width: "min(320px, 88vw)", borderRadius: 2, flexShrink: 0 }}
+              />
+            ))}
+          </Stack>
+        </Box>
       ) : (
         <Box
           sx={{
+            width: "100%",
             display: "flex",
-            gap: 2,
+            justifyContent: "center",
             overflowX: "auto",
             pb: 1,
-            minHeight: "65vh",
-            alignItems: "flex-start",
           }}
         >
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              alignItems: "flex-start",
+              minHeight: "65vh",
+              flex: "0 0 auto",
+            }}
+          >
           {columns.map((status) => {
             const columnTasks = tasksByStatus.get(status.id) ?? [];
             const headerColor = getStatusColor(status.name);
@@ -290,12 +331,19 @@ export default function TasksPage() {
                           }}
                         >
                           <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-                            <Stack direction="row" alignItems="flex-start" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mb: 0.5 }}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "flex-start",
+                                gap: 0.5,
+                                mb: 0.5,
+                              }}
+                            >
                               <TextField
                                 size="small"
-                                fullWidth
                                 label="Título"
                                 value={t.title}
+                                sx={{ flex: 1, minWidth: 0 }}
                                 onChange={(e) =>
                                   setTasks((prev) =>
                                     prev.map((x) =>
@@ -343,10 +391,26 @@ export default function TasksPage() {
                                   size="small"
                                   label={dueWarning === "overdue" ? "Vencida" : "Por vencer"}
                                   color={dueWarning === "overdue" ? "error" : "warning"}
-                                  sx={{ height: 22, fontSize: "0.65rem", flexShrink: 0 }}
+                                  sx={{ height: 22, fontSize: "0.65rem", flexShrink: 0, mt: 0.5 }}
                                 />
                               )}
-                            </Stack>
+                              <Tooltip title="Eliminar tarea">
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    aria-label={`Eliminar ${t.title}`}
+                                    disabled={
+                                      deletingTaskId === t.id || updatingTaskId === t.id
+                                    }
+                                    onClick={() => handleDeleteTask(t.id, t.title)}
+                                    sx={{ flexShrink: 0 }}
+                                  >
+                                    <DeleteOutlineIcon fontSize="small" />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            </Box>
                             <TextField
                               size="small"
                               fullWidth
@@ -497,6 +561,7 @@ export default function TasksPage() {
               </Box>
             );
           })}
+          </Box>
         </Box>
       )}
 
