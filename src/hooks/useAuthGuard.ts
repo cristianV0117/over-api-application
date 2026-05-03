@@ -13,6 +13,11 @@ export function useAuthGuard() {
     email: string;
     role?: "admin" | "user";
     avatarUrl?: string | null;
+    impersonation?: {
+      impersonatorId: string;
+      impersonatorName: string;
+      impersonatorEmail: string | null;
+    };
   } | null>(null);
 
   useEffect(() => {

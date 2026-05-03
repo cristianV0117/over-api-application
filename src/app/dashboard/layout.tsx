@@ -9,6 +9,7 @@ import Navbar from "@/components/menus/Navbar";
 import Sidebar from "@/components/menus/Sidebar";
 import Footer from "@/components/Footer";
 import AssistantWidget from "@/components/assistant/AssistantWidget";
+import ImpersonationBanner from "@/components/users/ImpersonationBanner";
 
 export default function DashboardLayout({
   children,
@@ -50,11 +51,21 @@ export default function DashboardLayout({
             sx={{
               flex: 1,
               overflow: "auto",
-              px: { xs: 2, sm: 3 },
-              py: { xs: 2, md: 3 },
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
             }}
           >
-            {children}
+            <ImpersonationBanner />
+            <Box
+              sx={{
+                flex: 1,
+                px: { xs: 2, sm: 3 },
+                py: { xs: 2, md: 3 },
+              }}
+            >
+              {children}
+            </Box>
           </Box>
         </Box>
         <Footer />
