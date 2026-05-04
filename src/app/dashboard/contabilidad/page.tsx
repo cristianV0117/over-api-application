@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -26,6 +26,9 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
+import Accordion from "@mui/material/Accordion";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
@@ -38,6 +41,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   createExpenseCategory,
   createFinanceExpense,
@@ -546,6 +550,28 @@ export default function ContabilidadPage() {
 
   const incomes = summary?.incomes ?? [];
   const expenses = summary?.expenses ?? [];
+
+  const expensesByCategory = useMemo(() => {
+    const list = summary?.expenses ?? [];
+    const map = new Map<string, FinanceExpense[]>();
+    for (const row of list) {
+      const key = row.categoryName?.trim() || "Sin categoría";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(row);
+    }
+    for (const rows of map.values()) {
+      rows.sort(
+        (a, b) =>
+          new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+      );
+    }
+    const keys = [...map.keys()].sort((a, b) => {
+      if (a === "Sin categoría") return 1;
+      if (b === "Sin categoría") return -1;
+      return a.localeCompare(b, "es", { sensitivity: "base" });
+    });
+    return { map, keys };
+  }, [summary]);
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: "auto" }}>
@@ -1086,76 +1112,121 @@ export default function ContabilidadPage() {
                     Registrar gasto
                   </Button>
                 </Stack>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Fecha</TableCell>
-                        <TableCell>Categoría</TableCell>
-                        <TableCell align="center">Pagado</TableCell>
-                        <TableCell align="right">Monto</TableCell>
-                        <TableCell align="right" width={100}>
-                          Acciones
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {expenses.map((row) => (
-                        <TableRow key={row.id}>
-                          <TableCell>
-                            {new Date(row.occurredAt).toLocaleDateString("es-CO")}
-                            {row.isRecurring && (
-                              <Chip
-                                label="Recurrente"
-                                size="small"
-                                color="secondary"
-                                variant="outlined"
-                                sx={{ ml: 1, height: 22 }}
-                              />
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {row.label
-                              ? `${row.label} · ${row.categoryName ?? ""}`
-                              : row.categoryName ?? "—"}
-                          </TableCell>
-                          <TableCell align="center" padding="checkbox">
-                            <Checkbox
-                              checked={!!row.paid}
-                              onChange={(_, v) => toggleExpensePaid(row, v)}
-                              size="small"
-                              color="success"
-                              inputProps={{
-                                "aria-label": `Gasto ${row.label || row.categoryName || ""} pagado`,
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell align="right">{formatCop(row.amount)}</TableCell>
-                          <TableCell align="right">
-                            {!row.isRecurring ? (
-                              <>
-                                <IconButton size="small" onClick={() => openEditExpense(row)}>
-                                  <EditOutlinedIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small" onClick={() => removeExpense(row)}>
-                                  <DeleteOutlineIcon fontSize="small" />
-                                </IconButton>
-                              </>
-                            ) : (
-                              <Typography variant="caption" color="text.secondary">
-                                Editar en recurrentes
-                              </Typography>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                {expenses.length === 0 && (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                  Agrupados por categoría. Expandí cada bloque para ver y editar los movimientos.
+                </Typography>
+                {expenses.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                     No hay gastos en este mes.
                   </Typography>
+                ) : (
+                  <Stack spacing={1}>
+                    {expensesByCategory.keys.map((categoryName) => {
+                      const rows = expensesByCategory.map.get(categoryName)!;
+                      const subtotal = rows.reduce((s, r) => s + r.amount, 0);
+                      return (
+                        <Accordion
+                          key={categoryName}
+                          disableGutters
+                          defaultExpanded={false}
+                          sx={{
+                            border: 1,
+                            borderColor: "divider",
+                            borderRadius: 1,
+                            "&:before": { display: "none" },
+                            boxShadow: "none",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <AccordionSummary
+                            expandIcon={<ExpandMoreIcon fontSize="small" />}
+                            sx={{
+                              minHeight: 48,
+                              px: 1.5,
+                              bgcolor: "action.hover",
+                              "& .MuiAccordionSummary-content": { my: 1, alignItems: "center", gap: 1 },
+                            }}
+                          >
+                            <Typography fontWeight={700} sx={{ flex: 1, minWidth: 0 }}>
+                              {categoryName}
+                            </Typography>
+                            <Chip size="small" label={`${rows.length} ítem${rows.length === 1 ? "" : "s"}`} />
+                            <Typography variant="body2" fontWeight={700} color="primary" sx={{ flexShrink: 0 }}>
+                              {formatCop(subtotal)}
+                            </Typography>
+                          </AccordionSummary>
+                          <AccordionDetails sx={{ pt: 0, px: 0, pb: 0 }}>
+                            <TableContainer>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell>Fecha</TableCell>
+                                    <TableCell>Detalle</TableCell>
+                                    <TableCell align="center">Pagado</TableCell>
+                                    <TableCell align="right">Monto</TableCell>
+                                    <TableCell align="right" width={100}>
+                                      Acciones
+                                    </TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {rows.map((row) => (
+                                    <TableRow key={row.id}>
+                                      <TableCell>
+                                        {new Date(row.occurredAt).toLocaleDateString("es-CO")}
+                                        {row.isRecurring && (
+                                          <Chip
+                                            label="Recurrente"
+                                            size="small"
+                                            color="secondary"
+                                            variant="outlined"
+                                            sx={{ ml: 1, mt: 0.5, height: 22, display: "block", width: "fit-content" }}
+                                          />
+                                        )}
+                                      </TableCell>
+                                      <TableCell>
+                                        {row.label
+                                          ? `${row.label} · ${row.categoryName ?? ""}`
+                                          : row.categoryName ?? "—"}
+                                      </TableCell>
+                                      <TableCell align="center" padding="checkbox">
+                                        <Checkbox
+                                          checked={!!row.paid}
+                                          onChange={(_, v) => toggleExpensePaid(row, v)}
+                                          size="small"
+                                          color="success"
+                                          inputProps={{
+                                            "aria-label": `Gasto ${row.label || row.categoryName || ""} pagado`,
+                                          }}
+                                        />
+                                      </TableCell>
+                                      <TableCell align="right">{formatCop(row.amount)}</TableCell>
+                                      <TableCell align="right">
+                                        {!row.isRecurring ? (
+                                          <>
+                                            <IconButton size="small" onClick={() => openEditExpense(row)}>
+                                              <EditOutlinedIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton size="small" onClick={() => removeExpense(row)}>
+                                              <DeleteOutlineIcon fontSize="small" />
+                                            </IconButton>
+                                          </>
+                                        ) : (
+                                          <Typography variant="caption" color="text.secondary">
+                                            Editar en recurrentes
+                                          </Typography>
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </TableContainer>
+                          </AccordionDetails>
+                        </Accordion>
+                      );
+                    })}
+                  </Stack>
                 )}
               </Paper>
             </Stack>
