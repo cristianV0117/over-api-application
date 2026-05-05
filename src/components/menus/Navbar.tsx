@@ -43,13 +43,22 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
         bgcolor: "rgba(10, 12, 16, 0.85)",
       }}
     >
-      <Toolbar sx={{ gap: 2, py: 1 }}>
+      <Toolbar
+        sx={{
+          gap: { xs: 0.5, sm: 2 },
+          py: 1,
+          px: { xs: 1, sm: 2 },
+          maxWidth: "100%",
+          boxSizing: "border-box",
+        }}
+      >
         {!isMdUp && onMenuClick && (
           <IconButton
             color="inherit"
             edge="start"
             onClick={onMenuClick}
             aria-label="abrir menú"
+            sx={{ flexShrink: 0 }}
           >
             <MenuIcon />
           </IconButton>
@@ -64,10 +73,20 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             textDecoration: "none",
             color: "inherit",
             mr: "auto",
+            minWidth: 0,
           }}
         >
-          <LayersIcon sx={{ color: "primary.main", fontSize: 28 }} />
-          <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: "0.04em" }}>
+          <LayersIcon sx={{ color: "primary.main", fontSize: 28, flexShrink: 0 }} />
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 800,
+              letterSpacing: "0.04em",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
             OVER APP
           </Typography>
         </Box>
@@ -106,7 +125,16 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
           </Button>
         </Stack>
 
-        <Button variant="contained" color="primary" onClick={logout} sx={{ px: 2.5 }}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={logout}
+          sx={{
+            px: { xs: 1.25, sm: 2.5 },
+            flexShrink: 0,
+            fontSize: { xs: "0.8125rem", sm: "0.875rem" },
+          }}
+        >
           Cerrar sesión
         </Button>
       </Toolbar>

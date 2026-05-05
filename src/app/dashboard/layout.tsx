@@ -63,6 +63,9 @@ export default function DashboardLayout({
                 flex: 1,
                 px: { xs: 2, sm: 3 },
                 py: { xs: 2, md: 3 },
+                minWidth: 0,
+                maxWidth: "100%",
+                boxSizing: "border-box",
               }}
             >
               <InstallPWABanner />
