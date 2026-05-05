@@ -83,6 +83,18 @@ const CATEGORY_LIST_MAX_HEIGHT = "min(22vh, 200px)";
 /** Detalle expandido dentro de un acordeón por categoría. */
 const ACCORDION_TABLE_MAX_HEIGHT = "min(32vh, 280px)";
 
+/** Tablas anchas: scroll horizontal dentro del contenedor, no en toda la página. */
+const TABLE_CONTAINER_SCROLL_SX = {
+  width: "100%",
+  maxWidth: "100%",
+  overflow: "auto",
+  WebkitOverflowScrolling: "touch",
+} as const;
+
+/** Ancho mínimo de tabla para forzar scroll interno en móvil (recurrentes: muchas columnas). */
+const TABLE_RECURRING_MIN_WIDTH = 720;
+const TABLE_MOVEMENTS_MIN_WIDTH = 640;
+
 const MONTHS = [
   { v: 1, label: "Enero" },
   { v: 2, label: "Febrero" },
@@ -735,19 +747,35 @@ export default function ContabilidadPage() {
   }, [summary]);
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: "auto" }}>
+    <Box
+      sx={{
+        p: { xs: 2, md: 3 },
+        mx: "auto",
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "min(100%, 1400px)",
+        boxSizing: "border-box",
+      }}
+    >
       <Stack
         direction="row"
         alignItems="center"
         justifyContent="space-between"
         flexWrap="wrap"
         gap={2}
-        sx={{ mb: 3 }}
+        sx={{ mb: 3, width: "100%", minWidth: 0 }}
       >
-        <Typography variant="h5" fontWeight={800}>
+        <Typography variant="h5" fontWeight={800} sx={{ minWidth: 0 }}>
           Contabilidad personal
         </Typography>
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+          flexWrap="wrap"
+          useFlexGap
+          sx={{ minWidth: 0, maxWidth: "100%" }}
+        >
           <IconButton
             aria-label="Mes anterior"
             onClick={() => {
@@ -798,8 +826,12 @@ export default function ContabilidadPage() {
 
       {summary && (
         <>
-          <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 3 }}>
-            <Card sx={{ flex: 1 }}>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+            sx={{ mb: 3, width: "100%", minWidth: 0 }}
+          >
+            <Card sx={{ flex: 1, minWidth: 0, maxWidth: "100%" }}>
               <CardContent>
                 <Typography color="text.secondary" variant="body2">
                   Total ingresos (suma del mes)
@@ -812,7 +844,7 @@ export default function ContabilidadPage() {
                 </Typography>
               </CardContent>
             </Card>
-            <Card sx={{ flex: 1 }}>
+            <Card sx={{ flex: 1, minWidth: 0, maxWidth: "100%" }}>
               <CardContent>
                 <Typography color="text.secondary" variant="body2">
                   Total gastos
@@ -825,6 +857,8 @@ export default function ContabilidadPage() {
             <Card
               sx={{
                 flex: 1,
+                minWidth: 0,
+                maxWidth: "100%",
                 borderColor: remainingColor,
                 borderWidth: 1,
                 borderStyle: "solid",
@@ -850,6 +884,8 @@ export default function ContabilidadPage() {
               borderColor: "primary.main",
               borderWidth: 1,
               borderStyle: "solid",
+              minWidth: 0,
+              maxWidth: "100%",
             }}
             variant="outlined"
           >
@@ -859,13 +895,14 @@ export default function ContabilidadPage() {
                 spacing={2}
                 alignItems={{ sm: "center" }}
                 justifyContent="space-between"
+                sx={{ minWidth: 0 }}
               >
-                <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ minWidth: 0, flex: 1 }}>
                   <AccountBalanceWalletOutlinedIcon
                     color="primary"
-                    sx={{ mt: 0.5, fontSize: 36 }}
+                    sx={{ mt: 0.5, fontSize: 36, flexShrink: 0 }}
                   />
-                  <Box>
+                  <Box sx={{ minWidth: 0 }}>
                     <Typography color="text.secondary" variant="body2">
                       Total en tus cuentas (saldos reales)
                     </Typography>
@@ -876,7 +913,7 @@ export default function ContabilidadPage() {
                       variant="caption"
                       color="text.secondary"
                       display="block"
-                      sx={{ mt: 0.5, maxWidth: 560 }}
+                      sx={{ mt: 0.5, maxWidth: { sm: 560 } }}
                     >
                       Suma de lo que tienes en bancos, Nequi, Daviplata… Tú lo actualizas a mano; no es lo mismo
                       que «ingresos del mes» (que solo suma movimientos registrados).
@@ -887,6 +924,7 @@ export default function ContabilidadPage() {
                   variant="contained"
                   color="primary"
                   onClick={openConfigureLiquidity}
+                  sx={{ alignSelf: { xs: "stretch", sm: "auto" }, whiteSpace: { sm: "nowrap" } }}
                 >
                   Configurar o agregar cuentas
                 </Button>
@@ -894,8 +932,12 @@ export default function ContabilidadPage() {
             </CardContent>
           </Card>
 
-          <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 3 }}>
-            <Paper sx={{ p: 2, flex: 1 }}>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+            sx={{ mb: 3, width: "100%", minWidth: 0 }}
+          >
+            <Paper sx={{ p: 2, flex: 1, minWidth: 0, maxWidth: "100%" }}>
               <Typography variant="subtitle1" fontWeight={700} gutterBottom>
                 Ingresos por categoría
               </Typography>
@@ -911,16 +953,24 @@ export default function ContabilidadPage() {
                         ? Math.round((b.total / summary.income) * 100)
                         : 0;
                     return (
-                      <Box key={b.categoryId}>
+                      <Box key={b.categoryId} sx={{ minWidth: 0 }}>
                         <Stack
                           direction="row"
                           justifyContent="space-between"
                           alignItems="center"
+                          gap={1}
+                          sx={{ minWidth: 0 }}
                         >
-                          <Typography variant="body2">{b.categoryName}</Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}
+                          >
+                            {b.categoryName}
+                          </Typography>
                           <Chip
                             size="small"
                             label={`${pct}% · ${formatCop(b.total)}`}
+                            sx={{ flexShrink: 0, maxWidth: "100%" }}
                           />
                         </Stack>
                         <LinearProgress
@@ -934,7 +984,7 @@ export default function ContabilidadPage() {
                 </Stack>
               )}
             </Paper>
-            <Paper sx={{ p: 2, flex: 1 }}>
+            <Paper sx={{ p: 2, flex: 1, minWidth: 0, maxWidth: "100%" }}>
               <Typography variant="subtitle1" fontWeight={700} gutterBottom>
                 Gastos por categoría
               </Typography>
@@ -950,16 +1000,24 @@ export default function ContabilidadPage() {
                         ? Math.round((b.total / summary.totalExpenses) * 100)
                         : 0;
                     return (
-                      <Box key={b.categoryId}>
+                      <Box key={b.categoryId} sx={{ minWidth: 0 }}>
                         <Stack
                           direction="row"
                           justifyContent="space-between"
                           alignItems="center"
+                          gap={1}
+                          sx={{ minWidth: 0 }}
                         >
-                          <Typography variant="body2">{b.categoryName}</Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}
+                          >
+                            {b.categoryName}
+                          </Typography>
                           <Chip
                             size="small"
                             label={`${pct}% · ${formatCop(b.total)}`}
+                            sx={{ flexShrink: 0, maxWidth: "100%" }}
                           />
                         </Stack>
                         <LinearProgress
@@ -978,11 +1036,11 @@ export default function ContabilidadPage() {
           <Stack
             direction={{ xs: "column", md: "row" }}
             spacing={2}
-            sx={{ mb: 3 }}
+            sx={{ mb: 3, width: "100%", minWidth: 0 }}
             alignItems="flex-start"
           >
-            <Stack spacing={2} sx={{ flex: 1, minWidth: 0 }}>
-              <Paper sx={{ p: 2 }}>
+            <Stack spacing={2} sx={{ flex: 1, minWidth: 0, maxWidth: "100%", width: "100%" }}>
+              <Paper sx={{ p: 2, minWidth: 0, maxWidth: "100%" }}>
                 <Stack
                   direction="row"
                   justifyContent="space-between"
@@ -1048,7 +1106,7 @@ export default function ContabilidadPage() {
                 </List>
                 </Box>
               </Paper>
-              <Paper sx={{ p: 2 }}>
+              <Paper sx={{ p: 2, minWidth: 0, maxWidth: "100%" }}>
                 <Stack
                   direction="row"
                   justifyContent="space-between"
@@ -1078,12 +1136,15 @@ export default function ContabilidadPage() {
                 </Stack>
                 <TableContainer
                   sx={{
-                    maxWidth: "100%",
+                    ...TABLE_CONTAINER_SCROLL_SX,
                     maxHeight: PANEL_BODY_MAX_HEIGHT,
-                    overflow: "auto",
                   }}
                 >
-                  <Table size="small" stickyHeader>
+                  <Table
+                    size="small"
+                    stickyHeader
+                    sx={{ minWidth: TABLE_RECURRING_MIN_WIDTH }}
+                  >
                     <TableHead>
                       <TableRow>
                         <TableCell>Activo</TableCell>
@@ -1168,7 +1229,7 @@ export default function ContabilidadPage() {
                 )}
               </Paper>
 
-              <Paper sx={{ p: 2, width: "100%" }}>
+              <Paper sx={{ p: 2, width: "100%", minWidth: 0, maxWidth: "100%" }}>
                 <Stack
                   direction="row"
                   justifyContent="space-between"
@@ -1200,11 +1261,12 @@ export default function ContabilidadPage() {
                     sx={{
                       maxHeight: PANEL_BODY_MAX_HEIGHT,
                       overflowY: "auto",
-                      overflowX: "hidden",
+                      overflowX: "auto",
+                      WebkitOverflowScrolling: "touch",
                       pr: 0.5,
                     }}
                   >
-                  <Stack spacing={1}>
+                  <Stack spacing={1} sx={{ minWidth: 0 }}>
                     {incomesByCategory.keys.map((categoryName) => {
                       const rows = incomesByCategory.map.get(categoryName)!;
                       const subtotal = rows.reduce((s, r) => s + r.amount, 0);
@@ -1241,9 +1303,16 @@ export default function ContabilidadPage() {
                           </AccordionSummary>
                           <AccordionDetails sx={{ pt: 0, px: 0, pb: 0 }}>
                             <TableContainer
-                              sx={{ maxHeight: ACCORDION_TABLE_MAX_HEIGHT, overflow: "auto" }}
+                              sx={{
+                                ...TABLE_CONTAINER_SCROLL_SX,
+                                maxHeight: ACCORDION_TABLE_MAX_HEIGHT,
+                              }}
                             >
-                              <Table size="small" stickyHeader>
+                              <Table
+                                size="small"
+                                stickyHeader
+                                sx={{ minWidth: TABLE_MOVEMENTS_MIN_WIDTH }}
+                              >
                                 <TableHead>
                                   <TableRow>
                                     <TableCell>Fecha</TableCell>
@@ -1330,8 +1399,8 @@ export default function ContabilidadPage() {
               </Paper>
             </Stack>
 
-            <Stack spacing={2} sx={{ flex: 1, minWidth: 0 }}>
-              <Paper sx={{ p: 2 }}>
+            <Stack spacing={2} sx={{ flex: 1, minWidth: 0, maxWidth: "100%", width: "100%" }}>
+              <Paper sx={{ p: 2, minWidth: 0, maxWidth: "100%" }}>
                 <Stack
                   direction="row"
                   justifyContent="space-between"
@@ -1397,7 +1466,7 @@ export default function ContabilidadPage() {
                 </List>
                 </Box>
               </Paper>
-              <Paper sx={{ p: 2 }}>
+              <Paper sx={{ p: 2, minWidth: 0, maxWidth: "100%" }}>
                 <Stack
                   direction="row"
                   justifyContent="space-between"
@@ -1426,12 +1495,15 @@ export default function ContabilidadPage() {
                 </Stack>
                 <TableContainer
                   sx={{
-                    maxWidth: "100%",
+                    ...TABLE_CONTAINER_SCROLL_SX,
                     maxHeight: PANEL_BODY_MAX_HEIGHT,
-                    overflow: "auto",
                   }}
                 >
-                  <Table size="small" stickyHeader>
+                  <Table
+                    size="small"
+                    stickyHeader
+                    sx={{ minWidth: TABLE_RECURRING_MIN_WIDTH }}
+                  >
                     <TableHead>
                       <TableRow>
                         <TableCell>Activo</TableCell>
@@ -1508,7 +1580,7 @@ export default function ContabilidadPage() {
                 )}
               </Paper>
 
-              <Paper sx={{ p: 2, width: "100%" }}>
+              <Paper sx={{ p: 2, width: "100%", minWidth: 0, maxWidth: "100%" }}>
                 <Stack
                   direction="row"
                   justifyContent="space-between"
@@ -1540,11 +1612,12 @@ export default function ContabilidadPage() {
                     sx={{
                       maxHeight: PANEL_BODY_MAX_HEIGHT,
                       overflowY: "auto",
-                      overflowX: "hidden",
+                      overflowX: "auto",
+                      WebkitOverflowScrolling: "touch",
                       pr: 0.5,
                     }}
                   >
-                  <Stack spacing={1}>
+                  <Stack spacing={1} sx={{ minWidth: 0 }}>
                     {expensesByCategory.keys.map((categoryName) => {
                       const rows = expensesByCategory.map.get(categoryName)!;
                       const subtotal = rows.reduce((s, r) => s + r.amount, 0);
@@ -1581,9 +1654,16 @@ export default function ContabilidadPage() {
                           </AccordionSummary>
                           <AccordionDetails sx={{ pt: 0, px: 0, pb: 0 }}>
                             <TableContainer
-                              sx={{ maxHeight: ACCORDION_TABLE_MAX_HEIGHT, overflow: "auto" }}
+                              sx={{
+                                ...TABLE_CONTAINER_SCROLL_SX,
+                                maxHeight: ACCORDION_TABLE_MAX_HEIGHT,
+                              }}
                             >
-                              <Table size="small" stickyHeader>
+                              <Table
+                                size="small"
+                                stickyHeader
+                                sx={{ minWidth: TABLE_MOVEMENTS_MIN_WIDTH }}
+                              >
                                 <TableHead>
                                   <TableRow>
                                     <TableCell>Fecha</TableCell>
