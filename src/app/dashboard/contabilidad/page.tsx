@@ -705,6 +705,28 @@ export default function ContabilidadPage() {
     return { map, keys };
   }, [summary]);
 
+  const incomesByCategory = useMemo(() => {
+    const list = summary?.incomes ?? [];
+    const map = new Map<string, FinanceIncomeLine[]>();
+    for (const row of list) {
+      const key = row.categoryName?.trim() || "Sin categoría";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(row);
+    }
+    for (const rows of map.values()) {
+      rows.sort(
+        (a, b) =>
+          new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime()
+      );
+    }
+    const keys = [...map.keys()].sort((a, b) => {
+      if (a === "Sin categoría") return 1;
+      if (b === "Sin categoría") return -1;
+      return a.localeCompare(b, "es", { sensitivity: "base" });
+    });
+    return { map, keys };
+  }, [summary]);
+
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: "auto" }}>
       <Stack
@@ -865,314 +887,95 @@ export default function ContabilidadPage() {
             </CardContent>
           </Card>
 
-          <Paper sx={{ p: 2, mb: 3 }}>
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-              flexWrap="wrap"
-              gap={1}
-              sx={{ mb: 1 }}
-            >
-              <Box>
-                <Typography variant="subtitle1" fontWeight={700}>
-                  Gastos recurrentes mensuales
+          <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 3 }}>
+            <Paper sx={{ p: 2, flex: 1 }}>
+              <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+                Ingresos por categoría
+              </Typography>
+              {summary.incomeBreakdown.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  Registra ingresos para ver el desglose.
                 </Typography>
-                <Typography variant="caption" color="text.secondary" display="block">
-                  Ej. gimnasio: se suma automáticamente en cada mes (según el día que elijas). La columna
-                  «Pagado» es para el mes que ves arriba ({MONTHS.find((x) => x.v === month)?.label}{" "}
-                  {year}).
-                </Typography>
-              </Box>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={openNewRec}
-                disabled={expenseCategories.length === 0}
-              >
-                Agregar recurrente
-              </Button>
-            </Stack>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Activo</TableCell>
-                    <TableCell>Etiqueta</TableCell>
-                    <TableCell>Categoría</TableCell>
-                    <TableCell align="right">Monto</TableCell>
-                    <TableCell align="center">Día mes</TableCell>
-                    <TableCell align="center">Pagado (este mes)</TableCell>
-                    <TableCell align="right">Acciones</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {recurringRules.map((r) => {
-                    const syntheticRow = r.isActive
-                      ? recurringExpenseForMonth(r.id, expenses)
-                      : undefined;
+              ) : (
+                <Stack spacing={1.5}>
+                  {summary.incomeBreakdown.map((b) => {
+                    const pct =
+                      summary.income > 0
+                        ? Math.round((b.total / summary.income) * 100)
+                        : 0;
                     return (
-                    <TableRow key={r.id}>
-                      <TableCell>
-                        <Switch
-                          size="small"
-                          checked={r.isActive}
-                          onChange={(_, v) => toggleRecActive(r, v)}
-                          inputProps={{ "aria-label": "Activo" }}
+                      <Box key={b.categoryId}>
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="center"
+                        >
+                          <Typography variant="body2">{b.categoryName}</Typography>
+                          <Chip
+                            size="small"
+                            label={`${pct}% · ${formatCop(b.total)}`}
+                          />
+                        </Stack>
+                        <LinearProgress
+                          variant="determinate"
+                          value={pct}
+                          sx={{ mt: 0.5, height: 6, borderRadius: 1 }}
                         />
-                      </TableCell>
-                      <TableCell>{r.label || "—"}</TableCell>
-                      <TableCell>{r.categoryName ?? "—"}</TableCell>
-                      <TableCell align="right">{formatCop(r.amount)}</TableCell>
-                      <TableCell align="center">{r.dayOfMonth}</TableCell>
-                      <TableCell align="center" padding="checkbox">
-                        {syntheticRow ? (
-                          <Checkbox
-                            checked={!!syntheticRow.paid}
-                            onChange={(_, v) => toggleExpensePaid(syntheticRow, v)}
-                            size="small"
-                            color="success"
-                            inputProps={{
-                              "aria-label": `${r.label || r.categoryName || "Recurrente"} pagado este mes`,
-                            }}
-                          />
-                        ) : (
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            title={
-                              r.isActive
-                                ? undefined
-                                : "Activa la regla para incluirla en el mes y poder marcarla como pagada"
-                            }
-                          >
-                            —
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell align="right">
-                        <IconButton size="small" onClick={() => openEditRec(r)} aria-label="Editar">
-                          <EditOutlinedIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton size="small" onClick={() => removeRec(r)} aria-label="Eliminar">
-                          <DeleteOutlineIcon fontSize="small" />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
+                      </Box>
                     );
                   })}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            {recurringRules.length === 0 && (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Sin reglas. Crea una para que aparezca cada mes en gastos y en el total.
+                </Stack>
+              )}
+            </Paper>
+            <Paper sx={{ p: 2, flex: 1 }}>
+              <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+                Gastos por categoría
               </Typography>
-            )}
-          </Paper>
-
-          <Paper sx={{ p: 2, mb: 3 }}>
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-              flexWrap="wrap"
-              gap={1}
-              sx={{ mb: 1 }}
-            >
-              <Box>
-                <Typography variant="subtitle1" fontWeight={700}>
-                  Ingresos recurrentes mensuales
+              {summary.expenseBreakdown.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  Sin gastos este mes.
                 </Typography>
-                <Typography variant="caption" color="text.secondary" display="block">
-                  Ej. salario o renta: se refleja cada mes con la fecha que elijas. «Cobrado (este mes)»
-                  aplica a {MONTHS.find((x) => x.v === month)?.label} {year}.
-                </Typography>
-              </Box>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={openNewRecInc}
-                disabled={incomeCategories.length === 0}
-              >
-                Agregar recurrente
-              </Button>
-            </Stack>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Activo</TableCell>
-                    <TableCell>Etiqueta</TableCell>
-                    <TableCell>Categoría</TableCell>
-                    <TableCell align="right">Monto</TableCell>
-                    <TableCell align="center">Día mes</TableCell>
-                    <TableCell align="center">Cobrado (este mes)</TableCell>
-                    <TableCell align="right">Acciones</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {recurringIncomeRules.map((r) => {
-                    const syntheticInc = r.isActive
-                      ? recurringIncomeForMonth(r.id, incomes)
-                      : undefined;
+              ) : (
+                <Stack spacing={1.5}>
+                  {summary.expenseBreakdown.map((b) => {
+                    const pct =
+                      summary.totalExpenses > 0
+                        ? Math.round((b.total / summary.totalExpenses) * 100)
+                        : 0;
                     return (
-                      <TableRow key={r.id}>
-                        <TableCell>
-                          <Switch
+                      <Box key={b.categoryId}>
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="center"
+                        >
+                          <Typography variant="body2">{b.categoryName}</Typography>
+                          <Chip
                             size="small"
-                            checked={r.isActive}
-                            onChange={(_, v) => toggleRecIncActive(r, v)}
-                            inputProps={{ "aria-label": "Activo ingreso recurrente" }}
+                            label={`${pct}% · ${formatCop(b.total)}`}
                           />
-                        </TableCell>
-                        <TableCell>{r.label || "—"}</TableCell>
-                        <TableCell>{r.categoryName ?? "—"}</TableCell>
-                        <TableCell align="right">{formatCop(r.amount)}</TableCell>
-                        <TableCell align="center">{r.dayOfMonth}</TableCell>
-                        <TableCell align="center" padding="checkbox">
-                          {syntheticInc ? (
-                            <Checkbox
-                              checked={!!syntheticInc.received}
-                              onChange={(_, v) => toggleIncomeReceived(syntheticInc, v)}
-                              size="small"
-                              color="success"
-                              inputProps={{
-                                "aria-label": `${r.label || r.categoryName || "Ingreso recurrente"} cobrado este mes`,
-                              }}
-                            />
-                          ) : (
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              title={
-                                r.isActive
-                                  ? undefined
-                                  : "Activa la regla para incluirla en el mes y poder marcar cobro"
-                              }
-                            >
-                              —
-                            </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell align="right">
-                          <IconButton
-                            size="small"
-                            onClick={() => openEditRecInc(r)}
-                            aria-label="Editar ingreso recurrente"
-                          >
-                            <EditOutlinedIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => removeRecInc(r)}
-                            aria-label="Eliminar ingreso recurrente"
-                          >
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
+                        </Stack>
+                        <LinearProgress
+                          variant="determinate"
+                          value={pct}
+                          sx={{ mt: 0.5, height: 6, borderRadius: 1 }}
+                        />
+                      </Box>
                     );
                   })}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            {recurringIncomeRules.length === 0 && (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Sin reglas. Crea una para que se liste cada mes en ingresos y en el total.
-              </Typography>
-            )}
-          </Paper>
+                </Stack>
+              )}
+            </Paper>
+          </Stack>
 
-          {(summary.incomeBreakdown.length > 0 ||
-            summary.expenseBreakdown.length > 0) && (
-            <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 3 }}>
-              <Paper sx={{ p: 2, flex: 1 }}>
-                <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                  Ingresos por categoría
-                </Typography>
-                {summary.incomeBreakdown.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">
-                    Registra ingresos para ver el desglose.
-                  </Typography>
-                ) : (
-                  <Stack spacing={1.5}>
-                    {summary.incomeBreakdown.map((b) => {
-                      const pct =
-                        summary.income > 0
-                          ? Math.round((b.total / summary.income) * 100)
-                          : 0;
-                      return (
-                        <Box key={b.categoryId}>
-                          <Stack
-                            direction="row"
-                            justifyContent="space-between"
-                            alignItems="center"
-                          >
-                            <Typography variant="body2">{b.categoryName}</Typography>
-                            <Chip
-                              size="small"
-                              label={`${pct}% · ${formatCop(b.total)}`}
-                            />
-                          </Stack>
-                          <LinearProgress
-                            variant="determinate"
-                            value={pct}
-                            sx={{ mt: 0.5, height: 6, borderRadius: 1 }}
-                          />
-                        </Box>
-                      );
-                    })}
-                  </Stack>
-                )}
-              </Paper>
-              <Paper sx={{ p: 2, flex: 1 }}>
-                <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                  Gastos por categoría
-                </Typography>
-                {summary.expenseBreakdown.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">
-                    Sin gastos este mes.
-                  </Typography>
-                ) : (
-                  <Stack spacing={1.5}>
-                    {summary.expenseBreakdown.map((b) => {
-                      const pct =
-                        summary.totalExpenses > 0
-                          ? Math.round((b.total / summary.totalExpenses) * 100)
-                          : 0;
-                      return (
-                        <Box key={b.categoryId}>
-                          <Stack
-                            direction="row"
-                            justifyContent="space-between"
-                            alignItems="center"
-                          >
-                            <Typography variant="body2">{b.categoryName}</Typography>
-                            <Chip
-                              size="small"
-                              label={`${pct}% · ${formatCop(b.total)}`}
-                            />
-                          </Stack>
-                          <LinearProgress
-                            variant="determinate"
-                            value={pct}
-                            sx={{ mt: 0.5, height: 6, borderRadius: 1 }}
-                          />
-                        </Box>
-                      );
-                    })}
-                  </Stack>
-                )}
-              </Paper>
-            </Stack>
-          )}
-
-          <Stack direction={{ xs: "column", lg: "row" }} spacing={3} alignItems="flex-start">
-            <Stack spacing={2} sx={{ flex: 1, width: "100%" }}>
-              <Paper sx={{ p: 2, width: "100%" }}>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+            sx={{ mb: 3 }}
+            alignItems="flex-start"
+          >
+            <Stack spacing={2} sx={{ flex: 1, minWidth: 0 }}>
+              <Paper sx={{ p: 2 }}>
                 <Stack
                   direction="row"
                   justifyContent="space-between"
@@ -1223,6 +1026,119 @@ export default function ContabilidadPage() {
                   )}
                 </List>
               </Paper>
+              <Paper sx={{ p: 2 }}>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  flexWrap="wrap"
+                  gap={1}
+                  sx={{ mb: 1 }}
+                >
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={700}>
+                      Ingresos recurrentes
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      «Cobrado» · {MONTHS.find((x) => x.v === month)?.label} {year}
+                    </Typography>
+                  </Box>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddIcon />}
+                    onClick={openNewRecInc}
+                    disabled={incomeCategories.length === 0}
+                  >
+                    Agregar
+                  </Button>
+                </Stack>
+                <TableContainer sx={{ maxWidth: "100%", overflowX: "auto" }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Activo</TableCell>
+                        <TableCell>Etiqueta</TableCell>
+                        <TableCell>Categoría</TableCell>
+                        <TableCell align="right">Monto</TableCell>
+                        <TableCell align="center">Día</TableCell>
+                        <TableCell align="center">Cobrado</TableCell>
+                        <TableCell align="right">Acc.</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {recurringIncomeRules.map((r) => {
+                        const syntheticInc = r.isActive
+                          ? recurringIncomeForMonth(r.id, incomes)
+                          : undefined;
+                        return (
+                          <TableRow key={r.id}>
+                            <TableCell>
+                              <Switch
+                                size="small"
+                                checked={r.isActive}
+                                onChange={(_, v) => toggleRecIncActive(r, v)}
+                                inputProps={{ "aria-label": "Activo ingreso recurrente" }}
+                              />
+                            </TableCell>
+                            <TableCell>{r.label || "—"}</TableCell>
+                            <TableCell>{r.categoryName ?? "—"}</TableCell>
+                            <TableCell align="right">{formatCop(r.amount)}</TableCell>
+                            <TableCell align="center">{r.dayOfMonth}</TableCell>
+                            <TableCell align="center" padding="checkbox">
+                              {syntheticInc ? (
+                                <Checkbox
+                                  checked={!!syntheticInc.received}
+                                  onChange={(_, v) => toggleIncomeReceived(syntheticInc, v)}
+                                  size="small"
+                                  color="success"
+                                  inputProps={{
+                                    "aria-label": `${r.label || r.categoryName || "Ingreso recurrente"} cobrado`,
+                                  }}
+                                />
+                              ) : (
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  title={
+                                    r.isActive
+                                      ? undefined
+                                      : "Activa la regla para incluirla en el mes y poder marcar cobro"
+                                  }
+                                >
+                                  —
+                                </Typography>
+                              )}
+                            </TableCell>
+                            <TableCell align="right">
+                              <IconButton
+                                size="small"
+                                onClick={() => openEditRecInc(r)}
+                                aria-label="Editar ingreso recurrente"
+                              >
+                                <EditOutlinedIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                onClick={() => removeRecInc(r)}
+                                aria-label="Eliminar ingreso recurrente"
+                              >
+                                <DeleteOutlineIcon fontSize="small" />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                {recurringIncomeRules.length === 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Sin reglas. Se listarán en ingresos del mes.
+                  </Typography>
+                )}
+              </Paper>
 
               <Paper sx={{ p: 2, width: "100%" }}>
                 <Stack
@@ -1244,94 +1160,139 @@ export default function ContabilidadPage() {
                     Registrar ingreso
                   </Button>
                 </Stack>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Fecha</TableCell>
-                        <TableCell>Categoría / detalle</TableCell>
-                        <TableCell align="center">Cobrado</TableCell>
-                        <TableCell align="right">Monto</TableCell>
-                        <TableCell align="right" width={100}>
-                          Acciones
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {incomes.map((row) => (
-                        <TableRow key={row.id}>
-                          <TableCell>
-                            {new Date(row.receivedAt).toLocaleDateString("es-CO")}
-                            {row.isRecurring && (
-                              <Chip
-                                label="Recurrente"
-                                size="small"
-                                color="secondary"
-                                variant="outlined"
-                                sx={{
-                                  ml: 1,
-                                  mt: 0.5,
-                                  height: 22,
-                                  display: "block",
-                                  width: "fit-content",
-                                }}
-                              />
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {row.label
-                              ? `${row.label} · ${row.categoryName ?? ""}`
-                              : row.categoryName ?? "—"}
-                          </TableCell>
-                          <TableCell align="center" padding="checkbox">
-                            {row.isRecurring ? (
-                              <Checkbox
-                                checked={!!row.received}
-                                onChange={(_, v) => toggleIncomeReceived(row, v)}
-                                size="small"
-                                color="success"
-                                inputProps={{
-                                  "aria-label": `Ingreso ${row.label || row.categoryName || ""} cobrado`,
-                                }}
-                              />
-                            ) : (
-                              <Typography variant="caption" color="text.secondary">
-                                —
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell align="right">{formatCop(row.amount)}</TableCell>
-                          <TableCell align="right">
-                            {!row.isRecurring ? (
-                              <>
-                                <IconButton size="small" onClick={() => openEditIncome(row)}>
-                                  <EditOutlinedIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small" onClick={() => removeIncome(row)}>
-                                  <DeleteOutlineIcon fontSize="small" />
-                                </IconButton>
-                              </>
-                            ) : (
-                              <Typography variant="caption" color="text.secondary">
-                                Editar en recurrentes
-                              </Typography>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                {incomes.length === 0 && (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                  Agrupados por categoría. Expandí cada bloque para ver y editar los movimientos.
+                </Typography>
+                {incomes.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                     No hay ingresos registrados en este mes.
                   </Typography>
+                ) : (
+                  <Stack spacing={1}>
+                    {incomesByCategory.keys.map((categoryName) => {
+                      const rows = incomesByCategory.map.get(categoryName)!;
+                      const subtotal = rows.reduce((s, r) => s + r.amount, 0);
+                      return (
+                        <Accordion
+                          key={categoryName}
+                          disableGutters
+                          defaultExpanded={false}
+                          sx={{
+                            border: 1,
+                            borderColor: "divider",
+                            borderRadius: 1,
+                            "&:before": { display: "none" },
+                            boxShadow: "none",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <AccordionSummary
+                            expandIcon={<ExpandMoreIcon fontSize="small" />}
+                            sx={{
+                              minHeight: 48,
+                              px: 1.5,
+                              bgcolor: "action.hover",
+                              "& .MuiAccordionSummary-content": { my: 1, alignItems: "center", gap: 1 },
+                            }}
+                          >
+                            <Typography fontWeight={700} sx={{ flex: 1, minWidth: 0 }}>
+                              {categoryName}
+                            </Typography>
+                            <Chip size="small" label={`${rows.length} ítem${rows.length === 1 ? "" : "s"}`} />
+                            <Typography variant="body2" fontWeight={700} color="primary" sx={{ flexShrink: 0 }}>
+                              {formatCop(subtotal)}
+                            </Typography>
+                          </AccordionSummary>
+                          <AccordionDetails sx={{ pt: 0, px: 0, pb: 0 }}>
+                            <TableContainer>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell>Fecha</TableCell>
+                                    <TableCell>Detalle</TableCell>
+                                    <TableCell align="center">Cobrado</TableCell>
+                                    <TableCell align="right">Monto</TableCell>
+                                    <TableCell align="right" width={100}>
+                                      Acciones
+                                    </TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {rows.map((row) => (
+                                    <TableRow key={row.id}>
+                                      <TableCell>
+                                        {new Date(row.receivedAt).toLocaleDateString("es-CO")}
+                                        {row.isRecurring && (
+                                          <Chip
+                                            label="Recurrente"
+                                            size="small"
+                                            color="secondary"
+                                            variant="outlined"
+                                            sx={{
+                                              ml: 1,
+                                              mt: 0.5,
+                                              height: 22,
+                                              display: "block",
+                                              width: "fit-content",
+                                            }}
+                                          />
+                                        )}
+                                      </TableCell>
+                                      <TableCell>
+                                        {row.label
+                                          ? `${row.label} · ${row.categoryName ?? ""}`
+                                          : row.categoryName ?? "—"}
+                                      </TableCell>
+                                      <TableCell align="center" padding="checkbox">
+                                        {row.isRecurring ? (
+                                          <Checkbox
+                                            checked={!!row.received}
+                                            onChange={(_, v) => toggleIncomeReceived(row, v)}
+                                            size="small"
+                                            color="success"
+                                            inputProps={{
+                                              "aria-label": `Ingreso ${row.label || row.categoryName || ""} cobrado`,
+                                            }}
+                                          />
+                                        ) : (
+                                          <Typography variant="caption" color="text.secondary">
+                                            —
+                                          </Typography>
+                                        )}
+                                      </TableCell>
+                                      <TableCell align="right">{formatCop(row.amount)}</TableCell>
+                                      <TableCell align="right">
+                                        {!row.isRecurring ? (
+                                          <>
+                                            <IconButton size="small" onClick={() => openEditIncome(row)}>
+                                              <EditOutlinedIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton size="small" onClick={() => removeIncome(row)}>
+                                              <DeleteOutlineIcon fontSize="small" />
+                                            </IconButton>
+                                          </>
+                                        ) : (
+                                          <Typography variant="caption" color="text.secondary">
+                                            Editar en recurrentes
+                                          </Typography>
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </TableContainer>
+                          </AccordionDetails>
+                        </Accordion>
+                      );
+                    })}
+                  </Stack>
                 )}
               </Paper>
             </Stack>
 
-            <Stack spacing={2} sx={{ flex: 1, width: "100%" }}>
-              <Paper sx={{ p: 2, width: "100%" }}>
+            <Stack spacing={2} sx={{ flex: 1, minWidth: 0 }}>
+              <Paper sx={{ p: 2 }}>
                 <Stack
                   direction="row"
                   justifyContent="space-between"
@@ -1381,6 +1342,110 @@ export default function ContabilidadPage() {
                     </Typography>
                   )}
                 </List>
+              </Paper>
+              <Paper sx={{ p: 2 }}>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  flexWrap="wrap"
+                  gap={1}
+                  sx={{ mb: 1 }}
+                >
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={700}>
+                      Gastos recurrentes
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      «Pagado» · {MONTHS.find((x) => x.v === month)?.label} {year}
+                    </Typography>
+                  </Box>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={openNewRec}
+                    disabled={expenseCategories.length === 0}
+                  >
+                    Agregar
+                  </Button>
+                </Stack>
+                <TableContainer sx={{ maxWidth: "100%", overflowX: "auto" }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Activo</TableCell>
+                        <TableCell>Etiqueta</TableCell>
+                        <TableCell>Categoría</TableCell>
+                        <TableCell align="right">Monto</TableCell>
+                        <TableCell align="center">Día</TableCell>
+                        <TableCell align="center">Pagado</TableCell>
+                        <TableCell align="right">Acc.</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {recurringRules.map((r) => {
+                        const syntheticRow = r.isActive
+                          ? recurringExpenseForMonth(r.id, expenses)
+                          : undefined;
+                        return (
+                          <TableRow key={r.id}>
+                            <TableCell>
+                              <Switch
+                                size="small"
+                                checked={r.isActive}
+                                onChange={(_, v) => toggleRecActive(r, v)}
+                                inputProps={{ "aria-label": "Activo" }}
+                              />
+                            </TableCell>
+                            <TableCell>{r.label || "—"}</TableCell>
+                            <TableCell>{r.categoryName ?? "—"}</TableCell>
+                            <TableCell align="right">{formatCop(r.amount)}</TableCell>
+                            <TableCell align="center">{r.dayOfMonth}</TableCell>
+                            <TableCell align="center" padding="checkbox">
+                              {syntheticRow ? (
+                                <Checkbox
+                                  checked={!!syntheticRow.paid}
+                                  onChange={(_, v) => toggleExpensePaid(syntheticRow, v)}
+                                  size="small"
+                                  color="success"
+                                  inputProps={{
+                                    "aria-label": `${r.label || r.categoryName || "Recurrente"} pagado`,
+                                  }}
+                                />
+                              ) : (
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  title={
+                                    r.isActive
+                                      ? undefined
+                                      : "Activa la regla para incluirla en el mes y poder marcarla como pagada"
+                                  }
+                                >
+                                  —
+                                </Typography>
+                              )}
+                            </TableCell>
+                            <TableCell align="right">
+                              <IconButton size="small" onClick={() => openEditRec(r)} aria-label="Editar">
+                                <EditOutlinedIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton size="small" onClick={() => removeRec(r)} aria-label="Eliminar">
+                                <DeleteOutlineIcon fontSize="small" />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                {recurringRules.length === 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Sin reglas. Aparecerán en gastos del mes.
+                  </Typography>
+                )}
               </Paper>
 
               <Paper sx={{ p: 2, width: "100%" }}>
