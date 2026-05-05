@@ -14,6 +14,8 @@ import {
   TASK_PRIORITIES,
 } from "@/lib/api/tasks";
 import CreateTaskModal from "@/components/tasks/CreateTaskModal";
+import { getDueUrgency } from "@/lib/taskStats";
+import { statusLabelEs } from "@/lib/taskStatusLabels";
 import { toast } from "react-toastify";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -33,20 +35,6 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 const COLUMN_ORDER = ["To Do", "In Progress", "Done"];
-const DUE_SOON_MS = 24 * 60 * 60 * 1000;
-
-function getDueWarning(
-  dueDate?: string,
-  statusName?: string
-): "overdue" | "due_soon" | null {
-  if (!dueDate) return null;
-  if (statusName?.toLowerCase() === "done") return null;
-  const due = new Date(dueDate).getTime();
-  const now = Date.now();
-  if (due < now) return "overdue";
-  if (due - now <= DUE_SOON_MS) return "due_soon";
-  return null;
-}
 
 function toDatetimeLocalValue(iso?: string) {
   if (!iso) return "";
@@ -122,10 +110,10 @@ export default function TasksPage() {
     const key = tasks.map((t) => `${t.id}-${t.dueDate ?? ""}`).join(",");
     if (alertedForTasksRef.current === key) return;
     const overdue = tasks.filter(
-      (t) => getDueWarning(t.dueDate, t.statusName) === "overdue"
+      (t) => getDueUrgency(t.dueDate, t.statusName) === "overdue"
     );
     const dueSoon = tasks.filter(
-      (t) => getDueWarning(t.dueDate, t.statusName) === "due_soon"
+      (t) => getDueUrgency(t.dueDate, t.statusName) === "due_soon"
     );
     if (overdue.length > 0 || dueSoon.length > 0) {
       alertedForTasksRef.current = key;
@@ -299,7 +287,7 @@ export default function TasksPage() {
                     justifyContent: "space-between",
                   }}
                 >
-                  <Typography fontWeight={700}>{status.name}</Typography>
+                        {statusLabelEs(status.name)}
                   <Chip
                     size="small"
                     label={columnTasks.length}
@@ -313,7 +301,7 @@ export default function TasksPage() {
                     </Typography>
                   ) : (
                     columnTasks.map((t) => {
-                      const dueWarning = getDueWarning(t.dueDate, t.statusName);
+                      const dueWarning = getDueUrgency(t.dueDate, t.statusName);
                       return (
                         <Card
                           key={t.id}
@@ -498,7 +486,7 @@ export default function TasksPage() {
                                   >
                                     {statuses.map((s) => (
                                       <MenuItem key={s.id} value={s.id} dense>
-                                        {s.name}
+                                        {statusLabelEs(s.name)}
                                       </MenuItem>
                                     ))}
                                   </Select>

@@ -48,16 +48,19 @@ import {
   createFinanceIncome,
   createIncomeCategory,
   createRecurringExpense,
+  createRecurringIncome,
   deleteExpenseCategory,
   deleteFinanceExpense,
   deleteFinanceIncome,
   deleteIncomeCategory,
   deleteRecurringExpense,
+  deleteRecurringIncome,
   formatCop,
   getFinanceSummary,
   listExpenseCategories,
   listIncomeCategories,
   listRecurringExpenses,
+  listRecurringIncomes,
   putFinanceLiquidity,
   type ExpenseCategory,
   type FinanceExpense,
@@ -70,6 +73,7 @@ import {
   updateFinanceIncome,
   updateIncomeCategory,
   updateRecurringExpense,
+  updateRecurringIncome,
 } from "@/lib/api/contabilidad";
 
 const MONTHS = [
@@ -104,6 +108,13 @@ function recurringExpenseForMonth(
   expenses: FinanceExpense[]
 ): FinanceExpense | undefined {
   return expenses.find((e) => e.isRecurring && e.recurringRuleId === ruleId);
+}
+
+function recurringIncomeForMonth(
+  ruleId: string,
+  incomes: FinanceIncomeLine[]
+): FinanceIncomeLine | undefined {
+  return incomes.find((e) => e.isRecurring && e.recurringRuleId === ruleId);
 }
 
 export default function ContabilidadPage() {
@@ -155,6 +166,20 @@ export default function ContabilidadPage() {
   const [recNotes, setRecNotes] = useState("");
   const [recActive, setRecActive] = useState(true);
 
+  const [recurringIncomeRules, setRecurringIncomeRules] = useState<
+    FinanceRecurringRule[]
+  >([]);
+  const [recIncDialogOpen, setRecIncDialogOpen] = useState(false);
+  const [editingRecInc, setEditingRecInc] = useState<FinanceRecurringRule | null>(
+    null
+  );
+  const [recIncCategoryId, setRecIncCategoryId] = useState("");
+  const [recIncAmount, setRecIncAmount] = useState("");
+  const [recIncDay, setRecIncDay] = useState("1");
+  const [recIncLabel, setRecIncLabel] = useState("");
+  const [recIncNotes, setRecIncNotes] = useState("");
+  const [recIncActive, setRecIncActive] = useState(true);
+
   const [liquidityDialogOpen, setLiquidityDialogOpen] = useState(false);
   const [liquidityRows, setLiquidityRows] = useState<
     { label: string; amount: string }[]
@@ -172,6 +197,10 @@ export default function ContabilidadPage() {
     setRecurringRules(await listRecurringExpenses());
   }, []);
 
+  const loadRecurringIncomeRules = useCallback(async () => {
+    setRecurringIncomeRules(await listRecurringIncomes());
+  }, []);
+
   const loadSummary = useCallback(async () => {
     setSummary(await getFinanceSummary({ year, month }));
   }, [year, month]);
@@ -184,6 +213,7 @@ export default function ContabilidadPage() {
         loadIncomeCategories(),
         loadExpenseCategories(),
         loadRecurringRules(),
+        loadRecurringIncomeRules(),
       ]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al cargar datos");
@@ -195,6 +225,7 @@ export default function ContabilidadPage() {
     loadIncomeCategories,
     loadExpenseCategories,
     loadRecurringRules,
+    loadRecurringIncomeRules,
   ]);
 
   useEffect(() => {
@@ -512,6 +543,107 @@ export default function ContabilidadPage() {
     try {
       await updateRecurringExpense(r.id, { isActive: active });
       await Promise.all([loadRecurringRules(), loadSummary()]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error");
+    }
+  };
+
+  const toggleIncomeReceived = async (row: FinanceIncomeLine, received: boolean) => {
+    if (!row.isRecurring) return;
+    try {
+      await updateFinanceIncome(row.id, { received }, { year, month });
+      toast.success(received ? "Marcado como cobrado" : "Marcado como pendiente");
+      await loadSummary();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al actualizar");
+    }
+  };
+
+  const openNewRecInc = () => {
+    setEditingRecInc(null);
+    setRecIncCategoryId(incomeCategories[0]?.id ?? "");
+    setRecIncAmount("");
+    setRecIncDay("5");
+    setRecIncLabel("");
+    setRecIncNotes("");
+    setRecIncActive(true);
+    setRecIncDialogOpen(true);
+  };
+
+  const openEditRecInc = (r: FinanceRecurringRule) => {
+    setEditingRecInc(r);
+    setRecIncCategoryId(r.categoryId);
+    setRecIncAmount(String(r.amount));
+    setRecIncDay(String(r.dayOfMonth));
+    setRecIncLabel(r.label ?? "");
+    setRecIncNotes(r.notes ?? "");
+    setRecIncActive(r.isActive);
+    setRecIncDialogOpen(true);
+  };
+
+  const saveRecInc = async () => {
+    const amount = Number(recIncAmount.replace(/\./g, "").replace(/,/g, ""));
+    const day = Number(recIncDay);
+    if (
+      !recIncCategoryId ||
+      Number.isNaN(amount) ||
+      amount < 0 ||
+      Number.isNaN(day) ||
+      day < 1 ||
+      day > 31
+    ) {
+      toast.error("Completa categoría, monto (COP) y día del mes (1–31)");
+      return;
+    }
+    try {
+      if (editingRecInc) {
+        await updateRecurringIncome(editingRecInc.id, {
+          categoryId: recIncCategoryId,
+          amount,
+          dayOfMonth: day,
+          label: recIncLabel.trim() || undefined,
+          notes: recIncNotes.trim() || undefined,
+          isActive: recIncActive,
+        });
+        toast.success("Ingreso recurrente actualizado");
+      } else {
+        await createRecurringIncome({
+          categoryId: recIncCategoryId,
+          amount,
+          dayOfMonth: day,
+          label: recIncLabel.trim() || undefined,
+          notes: recIncNotes.trim() || undefined,
+          isActive: recIncActive,
+        });
+        toast.success("Ingreso recurrente creado: se aplicará en todos los meses");
+      }
+      setRecIncDialogOpen(false);
+      await Promise.all([loadRecurringIncomeRules(), loadSummary()]);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error");
+    }
+  };
+
+  const removeRecInc = async (r: FinanceRecurringRule) => {
+    if (
+      !confirm(
+        `¿Eliminar el ingreso recurrente «${r.label || r.categoryName || "sin nombre"}»?`
+      )
+    )
+      return;
+    try {
+      await deleteRecurringIncome(r.id);
+      toast.success("Regla eliminada");
+      await Promise.all([loadRecurringIncomeRules(), loadSummary()]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error");
+    }
+  };
+
+  const toggleRecIncActive = async (r: FinanceRecurringRule, active: boolean) => {
+    try {
+      await updateRecurringIncome(r.id, { isActive: active });
+      await Promise.all([loadRecurringIncomeRules(), loadSummary()]);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
     }
@@ -840,6 +972,120 @@ export default function ContabilidadPage() {
             )}
           </Paper>
 
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              flexWrap="wrap"
+              gap={1}
+              sx={{ mb: 1 }}
+            >
+              <Box>
+                <Typography variant="subtitle1" fontWeight={700}>
+                  Ingresos recurrentes mensuales
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Ej. salario o renta: se refleja cada mes con la fecha que elijas. «Cobrado (este mes)»
+                  aplica a {MONTHS.find((x) => x.v === month)?.label} {year}.
+                </Typography>
+              </Box>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={openNewRecInc}
+                disabled={incomeCategories.length === 0}
+              >
+                Agregar recurrente
+              </Button>
+            </Stack>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Activo</TableCell>
+                    <TableCell>Etiqueta</TableCell>
+                    <TableCell>Categoría</TableCell>
+                    <TableCell align="right">Monto</TableCell>
+                    <TableCell align="center">Día mes</TableCell>
+                    <TableCell align="center">Cobrado (este mes)</TableCell>
+                    <TableCell align="right">Acciones</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {recurringIncomeRules.map((r) => {
+                    const syntheticInc = r.isActive
+                      ? recurringIncomeForMonth(r.id, incomes)
+                      : undefined;
+                    return (
+                      <TableRow key={r.id}>
+                        <TableCell>
+                          <Switch
+                            size="small"
+                            checked={r.isActive}
+                            onChange={(_, v) => toggleRecIncActive(r, v)}
+                            inputProps={{ "aria-label": "Activo ingreso recurrente" }}
+                          />
+                        </TableCell>
+                        <TableCell>{r.label || "—"}</TableCell>
+                        <TableCell>{r.categoryName ?? "—"}</TableCell>
+                        <TableCell align="right">{formatCop(r.amount)}</TableCell>
+                        <TableCell align="center">{r.dayOfMonth}</TableCell>
+                        <TableCell align="center" padding="checkbox">
+                          {syntheticInc ? (
+                            <Checkbox
+                              checked={!!syntheticInc.received}
+                              onChange={(_, v) => toggleIncomeReceived(syntheticInc, v)}
+                              size="small"
+                              color="success"
+                              inputProps={{
+                                "aria-label": `${r.label || r.categoryName || "Ingreso recurrente"} cobrado este mes`,
+                              }}
+                            />
+                          ) : (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              title={
+                                r.isActive
+                                  ? undefined
+                                  : "Activa la regla para incluirla en el mes y poder marcar cobro"
+                              }
+                            >
+                              —
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell align="right">
+                          <IconButton
+                            size="small"
+                            onClick={() => openEditRecInc(r)}
+                            aria-label="Editar ingreso recurrente"
+                          >
+                            <EditOutlinedIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => removeRecInc(r)}
+                            aria-label="Eliminar ingreso recurrente"
+                          >
+                            <DeleteOutlineIcon fontSize="small" />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            {recurringIncomeRules.length === 0 && (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Sin reglas. Crea una para que se liste cada mes en ingresos y en el total.
+              </Typography>
+            )}
+          </Paper>
+
           {(summary.incomeBreakdown.length > 0 ||
             summary.expenseBreakdown.length > 0) && (
             <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 3 }}>
@@ -1003,7 +1249,8 @@ export default function ContabilidadPage() {
                     <TableHead>
                       <TableRow>
                         <TableCell>Fecha</TableCell>
-                        <TableCell>Categoría</TableCell>
+                        <TableCell>Categoría / detalle</TableCell>
+                        <TableCell align="center">Cobrado</TableCell>
                         <TableCell align="right">Monto</TableCell>
                         <TableCell align="right" width={100}>
                           Acciones
@@ -1015,16 +1262,60 @@ export default function ContabilidadPage() {
                         <TableRow key={row.id}>
                           <TableCell>
                             {new Date(row.receivedAt).toLocaleDateString("es-CO")}
+                            {row.isRecurring && (
+                              <Chip
+                                label="Recurrente"
+                                size="small"
+                                color="secondary"
+                                variant="outlined"
+                                sx={{
+                                  ml: 1,
+                                  mt: 0.5,
+                                  height: 22,
+                                  display: "block",
+                                  width: "fit-content",
+                                }}
+                              />
+                            )}
                           </TableCell>
-                          <TableCell>{row.categoryName ?? "—"}</TableCell>
+                          <TableCell>
+                            {row.label
+                              ? `${row.label} · ${row.categoryName ?? ""}`
+                              : row.categoryName ?? "—"}
+                          </TableCell>
+                          <TableCell align="center" padding="checkbox">
+                            {row.isRecurring ? (
+                              <Checkbox
+                                checked={!!row.received}
+                                onChange={(_, v) => toggleIncomeReceived(row, v)}
+                                size="small"
+                                color="success"
+                                inputProps={{
+                                  "aria-label": `Ingreso ${row.label || row.categoryName || ""} cobrado`,
+                                }}
+                              />
+                            ) : (
+                              <Typography variant="caption" color="text.secondary">
+                                —
+                              </Typography>
+                            )}
+                          </TableCell>
                           <TableCell align="right">{formatCop(row.amount)}</TableCell>
                           <TableCell align="right">
-                            <IconButton size="small" onClick={() => openEditIncome(row)}>
-                              <EditOutlinedIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton size="small" onClick={() => removeIncome(row)}>
-                              <DeleteOutlineIcon fontSize="small" />
-                            </IconButton>
+                            {!row.isRecurring ? (
+                              <>
+                                <IconButton size="small" onClick={() => openEditIncome(row)}>
+                                  <EditOutlinedIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton size="small" onClick={() => removeIncome(row)}>
+                                  <DeleteOutlineIcon fontSize="small" />
+                                </IconButton>
+                              </>
+                            ) : (
+                              <Typography variant="caption" color="text.secondary">
+                                Editar en recurrentes
+                              </Typography>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -1457,6 +1748,83 @@ export default function ContabilidadPage() {
         <DialogActions>
           <Button onClick={() => setRecDialogOpen(false)}>Cancelar</Button>
           <Button onClick={saveRec} variant="contained">
+            Guardar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={recIncDialogOpen}
+        onClose={() => setRecIncDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          {editingRecInc ? "Editar ingreso recurrente" : "Nuevo ingreso recurrente"}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <FormControl fullWidth>
+              <InputLabel>Categoría de ingreso</InputLabel>
+              <Select
+                label="Categoría de ingreso"
+                value={recIncCategoryId}
+                onChange={(e) => setRecIncCategoryId(e.target.value)}
+              >
+                {incomeCategories.map((c) => (
+                  <MenuItem key={c.id} value={c.id}>
+                    {c.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              label="Etiqueta (ej. Nómina)"
+              value={recIncLabel}
+              onChange={(e) => setRecIncLabel(e.target.value)}
+              fullWidth
+              helperText="Para reconocerlo en el listado mensual"
+            />
+            <TextField
+              label="Monto mensual (COP)"
+              type="text"
+              value={recIncAmount}
+              onChange={(e) => setRecIncAmount(e.target.value)}
+              fullWidth
+            />
+            <TextField
+              label="Día del mes en que aplica (1–31)"
+              type="number"
+              value={recIncDay}
+              onChange={(e) => setRecIncDay(e.target.value)}
+              fullWidth
+              inputProps={{ min: 1, max: 31 }}
+              helperText="En meses más cortos se usa el último día disponible"
+            />
+            <TextField
+              label="Notas (opcional)"
+              value={recIncNotes}
+              onChange={(e) => setRecIncNotes(e.target.value)}
+              fullWidth
+              multiline
+              minRows={2}
+            />
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography variant="body2">Activo</Typography>
+              <Switch
+                checked={recIncActive}
+                onChange={(_, v) => setRecIncActive(v)}
+                color="primary"
+              />
+              <Typography variant="caption" color="text.secondary">
+                Si está apagado, no se cuenta en los meses hasta que lo reactives
+              </Typography>
+            </Stack>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRecIncDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={saveRecInc} variant="contained">
             Guardar
           </Button>
         </DialogActions>

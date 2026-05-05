@@ -1,7 +1,8 @@
 import type { Task, TaskStatus, TaskPriority } from "@/lib/api/tasks";
 import { TASK_PRIORITIES } from "@/lib/api/tasks";
 
-const DUE_SOON_MS = 24 * 60 * 60 * 1000;
+export const DUE_SOON_HOURS = 24;
+const DUE_SOON_MS = DUE_SOON_HOURS * 60 * 60 * 1000;
 
 /** Misma regla que en el tablero Kanban */
 export function getDueUrgency(

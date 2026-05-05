@@ -4,7 +4,7 @@ import NextLink from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useUser } from "@/context/userContext";
 import { getTasks, getTaskStatuses } from "@/lib/api/tasks";
-import { buildTaskDashboardStats } from "@/lib/taskStats";
+import { buildTaskDashboardStats, DUE_SOON_HOURS } from "@/lib/taskStats";
 import { toast } from "react-toastify";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -23,6 +23,7 @@ import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurned
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
 import type { Task, TaskStatus } from "@/lib/api/tasks";
+import { statusLabelEs } from "@/lib/taskStatusLabels";
 
 function StatCard({
   title,
@@ -126,12 +127,6 @@ export default function DashboardPage() {
       <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
         Estadísticas de tareas
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 720 }}>
-        Calculadas en el navegador con los mismos datos que el tablero (
-        <Box component="span" fontWeight={600}>GET /tasks</Box> y{" "}
-        <Box component="span" fontWeight={600}>GET /task-statuses</Box>
-        ). No hace falta un endpoint extra mientras el listado sea manejable.
-      </Typography>
 
       <Stack direction="row" flexWrap="wrap" useFlexGap spacing={2} sx={{ mb: 3 }}>
         <StatCard
@@ -145,7 +140,7 @@ export default function DashboardPage() {
         <StatCard
           title="Por vencer"
           value={stats.dueSoon}
-          subtitle="Vence en ≤ 24 h (excl. Done)"
+          subtitle={`En menos de ${DUE_SOON_HOURS} horas`}
           icon={<EventOutlinedIcon />}
           color="warning.main"
           loading={loading}
@@ -182,7 +177,7 @@ export default function DashboardPage() {
                   <Box key={s.statusId}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
                       <Typography variant="body2" fontWeight={600}>
-                        {s.name}
+                        {statusLabelEs(s.name)}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         {s.count} ({stats.total ? Math.round((s.count / stats.total) * 100) : 0}%)

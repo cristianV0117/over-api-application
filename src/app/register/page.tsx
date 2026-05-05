@@ -4,9 +4,29 @@ import RegisterForm from "@/components/login/RegisterForm";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import CircularProgress from "@mui/material/CircularProgress";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
+import { useRedirectIfAuthed } from "@/hooks/useRedirectIfAuthed";
 
 export default function RegisterPage() {
+  const ready = useRedirectIfAuthed();
+
+  if (!ready) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          bgcolor: "background.default",
+        }}
+      >
+        <CircularProgress color="primary" />
+      </Box>
+    );
+  }
+
   return (
     <Box
       sx={{

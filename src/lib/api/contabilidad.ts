@@ -35,6 +35,10 @@ export type FinanceIncomeLine = {
   amount: number;
   receivedAt: string;
   notes: string;
+  label?: string;
+  isRecurring?: boolean;
+  recurringRuleId?: string;
+  received?: boolean;
 };
 
 export type FinanceExpense = {
@@ -194,13 +198,23 @@ export async function updateFinanceIncome(
     amount?: number;
     receivedAt?: string;
     notes?: string;
-  }
+    received?: boolean;
+  },
+  monthForRecurring?: FinanceMonthParams
 ): Promise<FinanceIncomeLine> {
-  const res = await fetch(`${BASE}/finance/incomes/${id}`, {
-    method: "PATCH",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(data),
-  });
+  const isRecurring = id.startsWith("recurring-income:");
+  const q =
+    isRecurring && monthForRecurring
+      ? `?${monthQuery(monthForRecurring)}`
+      : "";
+  const res = await fetch(
+    `${BASE}/finance/incomes/${encodeURIComponent(id)}${q}`,
+    {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    }
+  );
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     const message = Array.isArray(err.message) ? err.message[0] : err.message;
@@ -400,6 +414,71 @@ export async function updateRecurringExpense(
 
 export async function deleteRecurringExpense(id: string): Promise<void> {
   const res = await fetch(`${BASE}/finance/recurring-expenses/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const message = Array.isArray(err.message) ? err.message[0] : err.message;
+    throw new Error(message || "Error al eliminar regla");
+  }
+}
+
+export async function listRecurringIncomes(): Promise<FinanceRecurringRule[]> {
+  const res = await fetch(`${BASE}/finance/recurring-incomes`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al cargar ingresos recurrentes");
+  return res.json();
+}
+
+export async function createRecurringIncome(data: {
+  categoryId: string;
+  amount: number;
+  dayOfMonth: number;
+  label?: string;
+  notes?: string;
+  isActive?: boolean;
+}): Promise<FinanceRecurringRule> {
+  const res = await fetch(`${BASE}/finance/recurring-incomes`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const message = Array.isArray(err.message) ? err.message[0] : err.message;
+    throw new Error(message || "Error al crear ingreso recurrente");
+  }
+  return res.json();
+}
+
+export async function updateRecurringIncome(
+  id: string,
+  data: {
+    categoryId?: string;
+    amount?: number;
+    dayOfMonth?: number;
+    label?: string;
+    notes?: string;
+    isActive?: boolean;
+  }
+): Promise<FinanceRecurringRule> {
+  const res = await fetch(`${BASE}/finance/recurring-incomes/${id}`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const message = Array.isArray(err.message) ? err.message[0] : err.message;
+    throw new Error(message || "Error al actualizar ingreso recurrente");
+  }
+  return res.json();
+}
+
+export async function deleteRecurringIncome(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/finance/recurring-incomes/${id}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
   });
