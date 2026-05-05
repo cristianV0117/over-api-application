@@ -76,6 +76,13 @@ import {
   updateRecurringIncome,
 } from "@/lib/api/contabilidad";
 
+/** Paneles con muchas filas: altura acotada y scroll vertical (recurrentes y movimientos del mes). */
+const PANEL_BODY_MAX_HEIGHT = "min(40vh, 360px)";
+/** Listas largas de categorías. */
+const CATEGORY_LIST_MAX_HEIGHT = "min(22vh, 200px)";
+/** Detalle expandido dentro de un acordeón por categoría. */
+const ACCORDION_TABLE_MAX_HEIGHT = "min(32vh, 280px)";
+
 const MONTHS = [
   { v: 1, label: "Enero" },
   { v: 2, label: "Febrero" },
@@ -985,13 +992,27 @@ export default function ContabilidadPage() {
                   <Typography variant="subtitle1" fontWeight={700}>
                     Categorías de ingreso
                   </Typography>
-                  <Button size="small" startIcon={<AddIcon />} onClick={openNewIncCat}>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={openNewIncCat}
+                  >
                     Nueva
                   </Button>
                 </Stack>
                 <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
                   Sueldo, honorarios, rentas, otros…
                 </Typography>
+                <Box
+                  sx={{
+                    maxHeight: CATEGORY_LIST_MAX_HEIGHT,
+                    overflowY: "auto",
+                    overflowX: "hidden",
+                    mr: -0.5,
+                    pr: 0.5,
+                  }}
+                >
                 <List dense disablePadding>
                   {incomeCategories.map((c) => (
                     <ListItem
@@ -1025,6 +1046,7 @@ export default function ContabilidadPage() {
                     </Typography>
                   )}
                 </List>
+                </Box>
               </Paper>
               <Paper sx={{ p: 2 }}>
                 <Stack
@@ -1054,8 +1076,14 @@ export default function ContabilidadPage() {
                     Agregar
                   </Button>
                 </Stack>
-                <TableContainer sx={{ maxWidth: "100%", overflowX: "auto" }}>
-                  <Table size="small">
+                <TableContainer
+                  sx={{
+                    maxWidth: "100%",
+                    maxHeight: PANEL_BODY_MAX_HEIGHT,
+                    overflow: "auto",
+                  }}
+                >
+                  <Table size="small" stickyHeader>
                     <TableHead>
                       <TableRow>
                         <TableCell>Activo</TableCell>
@@ -1168,6 +1196,14 @@ export default function ContabilidadPage() {
                     No hay ingresos registrados en este mes.
                   </Typography>
                 ) : (
+                  <Box
+                    sx={{
+                      maxHeight: PANEL_BODY_MAX_HEIGHT,
+                      overflowY: "auto",
+                      overflowX: "hidden",
+                      pr: 0.5,
+                    }}
+                  >
                   <Stack spacing={1}>
                     {incomesByCategory.keys.map((categoryName) => {
                       const rows = incomesByCategory.map.get(categoryName)!;
@@ -1204,8 +1240,10 @@ export default function ContabilidadPage() {
                             </Typography>
                           </AccordionSummary>
                           <AccordionDetails sx={{ pt: 0, px: 0, pb: 0 }}>
-                            <TableContainer>
-                              <Table size="small">
+                            <TableContainer
+                              sx={{ maxHeight: ACCORDION_TABLE_MAX_HEIGHT, overflow: "auto" }}
+                            >
+                              <Table size="small" stickyHeader>
                                 <TableHead>
                                   <TableRow>
                                     <TableCell>Fecha</TableCell>
@@ -1287,6 +1325,7 @@ export default function ContabilidadPage() {
                       );
                     })}
                   </Stack>
+                  </Box>
                 )}
               </Paper>
             </Stack>
@@ -1302,13 +1341,27 @@ export default function ContabilidadPage() {
                   <Typography variant="subtitle1" fontWeight={700}>
                     Categorías de gasto
                   </Typography>
-                  <Button size="small" startIcon={<AddIcon />} onClick={openNewExpCat}>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={openNewExpCat}
+                  >
                     Nueva
                   </Button>
                 </Stack>
                 <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
                   Suscripciones, hogar, hormiga…
                 </Typography>
+                <Box
+                  sx={{
+                    maxHeight: CATEGORY_LIST_MAX_HEIGHT,
+                    overflowY: "auto",
+                    overflowX: "hidden",
+                    mr: -0.5,
+                    pr: 0.5,
+                  }}
+                >
                 <List dense disablePadding>
                   {expenseCategories.map((c) => (
                     <ListItem
@@ -1342,6 +1395,7 @@ export default function ContabilidadPage() {
                     </Typography>
                   )}
                 </List>
+                </Box>
               </Paper>
               <Paper sx={{ p: 2 }}>
                 <Stack
@@ -1370,8 +1424,14 @@ export default function ContabilidadPage() {
                     Agregar
                   </Button>
                 </Stack>
-                <TableContainer sx={{ maxWidth: "100%", overflowX: "auto" }}>
-                  <Table size="small">
+                <TableContainer
+                  sx={{
+                    maxWidth: "100%",
+                    maxHeight: PANEL_BODY_MAX_HEIGHT,
+                    overflow: "auto",
+                  }}
+                >
+                  <Table size="small" stickyHeader>
                     <TableHead>
                       <TableRow>
                         <TableCell>Activo</TableCell>
@@ -1476,6 +1536,14 @@ export default function ContabilidadPage() {
                     No hay gastos en este mes.
                   </Typography>
                 ) : (
+                  <Box
+                    sx={{
+                      maxHeight: PANEL_BODY_MAX_HEIGHT,
+                      overflowY: "auto",
+                      overflowX: "hidden",
+                      pr: 0.5,
+                    }}
+                  >
                   <Stack spacing={1}>
                     {expensesByCategory.keys.map((categoryName) => {
                       const rows = expensesByCategory.map.get(categoryName)!;
@@ -1512,8 +1580,10 @@ export default function ContabilidadPage() {
                             </Typography>
                           </AccordionSummary>
                           <AccordionDetails sx={{ pt: 0, px: 0, pb: 0 }}>
-                            <TableContainer>
-                              <Table size="small">
+                            <TableContainer
+                              sx={{ maxHeight: ACCORDION_TABLE_MAX_HEIGHT, overflow: "auto" }}
+                            >
+                              <Table size="small" stickyHeader>
                                 <TableHead>
                                   <TableRow>
                                     <TableCell>Fecha</TableCell>
@@ -1583,6 +1653,7 @@ export default function ContabilidadPage() {
                       );
                     })}
                   </Stack>
+                  </Box>
                 )}
               </Paper>
             </Stack>
