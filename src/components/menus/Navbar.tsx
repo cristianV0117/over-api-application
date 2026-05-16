@@ -39,8 +39,9 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
       sx={{
         borderBottom: 1,
         borderColor: "divider",
-        backdropFilter: "blur(12px)",
-        bgcolor: "rgba(10, 12, 16, 0.85)",
+        bgcolor: "background.paper",
+        backgroundImage:
+          "linear-gradient(180deg, rgba(124, 58, 237, 0.06) 0%, transparent 40%)",
       }}
     >
       <Toolbar

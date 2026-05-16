@@ -11,6 +11,7 @@ import Footer from "@/components/Footer";
 import AssistantWidget from "@/components/assistant/AssistantWidget";
 import ImpersonationBanner from "@/components/users/ImpersonationBanner";
 import InstallPWABanner from "@/components/pwa/InstallPWABanner";
+import DashboardAmbientBackground from "@/components/layout/DashboardAmbientBackground";
 
 export default function DashboardLayout({
   children,
@@ -28,7 +29,7 @@ export default function DashboardLayout({
           alignItems: "center",
           justifyContent: "center",
           minHeight: "100vh",
-          bgcolor: "background.default",
+          bgcolor: "#000000",
         }}
       >
         <CircularProgress color="primary" />
@@ -40,9 +41,20 @@ export default function DashboardLayout({
 
   return (
     <UserContext.Provider value={{ user, setUser }}>
-      <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh", bgcolor: "background.default" }}>
-        <Navbar onMenuClick={() => setMobileOpen(true)} />
-        <Box sx={{ display: "flex", flex: 1, minHeight: 0 }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          minHeight: "100vh",
+          position: "relative",
+          bgcolor: "#000000",
+        }}
+      >
+        <DashboardAmbientBackground />
+        <Box sx={{ position: "relative", zIndex: 1 }}>
+          <Navbar onMenuClick={() => setMobileOpen(true)} />
+        </Box>
+        <Box sx={{ display: "flex", flex: 1, minHeight: 0, position: "relative", zIndex: 1 }}>
           <Sidebar
             mobileOpen={mobileOpen}
             onMobileClose={() => setMobileOpen(false)}
@@ -55,6 +67,8 @@ export default function DashboardLayout({
               minWidth: 0,
               display: "flex",
               flexDirection: "column",
+              position: "relative",
+              zIndex: 1,
             }}
           >
             <ImpersonationBanner />
@@ -73,7 +87,9 @@ export default function DashboardLayout({
             </Box>
           </Box>
         </Box>
-        <Footer />
+        <Box sx={{ position: "relative", zIndex: 1 }}>
+          <Footer />
+        </Box>
         <AssistantWidget />
       </Box>
     </UserContext.Provider>
