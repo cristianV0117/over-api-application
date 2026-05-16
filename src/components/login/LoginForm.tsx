@@ -76,6 +76,8 @@ export default function LoginForm() {
           border: 1,
           borderColor: "divider",
           bgcolor: "background.paper",
+          boxShadow:
+            "0 4px 6px rgba(91, 33, 182, 0.07), 0 16px 40px rgba(91, 33, 182, 0.18), 0 0 0 1px rgba(255,255,255,0.85) inset",
         }}
       >
         <Stack spacing={2.5} component="form" onSubmit={handleSubmit}>
