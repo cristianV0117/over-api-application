@@ -16,6 +16,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import SendIcon from "@mui/icons-material/Send";
 import MarkdownBubble from "@/components/contabilidad/MarkdownBubble";
+import LedgerProposalCard from "@/components/contabilidad/LedgerProposalCard";
 import {
   clearAssistantHistory,
   createFinanceDebt,
@@ -23,14 +24,29 @@ import {
   getAssistantHistory,
   sendAssistantChat,
   type AssistantMessage,
+  type ExtractedLedger,
   type FinanceDebtWrite,
 } from "@/lib/api/contabilidad";
+
+function ledgerHasItems(ledger?: ExtractedLedger | null): boolean {
+  if (!ledger) return false;
+  return (
+    (ledger.expenses?.length ?? 0) +
+      (ledger.incomes?.length ?? 0) +
+      (ledger.expenseCategories?.length ?? 0) +
+      (ledger.incomeCategories?.length ?? 0) +
+      (ledger.recurringExpenses?.length ?? 0) +
+      (ledger.recurringIncomes?.length ?? 0) >
+    0
+  );
+}
 
 const PROMPTS = [
   "¿Cómo voy este mes de ingresos y gastos?",
   "¿En qué categoría gasto más en los últimos 6 meses?",
   "Armame un plan de pago de mis deudas (avalancha)",
   "Si pago $200.000 extra al mes, ¿cuándo termino los créditos?",
+  "Cargá en mi contabilidad los movimientos de este extracto",
 ];
 
 type PendingFile = {
@@ -45,6 +61,7 @@ type Props = {
   month: number;
   monthLabel: string;
   onDebtCreated?: () => Promise<void> | void;
+  onLedgerSaved?: () => Promise<void> | void;
 };
 
 const ACCEPT =
@@ -100,6 +117,7 @@ export default function FinanceAssistantPanel({
   month,
   monthLabel,
   onDebtCreated,
+  onLedgerSaved,
 }: Props) {
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [input, setInput] = useState("");
@@ -275,8 +293,9 @@ export default function FinanceAssistantPanel({
           </Typography>
           <Typography variant="caption" color="text.secondary">
             Usa tus movimientos de {monthLabel} {year}, recurrentes y deudas.
-            Podés adjuntar varios pantallazos, PDF o Excel (hasta {MAX_FILES}).
-            Orientación, no asesoría formal.
+            Adjuntá un extracto y te propone gastos, ingresos, categorías o
+            recurrentes para guardar. Hasta {MAX_FILES} archivos. Orientación,
+            no asesoría formal.
           </Typography>
         </Box>
         <Button
@@ -318,8 +337,8 @@ export default function FinanceAssistantPanel({
           </Stack>
         ) : messages.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-            Preguntá cómo vas este mes, en qué gastás más, o adjuntá un
-            pantallazo, PDF o Excel de un crédito.
+            Preguntá cómo vas este mes, o adjuntá un extracto (PDF, Excel o
+            pantallazo) para cargar gastos e ingresos.
           </Typography>
         ) : (
           <Stack spacing={1.5}>
@@ -361,6 +380,13 @@ export default function FinanceAssistantPanel({
                     >
                       Adjunto: {m.attachmentName}
                     </Typography>
+                  ) : null}
+                  {m.role === "assistant" &&
+                  ledgerHasItems(m.extractedLedger) ? (
+                    <LedgerProposalCard
+                      ledger={m.extractedLedger!}
+                      onSaved={onLedgerSaved}
+                    />
                   ) : null}
                   {m.role === "assistant" && m.extractedDebt ? (
                     <Box sx={{ mt: 1.5 }}>
