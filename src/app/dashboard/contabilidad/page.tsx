@@ -46,6 +46,10 @@ import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalance
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import FinanceAssistantPanel from "@/components/contabilidad/FinanceAssistantPanel";
+import FinanceDebtsPanel from "@/components/contabilidad/FinanceDebtsPanel";
 import {
   createExpenseCategory,
   createFinanceExpense,
@@ -59,14 +63,17 @@ import {
   deleteIncomeCategory,
   deleteRecurringExpense,
   deleteRecurringIncome,
+  downloadFinanceExport,
   formatCop,
   getFinanceSummary,
   listExpenseCategories,
+  listFinanceDebts,
   listIncomeCategories,
   listRecurringExpenses,
   listRecurringIncomes,
   putFinanceLiquidity,
   type ExpenseCategory,
+  type FinanceDebt,
   type FinanceExpense,
   type FinanceIncomeLine,
   type FinanceRecurringRule,
@@ -207,6 +214,9 @@ export default function ContabilidadPage() {
   const [recIncActive, setRecIncActive] = useState(true);
 
   const [sectionTab, setSectionTab] = useState(0);
+  const [pageTab, setPageTab] = useState(0);
+  const [debts, setDebts] = useState<FinanceDebt[]>([]);
+  const [exporting, setExporting] = useState(false);
 
   const [liquidityDialogOpen, setLiquidityDialogOpen] = useState(false);
   const [liquidityRows, setLiquidityRows] = useState<
@@ -229,6 +239,10 @@ export default function ContabilidadPage() {
     setRecurringIncomeRules(await listRecurringIncomes());
   }, []);
 
+  const loadDebts = useCallback(async () => {
+    setDebts(await listFinanceDebts());
+  }, []);
+
   const loadSummary = useCallback(async () => {
     setSummary(await getFinanceSummary({ year, month }));
   }, [year, month]);
@@ -242,6 +256,7 @@ export default function ContabilidadPage() {
         loadExpenseCategories(),
         loadRecurringRules(),
         loadRecurringIncomeRules(),
+        loadDebts(),
       ]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al cargar datos");
@@ -254,11 +269,30 @@ export default function ContabilidadPage() {
     loadExpenseCategories,
     loadRecurringRules,
     loadRecurringIncomeRules,
+    loadDebts,
   ]);
 
   useEffect(() => {
     refreshAll();
   }, [refreshAll]);
+
+  const exportMovements = async () => {
+    const from = shiftMonth(year, month, -5);
+    setExporting(true);
+    try {
+      await downloadFinanceExport({
+        fromYear: from.year,
+        fromMonth: from.month,
+        toYear: year,
+        toMonth: month,
+      });
+      toast.success("Descarga de movimientos lista");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo exportar");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const openNewIncCat = () => {
     setEditingIncCat(null);
@@ -856,12 +890,61 @@ export default function ContabilidadPage() {
           >
             <ChevronRightIcon />
           </IconButton>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<FileDownloadOutlinedIcon />}
+            onClick={exportMovements}
+            disabled={exporting}
+          >
+            Exportar
+          </Button>
         </Stack>
       </Stack>
 
-      {loading && <LinearProgress sx={{ mb: 2 }} />}
+      <Box
+        sx={{
+          mb: 2,
+          borderBottom: 1,
+          borderColor: "divider",
+          width: "100%",
+          minWidth: 0,
+        }}
+      >
+        <Tabs
+          value={pageTab}
+          onChange={(_, v) => setPageTab(v)}
+          aria-label="Contabilidad y asistente"
+          variant="scrollable"
+          allowScrollButtonsMobile
+        >
+          <Tab
+            icon={<AccountBalanceWalletOutlinedIcon />}
+            iconPosition="start"
+            label="Contabilidad personal"
+            id="page-tab-contabilidad"
+          />
+          <Tab
+            icon={<AutoAwesomeOutlinedIcon />}
+            iconPosition="start"
+            label="Asistente IA"
+            id="page-tab-asistente"
+          />
+        </Tabs>
+      </Box>
 
-      {summary && (
+      {loading && pageTab === 0 && <LinearProgress sx={{ mb: 2 }} />}
+
+      {pageTab === 1 && (
+        <FinanceAssistantPanel
+          year={year}
+          month={month}
+          monthLabel={MONTHS.find((x) => x.v === month)?.label ?? ""}
+          onDebtCreated={loadDebts}
+        />
+      )}
+
+      {pageTab === 0 && summary && (
         <>
           <Stack
             direction={{ xs: "column", md: "row" }}
@@ -981,6 +1064,10 @@ export default function ContabilidadPage() {
               </Stack>
             </CardContent>
           </Card>
+
+          <Box sx={{ mb: 3 }}>
+            <FinanceDebtsPanel debts={debts} onChanged={loadDebts} />
+          </Box>
 
           <Stack
             direction={{ xs: "column", md: "row" }}
