@@ -18,7 +18,9 @@ import Typography from "@mui/material/Typography";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import {
+  clearCronLogs,
   getCronConfig,
   listCronLogs,
   putCronConfig,
@@ -58,6 +60,7 @@ export default function CronPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const applyConfig = (cfg: CronConfig) => {
     setConfig(cfg);
@@ -115,6 +118,21 @@ export default function CronPage() {
       toast.error(e instanceof Error ? e.message : "No se pudo guardar");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const clearLogs = async () => {
+    if (!logs.length) return;
+    if (!confirm("¿Borrar todos los logs del cron?")) return;
+    setClearing(true);
+    try {
+      await clearCronLogs();
+      setLogs([]);
+      toast.success("Logs eliminados");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo limpiar");
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -259,6 +277,15 @@ export default function CronPage() {
               disabled={loading}
             >
               Actualizar log
+            </Button>
+            <Button
+              variant="outlined"
+              color="inherit"
+              startIcon={<DeleteOutlineIcon />}
+              onClick={() => void clearLogs()}
+              disabled={clearing || logs.length === 0}
+            >
+              Limpiar logs
             </Button>
           </Stack>
           {config?.lastRunAt ? (

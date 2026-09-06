@@ -69,6 +69,9 @@ const ACCEPT =
 const MAX_FILES = 6;
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 16 * 1024 * 1024;
+const CHAT_TAIL = 6;
+const CHAT_STEP = 8;
+const LONG_BUBBLE = 900;
 
 function inferMime(file: File): string {
   if (file.type && file.type !== "application/octet-stream") return file.type;
@@ -125,6 +128,7 @@ export default function FinanceAssistantPanel({
   const [loading, setLoading] = useState(false);
   const [booting, setBooting] = useState(true);
   const [savingDebt, setSavingDebt] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(CHAT_TAIL);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -138,6 +142,10 @@ export default function FinanceAssistantPanel({
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  useEffect(() => {
+    setVisibleCount((prev) => Math.max(CHAT_TAIL, prev));
+  }, [messages.length]);
 
   const pickFiles = async (list: FileList | File[] | null) => {
     const files = list ? [...list] : [];
@@ -264,6 +272,7 @@ export default function FinanceAssistantPanel({
     try {
       await clearAssistantHistory();
       setMessages([]);
+      setVisibleCount(CHAT_TAIL);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo borrar");
     }
@@ -342,7 +351,20 @@ export default function FinanceAssistantPanel({
           </Typography>
         ) : (
           <Stack spacing={1.5}>
-            {messages.map((m, i) => (
+            {messages.length > visibleCount ? (
+              <Button
+                size="small"
+                variant="text"
+                onClick={() =>
+                  setVisibleCount((n) =>
+                    Math.min(messages.length, n + CHAT_STEP)
+                  )
+                }
+              >
+                Ver más… ({messages.length - visibleCount} anteriores)
+              </Button>
+            ) : null}
+            {messages.slice(-visibleCount).map((m, i) => (
               <Box
                 key={`${m.createdAt}-${i}`}
                 sx={{
@@ -362,14 +384,9 @@ export default function FinanceAssistantPanel({
                   }}
                 >
                   {m.role === "assistant" ? (
-                    <MarkdownBubble content={m.content} />
+                    <LongContent text={m.content} markdown />
                   ) : (
-                    <Typography
-                      variant="body2"
-                      sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-                    >
-                      {m.content}
-                    </Typography>
+                    <LongContent text={m.content} />
                   )}
                   {m.attachmentName ? (
                     <Typography
@@ -526,5 +543,36 @@ export default function FinanceAssistantPanel({
         </IconButton>
       </Stack>
     </Paper>
+  );
+}
+
+function LongContent({
+  text,
+  markdown = false,
+}: {
+  text: string;
+  markdown?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const long = text.length > LONG_BUBBLE;
+  const shown = !long || open ? text : `${text.slice(0, LONG_BUBBLE).trimEnd()}…`;
+  return (
+    <>
+      {markdown ? (
+        <MarkdownBubble content={shown} />
+      ) : (
+        <Typography
+          variant="body2"
+          sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+        >
+          {shown}
+        </Typography>
+      )}
+      {long ? (
+        <Button size="small" sx={{ mt: 0.5, px: 0 }} onClick={() => setOpen((v) => !v)}>
+          {open ? "Ver menos" : "Ver más…"}
+        </Button>
+      ) : null}
+    </>
   );
 }
