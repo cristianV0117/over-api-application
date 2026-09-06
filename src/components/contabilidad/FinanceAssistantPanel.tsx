@@ -46,6 +46,38 @@ type Props = {
   onDebtCreated?: () => Promise<void> | void;
 };
 
+const ACCEPT =
+  "image/jpeg,image/png,image/webp,image/gif,application/pdf,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,application/vnd.ms-excel,.xls,text/csv,.csv,text/plain,.txt";
+
+function inferMime(file: File): string {
+  if (file.type && file.type !== "application/octet-stream") return file.type;
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".pdf")) return "application/pdf";
+  if (name.endsWith(".xlsx"))
+    return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  if (name.endsWith(".xls")) return "application/vnd.ms-excel";
+  if (name.endsWith(".csv")) return "text/csv";
+  if (name.endsWith(".txt")) return "text/plain";
+  if (name.endsWith(".png")) return "image/png";
+  if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
+  if (name.endsWith(".webp")) return "image/webp";
+  if (name.endsWith(".gif")) return "image/gif";
+  return file.type;
+}
+
+function isAllowedAttachment(file: File): boolean {
+  const mime = inferMime(file);
+  return (
+    mime.startsWith("image/") ||
+    mime === "application/pdf" ||
+    mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    mime === "application/vnd.ms-excel" ||
+    mime === "text/csv" ||
+    mime === "application/csv" ||
+    mime === "text/plain"
+  );
+}
+
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -87,22 +119,23 @@ export default function FinanceAssistantPanel({
 
   const pickFile = async (file: File | undefined) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error(
-        "Solo imágenes (jpg, png, webp). De un PDF, mandá un pantallazo."
-      );
+    if (!isAllowedAttachment(file)) {
+      toast.error("Usá imagen, PDF, Excel (.xlsx) o CSV.");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("La imagen no puede superar 5 MB");
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("El archivo no puede superar 8 MB");
       return;
     }
+    const mimeType = inferMime(file);
     const dataBase64 = await fileToBase64(file);
     setPending({
       fileName: file.name,
-      mimeType: file.type,
+      mimeType,
       dataBase64,
-      previewUrl: URL.createObjectURL(file),
+      previewUrl: mimeType.startsWith("image/")
+        ? URL.createObjectURL(file)
+        : undefined,
     });
   };
 
@@ -205,8 +238,8 @@ export default function FinanceAssistantPanel({
           </Typography>
           <Typography variant="caption" color="text.secondary">
             Usa tus movimientos de {monthLabel} {year}, recurrentes y deudas.
-            Podés adjuntar un pantallazo de un crédito. Orientación, no asesoría
-            formal.
+            Podés adjuntar pantallazo, PDF o Excel de un crédito. Orientación,
+            no asesoría formal.
           </Typography>
         </Box>
         <Button
@@ -248,8 +281,8 @@ export default function FinanceAssistantPanel({
           </Stack>
         ) : messages.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-            Preguntá cómo vas este mes, en qué gastás más, o adjuntá el
-            pantallazo de un crédito para extraer tasa y cuotas.
+            Preguntá cómo vas este mes, en qué gastás más, o adjuntá un
+            pantallazo, PDF o Excel de un crédito.
           </Typography>
         ) : (
           <Stack spacing={1.5}>
@@ -388,7 +421,7 @@ export default function FinanceAssistantPanel({
         <input
           ref={fileRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
+          accept={ACCEPT}
           hidden
           onChange={(e) => {
             void pickFile(e.target.files?.[0]);
@@ -396,7 +429,7 @@ export default function FinanceAssistantPanel({
           }}
         />
         <IconButton
-          aria-label="Adjuntar pantallazo"
+          aria-label="Adjuntar documento"
           onClick={() => fileRef.current?.click()}
           disabled={loading}
         >
@@ -405,7 +438,7 @@ export default function FinanceAssistantPanel({
         <TextField
           fullWidth
           size="small"
-          placeholder="Preguntá o adjuntá un pantallazo de tu crédito…"
+          placeholder="Preguntá o adjuntá PDF, Excel o un pantallazo…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           multiline
