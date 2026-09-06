@@ -9,9 +9,15 @@ function getAuthHeaders(): HeadersInit {
 
 const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
+export type CronScheduleType = "interval" | "cron";
+
 export type CronConfig = {
   enabled: boolean;
+  scheduleType: CronScheduleType;
   everyMinutes: number;
+  cronExpression: string;
+  timezone: string;
+  randomDelayMaxSeconds: number;
   lastRunAt: string | null;
 };
 
@@ -30,7 +36,10 @@ export async function getCronConfig(): Promise<CronConfig> {
 
 export async function putCronConfig(data: {
   enabled: boolean;
+  scheduleType: CronScheduleType;
   everyMinutes: number;
+  cronExpression: string;
+  randomDelayMaxSeconds: number;
 }): Promise<CronConfig> {
   const res = await fetch(`${BASE}/cron/config`, {
     method: "PUT",
@@ -46,7 +55,7 @@ export async function putCronConfig(data: {
 }
 
 export async function listCronLogs(): Promise<CronLog[]> {
-  const res = await fetch(`${BASE}/cron/logs?limit=80`, {
+  const res = await fetch(`${BASE}/cron/logs?limit=40`, {
     headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error("Error al cargar el log");
