@@ -32,7 +32,7 @@ const allItems = [
     label: "Contabilidad",
     Icon: AccountBalanceWalletOutlinedIcon,
   },
-  { href: "/dashboard/cron", label: "Cron", Icon: ScheduleOutlinedIcon },
+  { href: "/dashboard/cron", label: "Cron", Icon: ScheduleOutlinedIcon, adminOnly: true },
   { href: "/dashboard/profile", label: "Perfil", Icon: PersonOutlineIcon },
   { href: "#", label: "Configuración", Icon: SettingsOutlinedIcon, disabled: true },
 ];
