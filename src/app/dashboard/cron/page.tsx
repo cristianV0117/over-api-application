@@ -111,7 +111,7 @@ export default function CronPage() {
       const log = await runCronNow();
       setLogs((prev) => [log, ...prev].slice(0, 40));
       setConfig((c) => (c ? { ...c, lastRunAt: log.createdAt } : c));
-      toast.success("Demo ejecutada (ficticia)");
+      toast.success("Check-in ejecutado");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo ejecutar");
     } finally {
@@ -125,9 +125,9 @@ export default function CronPage() {
         Cron
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Script de ejemplo con la misma forma (POST, body, log). El destino es{" "}
-        <strong>ficticio</strong> (`demo.overapp.local`): no sale a internet ni
-        acepta URL, tokens ni cookies. Horario en America/Bogota.
+        Check-in programado vía POST a SesameTime. Credenciales en variables de
+        entorno del API (<code>EMPLOYEE_ID</code>, <code>AUTHORIZATION</code>,{" "}
+        <code>COOKIE</code>, etc.). Horario en America/Bogota.
       </Typography>
 
       <Paper sx={{ p: 2, mb: 3 }}>
