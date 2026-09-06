@@ -15,6 +15,7 @@ import AttachFileIcon from "@mui/icons-material/AttachFile";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import SendIcon from "@mui/icons-material/Send";
+import MarkdownBubble from "@/components/contabilidad/MarkdownBubble";
 import {
   clearAssistantHistory,
   createFinanceDebt,
@@ -341,12 +342,16 @@ export default function FinanceAssistantPanel({
                     borderColor: m.role === "user" ? "primary.main" : "divider",
                   }}
                 >
-                  <Typography
-                    variant="body2"
-                    sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-                  >
-                    {m.content}
-                  </Typography>
+                  {m.role === "assistant" ? (
+                    <MarkdownBubble content={m.content} />
+                  ) : (
+                    <Typography
+                      variant="body2"
+                      sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+                    >
+                      {m.content}
+                    </Typography>
+                  )}
                   {m.attachmentName ? (
                     <Typography
                       variant="caption"
