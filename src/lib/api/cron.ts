@@ -63,6 +63,14 @@ export async function listCronLogs(): Promise<CronLog[]> {
   return data.logs ?? [];
 }
 
+export async function clearCronLogs(): Promise<void> {
+  const res = await fetch(`${BASE}/cron/logs`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al limpiar el log");
+}
+
 export async function runCronNow(): Promise<CronLog> {
   const res = await fetch(`${BASE}/cron/run`, {
     method: "POST",

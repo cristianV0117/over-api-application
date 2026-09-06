@@ -48,8 +48,10 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import FinanceAssistantPanel from "@/components/contabilidad/FinanceAssistantPanel";
 import FinanceDebtsPanel from "@/components/contabilidad/FinanceDebtsPanel";
+import PayLinksPanel from "@/components/contabilidad/PayLinksPanel";
 import {
   createExpenseCategory,
   createFinanceExpense,
@@ -914,7 +916,7 @@ export default function ContabilidadPage() {
         <Tabs
           value={pageTab}
           onChange={(_, v) => setPageTab(v)}
-          aria-label="Contabilidad y asistente"
+          aria-label="Contabilidad, asistente y pagos"
           variant="scrollable"
           allowScrollButtonsMobile
         >
@@ -930,6 +932,12 @@ export default function ContabilidadPage() {
             label="Asistente IA"
             id="page-tab-asistente"
           />
+          <Tab
+            icon={<LinkOutlinedIcon />}
+            iconPosition="start"
+            label="Páginas de pago"
+            id="page-tab-pagos"
+          />
         </Tabs>
       </Box>
 
@@ -944,6 +952,8 @@ export default function ContabilidadPage() {
           onLedgerSaved={refreshAll}
         />
       )}
+
+      {pageTab === 2 && <PayLinksPanel />}
 
       {pageTab === 0 && summary && (
         <>
