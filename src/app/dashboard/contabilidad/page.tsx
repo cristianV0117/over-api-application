@@ -35,13 +35,17 @@ import ListItemText from "@mui/material/ListItemText";
 import Chip from "@mui/material/Chip";
 import Checkbox from "@mui/material/Checkbox";
 import Switch from "@mui/material/Switch";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import {
   createExpenseCategory,
   createFinanceExpense,
@@ -78,8 +82,8 @@ import {
 
 /** Paneles con muchas filas: altura acotada y scroll vertical (recurrentes y movimientos del mes). */
 const PANEL_BODY_MAX_HEIGHT = "min(40vh, 360px)";
-/** Listas largas de categorías. */
-const CATEGORY_LIST_MAX_HEIGHT = "min(22vh, 200px)";
+/** Listas de categorías en su pestaña (más espacio que en el tablero). */
+const CATEGORY_LIST_MAX_HEIGHT = "min(50vh, 420px)";
 /** Detalle expandido dentro de un acordeón por categoría. */
 const ACCORDION_TABLE_MAX_HEIGHT = "min(32vh, 280px)";
 
@@ -175,9 +179,13 @@ export default function ContabilidadPage() {
   const [expDate, setExpDate] = useState("");
   const [expNotes, setExpNotes] = useState("");
 
-  const [recurringRules, setRecurringRules] = useState<FinanceRecurringRule[]>([]);
+  const [recurringRules, setRecurringRules] = useState<FinanceRecurringRule[]>(
+    []
+  );
   const [recDialogOpen, setRecDialogOpen] = useState(false);
-  const [editingRec, setEditingRec] = useState<FinanceRecurringRule | null>(null);
+  const [editingRec, setEditingRec] = useState<FinanceRecurringRule | null>(
+    null
+  );
   const [recCategoryId, setRecCategoryId] = useState("");
   const [recAmount, setRecAmount] = useState("");
   const [recDay, setRecDay] = useState("1");
@@ -189,15 +197,16 @@ export default function ContabilidadPage() {
     FinanceRecurringRule[]
   >([]);
   const [recIncDialogOpen, setRecIncDialogOpen] = useState(false);
-  const [editingRecInc, setEditingRecInc] = useState<FinanceRecurringRule | null>(
-    null
-  );
+  const [editingRecInc, setEditingRecInc] =
+    useState<FinanceRecurringRule | null>(null);
   const [recIncCategoryId, setRecIncCategoryId] = useState("");
   const [recIncAmount, setRecIncAmount] = useState("");
   const [recIncDay, setRecIncDay] = useState("1");
   const [recIncLabel, setRecIncLabel] = useState("");
   const [recIncNotes, setRecIncNotes] = useState("");
   const [recIncActive, setRecIncActive] = useState(true);
+
+  const [sectionTab, setSectionTab] = useState(0);
 
   const [liquidityDialogOpen, setLiquidityDialogOpen] = useState(false);
   const [liquidityRows, setLiquidityRows] = useState<
@@ -369,7 +378,9 @@ export default function ContabilidadPage() {
       return;
     }
     const [y, mo, da] = incDate.split("-").map(Number);
-    const receivedAt = new Date(Date.UTC(y, mo - 1, da, 12, 0, 0)).toISOString();
+    const receivedAt = new Date(
+      Date.UTC(y, mo - 1, da, 12, 0, 0)
+    ).toISOString();
     try {
       if (editingInc) {
         await updateFinanceIncome(editingInc.id, {
@@ -438,7 +449,9 @@ export default function ContabilidadPage() {
       return;
     }
     const [y, mo, da] = expDate.split("-").map(Number);
-    const occurredAt = new Date(Date.UTC(y, mo - 1, da, 12, 0, 0)).toISOString();
+    const occurredAt = new Date(
+      Date.UTC(y, mo - 1, da, 12, 0, 0)
+    ).toISOString();
     try {
       if (editingExp) {
         await updateFinanceExpense(editingExp.id, {
@@ -514,7 +527,14 @@ export default function ContabilidadPage() {
   const saveRec = async () => {
     const amount = Number(recAmount.replace(/\./g, "").replace(/,/g, ""));
     const day = Number(recDay);
-    if (!recCategoryId || Number.isNaN(amount) || amount < 0 || Number.isNaN(day) || day < 1 || day > 31) {
+    if (
+      !recCategoryId ||
+      Number.isNaN(amount) ||
+      amount < 0 ||
+      Number.isNaN(day) ||
+      day < 1 ||
+      day > 31
+    ) {
       toast.error("Completa categoría, monto (COP) y día del mes (1–31)");
       return;
     }
@@ -538,7 +558,9 @@ export default function ContabilidadPage() {
           notes: recNotes.trim() || undefined,
           isActive: recActive,
         });
-        toast.success("Gasto recurrente creado: se aplicará en todos los meses");
+        toast.success(
+          "Gasto recurrente creado: se aplicará en todos los meses"
+        );
       }
       setRecDialogOpen(false);
       await Promise.all([loadRecurringRules(), loadSummary()]);
@@ -548,7 +570,12 @@ export default function ContabilidadPage() {
   };
 
   const removeRec = async (r: FinanceRecurringRule) => {
-    if (!confirm(`¿Eliminar el gasto recurrente «${r.label || r.categoryName || "sin nombre"}»?`)) return;
+    if (
+      !confirm(
+        `¿Eliminar el gasto recurrente «${r.label || r.categoryName || "sin nombre"}»?`
+      )
+    )
+      return;
     try {
       await deleteRecurringExpense(r.id);
       toast.success("Regla eliminada");
@@ -567,11 +594,16 @@ export default function ContabilidadPage() {
     }
   };
 
-  const toggleIncomeReceived = async (row: FinanceIncomeLine, received: boolean) => {
+  const toggleIncomeReceived = async (
+    row: FinanceIncomeLine,
+    received: boolean
+  ) => {
     if (!row.isRecurring) return;
     try {
       await updateFinanceIncome(row.id, { received }, { year, month });
-      toast.success(received ? "Marcado como cobrado" : "Marcado como pendiente");
+      toast.success(
+        received ? "Marcado como cobrado" : "Marcado como pendiente"
+      );
       await loadSummary();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al actualizar");
@@ -634,7 +666,9 @@ export default function ContabilidadPage() {
           notes: recIncNotes.trim() || undefined,
           isActive: recIncActive,
         });
-        toast.success("Ingreso recurrente creado: se aplicará en todos los meses");
+        toast.success(
+          "Ingreso recurrente creado: se aplicará en todos los meses"
+        );
       }
       setRecIncDialogOpen(false);
       await Promise.all([loadRecurringIncomeRules(), loadSummary()]);
@@ -659,7 +693,10 @@ export default function ContabilidadPage() {
     }
   };
 
-  const toggleRecIncActive = async (r: FinanceRecurringRule, active: boolean) => {
+  const toggleRecIncActive = async (
+    r: FinanceRecurringRule,
+    active: boolean
+  ) => {
     try {
       await updateRecurringIncome(r.id, { isActive: active });
       await Promise.all([loadRecurringIncomeRules(), loadSummary()]);
@@ -868,7 +905,11 @@ export default function ContabilidadPage() {
                 <Typography color="text.secondary" variant="body2">
                   Disponible
                 </Typography>
-                <Typography variant="h5" fontWeight={800} color={remainingColor}>
+                <Typography
+                  variant="h5"
+                  fontWeight={800}
+                  color={remainingColor}
+                >
                   {formatCop(summary.remaining)}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
@@ -897,7 +938,12 @@ export default function ContabilidadPage() {
                 justifyContent="space-between"
                 sx={{ minWidth: 0 }}
               >
-                <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ minWidth: 0, flex: 1 }}>
+                <Stack
+                  direction="row"
+                  spacing={1.5}
+                  alignItems="flex-start"
+                  sx={{ minWidth: 0, flex: 1 }}
+                >
                   <AccountBalanceWalletOutlinedIcon
                     color="primary"
                     sx={{ mt: 0.5, fontSize: 36, flexShrink: 0 }}
@@ -915,8 +961,9 @@ export default function ContabilidadPage() {
                       display="block"
                       sx={{ mt: 0.5, maxWidth: { sm: 560 } }}
                     >
-                      Suma de lo que tienes en bancos, Nequi, Daviplata… Tú lo actualizas a mano; no es lo mismo
-                      que «ingresos del mes» (que solo suma movimientos registrados).
+                      Suma de lo que tienes en bancos, Nequi, Daviplata… Tú lo
+                      actualizas a mano; no es lo mismo que «ingresos del mes»
+                      (que solo suma movimientos registrados).
                     </Typography>
                   </Box>
                 </Stack>
@@ -924,7 +971,10 @@ export default function ContabilidadPage() {
                   variant="contained"
                   color="primary"
                   onClick={openConfigureLiquidity}
-                  sx={{ alignSelf: { xs: "stretch", sm: "auto" }, whiteSpace: { sm: "nowrap" } }}
+                  sx={{
+                    alignSelf: { xs: "stretch", sm: "auto" },
+                    whiteSpace: { sm: "nowrap" },
+                  }}
                 >
                   Configurar o agregar cuentas
                 </Button>
@@ -963,7 +1013,11 @@ export default function ContabilidadPage() {
                         >
                           <Typography
                             variant="body2"
-                            sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}
+                            sx={{
+                              minWidth: 0,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
                           >
                             {b.categoryName}
                           </Typography>
@@ -1010,7 +1064,11 @@ export default function ContabilidadPage() {
                         >
                           <Typography
                             variant="body2"
-                            sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}
+                            sx={{
+                              minWidth: 0,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
                           >
                             {b.categoryName}
                           </Typography>
@@ -1033,711 +1091,1003 @@ export default function ContabilidadPage() {
             </Paper>
           </Stack>
 
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={2}
-            sx={{ mb: 3, width: "100%", minWidth: 0 }}
-            alignItems="flex-start"
+          <Box
+            sx={{
+              mb: 2,
+              borderBottom: 1,
+              borderColor: "divider",
+              width: "100%",
+              minWidth: 0,
+            }}
           >
-            <Stack spacing={2} sx={{ flex: 1, minWidth: 0, maxWidth: "100%", width: "100%" }}>
-              <Paper sx={{ p: 2, minWidth: 0, maxWidth: "100%" }}>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  sx={{ mb: 1 }}
-                >
-                  <Typography variant="subtitle1" fontWeight={700}>
-                    Categorías de ingreso
-                  </Typography>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={openNewIncCat}
-                  >
-                    Nueva
-                  </Button>
-                </Stack>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-                  Sueldo, honorarios, rentas, otros…
-                </Typography>
-                <Box
-                  sx={{
-                    maxHeight: CATEGORY_LIST_MAX_HEIGHT,
-                    overflowY: "auto",
-                    overflowX: "hidden",
-                    mr: -0.5,
-                    pr: 0.5,
-                  }}
-                >
-                <List dense disablePadding>
-                  {incomeCategories.map((c) => (
-                    <ListItem
-                      key={c.id}
-                      secondaryAction={
-                        <Stack direction="row">
-                          <IconButton
-                            size="small"
-                            onClick={() => openEditIncCat(c)}
-                            aria-label="Editar"
-                          >
-                            <EditOutlinedIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => removeIncCat(c)}
-                            aria-label="Eliminar"
-                          >
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
-                      }
-                      sx={{ pr: 10 }}
-                    >
-                      <ListItemText primary={c.name} />
-                    </ListItem>
-                  ))}
-                  {incomeCategories.length === 0 && (
-                    <Typography variant="body2" color="text.secondary">
-                      Crea tipos de ingreso para registrar movimientos.
-                    </Typography>
-                  )}
-                </List>
-                </Box>
-              </Paper>
-              <Paper sx={{ p: 2, minWidth: 0, maxWidth: "100%" }}>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  flexWrap="wrap"
-                  gap={1}
-                  sx={{ mb: 1 }}
-                >
-                  <Box>
-                    <Typography variant="subtitle1" fontWeight={700}>
-                      Ingresos recurrentes
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      «Cobrado» · {MONTHS.find((x) => x.v === month)?.label} {year}
-                    </Typography>
-                  </Box>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    color="primary"
-                    startIcon={<AddIcon />}
-                    onClick={openNewRecInc}
-                    disabled={incomeCategories.length === 0}
-                  >
-                    Agregar
-                  </Button>
-                </Stack>
-                <TableContainer
-                  sx={{
-                    ...TABLE_CONTAINER_SCROLL_SX,
-                    maxHeight: PANEL_BODY_MAX_HEIGHT,
-                  }}
-                >
-                  <Table
-                    size="small"
-                    stickyHeader
-                    sx={{ minWidth: TABLE_RECURRING_MIN_WIDTH }}
-                  >
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Activo</TableCell>
-                        <TableCell>Etiqueta</TableCell>
-                        <TableCell>Categoría</TableCell>
-                        <TableCell align="right">Monto</TableCell>
-                        <TableCell align="center">Día</TableCell>
-                        <TableCell align="center">Cobrado</TableCell>
-                        <TableCell align="right">Acc.</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {recurringIncomeRules.map((r) => {
-                        const syntheticInc = r.isActive
-                          ? recurringIncomeForMonth(r.id, incomes)
-                          : undefined;
-                        return (
-                          <TableRow key={r.id}>
-                            <TableCell>
-                              <Switch
-                                size="small"
-                                checked={r.isActive}
-                                onChange={(_, v) => toggleRecIncActive(r, v)}
-                                inputProps={{ "aria-label": "Activo ingreso recurrente" }}
-                              />
-                            </TableCell>
-                            <TableCell>{r.label || "—"}</TableCell>
-                            <TableCell>{r.categoryName ?? "—"}</TableCell>
-                            <TableCell align="right">{formatCop(r.amount)}</TableCell>
-                            <TableCell align="center">{r.dayOfMonth}</TableCell>
-                            <TableCell align="center" padding="checkbox">
-                              {syntheticInc ? (
-                                <Checkbox
-                                  checked={!!syntheticInc.received}
-                                  onChange={(_, v) => toggleIncomeReceived(syntheticInc, v)}
-                                  size="small"
-                                  color="success"
-                                  inputProps={{
-                                    "aria-label": `${r.label || r.categoryName || "Ingreso recurrente"} cobrado`,
-                                  }}
-                                />
-                              ) : (
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                  title={
-                                    r.isActive
-                                      ? undefined
-                                      : "Activa la regla para incluirla en el mes y poder marcar cobro"
-                                  }
-                                >
-                                  —
-                                </Typography>
-                              )}
-                            </TableCell>
-                            <TableCell align="right">
-                              <IconButton
-                                size="small"
-                                onClick={() => openEditRecInc(r)}
-                                aria-label="Editar ingreso recurrente"
-                              >
-                                <EditOutlinedIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton
-                                size="small"
-                                onClick={() => removeRecInc(r)}
-                                aria-label="Eliminar ingreso recurrente"
-                              >
-                                <DeleteOutlineIcon fontSize="small" />
-                              </IconButton>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                {recurringIncomeRules.length === 0 && (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Sin reglas. Se listarán en ingresos del mes.
-                  </Typography>
-                )}
-              </Paper>
+            <Tabs
+              value={sectionTab}
+              onChange={(_, v) => setSectionTab(v)}
+              aria-label="Secciones de contabilidad"
+              variant="scrollable"
+              allowScrollButtonsMobile
+            >
+              <Tab
+                icon={<ReceiptLongOutlinedIcon />}
+                iconPosition="start"
+                label="Movimientos"
+                id="contabilidad-tab-movimientos"
+                aria-controls="contabilidad-panel-movimientos"
+              />
+              <Tab
+                icon={<CategoryOutlinedIcon />}
+                iconPosition="start"
+                label="Categorías"
+                id="contabilidad-tab-categorias"
+                aria-controls="contabilidad-panel-categorias"
+              />
+            </Tabs>
+          </Box>
 
-              <Paper sx={{ p: 2, width: "100%", minWidth: 0, maxWidth: "100%" }}>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  sx={{ mb: 2 }}
+          {sectionTab === 0 && (
+            <Box
+              id="contabilidad-panel-movimientos"
+              role="tabpanel"
+              aria-labelledby="contabilidad-tab-movimientos"
+              sx={{ width: "100%", minWidth: 0, mb: 3 }}
+            >
+              <Stack spacing={2} sx={{ width: "100%", minWidth: 0 }}>
+                <Paper
+                  sx={{ p: 2, width: "100%", minWidth: 0, maxWidth: "100%" }}
                 >
-                  <Typography variant="subtitle1" fontWeight={700}>
-                    Ingresos del mes
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={<AddIcon />}
-                    onClick={openNewIncome}
-                    disabled={incomeCategories.length === 0}
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    flexWrap="wrap"
+                    gap={1}
+                    sx={{ mb: 1 }}
                   >
-                    Registrar ingreso
-                  </Button>
-                </Stack>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
-                  Agrupados por categoría. Expandí cada bloque para ver y editar los movimientos.
-                </Typography>
-                {incomes.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    No hay ingresos registrados en este mes.
-                  </Typography>
-                ) : (
-                  <Box
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight={700}>
+                        Gastos recurrentes
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
+                      >
+                        «Pagado» · {MONTHS.find((x) => x.v === month)?.label}{" "}
+                        {year}
+                      </Typography>
+                    </Box>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      startIcon={<AddIcon />}
+                      onClick={openNewRec}
+                      disabled={expenseCategories.length === 0}
+                    >
+                      Agregar
+                    </Button>
+                  </Stack>
+                  <TableContainer
                     sx={{
+                      ...TABLE_CONTAINER_SCROLL_SX,
                       maxHeight: PANEL_BODY_MAX_HEIGHT,
-                      overflowY: "auto",
-                      overflowX: "auto",
-                      WebkitOverflowScrolling: "touch",
-                      pr: 0.5,
                     }}
                   >
-                  <Stack spacing={1} sx={{ minWidth: 0 }}>
-                    {incomesByCategory.keys.map((categoryName) => {
-                      const rows = incomesByCategory.map.get(categoryName)!;
-                      const subtotal = rows.reduce((s, r) => s + r.amount, 0);
-                      return (
-                        <Accordion
-                          key={categoryName}
-                          disableGutters
-                          defaultExpanded={false}
-                          sx={{
-                            border: 1,
-                            borderColor: "divider",
-                            borderRadius: 1,
-                            "&:before": { display: "none" },
-                            boxShadow: "none",
-                            overflow: "hidden",
-                          }}
-                        >
-                          <AccordionSummary
-                            expandIcon={<ExpandMoreIcon fontSize="small" />}
-                            sx={{
-                              minHeight: 48,
-                              px: 1.5,
-                              bgcolor: "action.hover",
-                              "& .MuiAccordionSummary-content": { my: 1, alignItems: "center", gap: 1 },
-                            }}
-                          >
-                            <Typography fontWeight={700} sx={{ flex: 1, minWidth: 0 }}>
-                              {categoryName}
-                            </Typography>
-                            <Chip size="small" label={`${rows.length} ítem${rows.length === 1 ? "" : "s"}`} />
-                            <Typography variant="body2" fontWeight={700} color="primary" sx={{ flexShrink: 0 }}>
-                              {formatCop(subtotal)}
-                            </Typography>
-                          </AccordionSummary>
-                          <AccordionDetails sx={{ pt: 0, px: 0, pb: 0 }}>
-                            <TableContainer
-                              sx={{
-                                ...TABLE_CONTAINER_SCROLL_SX,
-                                maxHeight: ACCORDION_TABLE_MAX_HEIGHT,
-                              }}
-                            >
-                              <Table
-                                size="small"
-                                stickyHeader
-                                sx={{ minWidth: TABLE_MOVEMENTS_MIN_WIDTH }}
-                              >
-                                <TableHead>
-                                  <TableRow>
-                                    <TableCell>Fecha</TableCell>
-                                    <TableCell>Detalle</TableCell>
-                                    <TableCell align="center">Cobrado</TableCell>
-                                    <TableCell align="right">Monto</TableCell>
-                                    <TableCell align="right" width={100}>
-                                      Acciones
-                                    </TableCell>
-                                  </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                  {rows.map((row) => (
-                                    <TableRow key={row.id}>
-                                      <TableCell>
-                                        {new Date(row.receivedAt).toLocaleDateString("es-CO")}
-                                        {row.isRecurring && (
-                                          <Chip
-                                            label="Recurrente"
-                                            size="small"
-                                            color="secondary"
-                                            variant="outlined"
-                                            sx={{
-                                              ml: 1,
-                                              mt: 0.5,
-                                              height: 22,
-                                              display: "block",
-                                              width: "fit-content",
-                                            }}
-                                          />
-                                        )}
-                                      </TableCell>
-                                      <TableCell>
-                                        {row.label
-                                          ? `${row.label} · ${row.categoryName ?? ""}`
-                                          : row.categoryName ?? "—"}
-                                      </TableCell>
-                                      <TableCell align="center" padding="checkbox">
-                                        {row.isRecurring ? (
-                                          <Checkbox
-                                            checked={!!row.received}
-                                            onChange={(_, v) => toggleIncomeReceived(row, v)}
-                                            size="small"
-                                            color="success"
-                                            inputProps={{
-                                              "aria-label": `Ingreso ${row.label || row.categoryName || ""} cobrado`,
-                                            }}
-                                          />
-                                        ) : (
-                                          <Typography variant="caption" color="text.secondary">
-                                            —
-                                          </Typography>
-                                        )}
-                                      </TableCell>
-                                      <TableCell align="right">{formatCop(row.amount)}</TableCell>
-                                      <TableCell align="right">
-                                        {!row.isRecurring ? (
-                                          <>
-                                            <IconButton size="small" onClick={() => openEditIncome(row)}>
-                                              <EditOutlinedIcon fontSize="small" />
-                                            </IconButton>
-                                            <IconButton size="small" onClick={() => removeIncome(row)}>
-                                              <DeleteOutlineIcon fontSize="small" />
-                                            </IconButton>
-                                          </>
-                                        ) : (
-                                          <Typography variant="caption" color="text.secondary">
-                                            Editar en recurrentes
-                                          </Typography>
-                                        )}
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </TableContainer>
-                          </AccordionDetails>
-                        </Accordion>
-                      );
-                    })}
-                  </Stack>
-                  </Box>
-                )}
-              </Paper>
-            </Stack>
-
-            <Stack spacing={2} sx={{ flex: 1, minWidth: 0, maxWidth: "100%", width: "100%" }}>
-              <Paper sx={{ p: 2, minWidth: 0, maxWidth: "100%" }}>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  sx={{ mb: 1 }}
-                >
-                  <Typography variant="subtitle1" fontWeight={700}>
-                    Categorías de gasto
-                  </Typography>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={openNewExpCat}
-                  >
-                    Nueva
-                  </Button>
-                </Stack>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-                  Suscripciones, hogar, hormiga…
-                </Typography>
-                <Box
-                  sx={{
-                    maxHeight: CATEGORY_LIST_MAX_HEIGHT,
-                    overflowY: "auto",
-                    overflowX: "hidden",
-                    mr: -0.5,
-                    pr: 0.5,
-                  }}
-                >
-                <List dense disablePadding>
-                  {expenseCategories.map((c) => (
-                    <ListItem
-                      key={c.id}
-                      secondaryAction={
-                        <Stack direction="row">
-                          <IconButton
-                            size="small"
-                            onClick={() => openEditExpCat(c)}
-                            aria-label="Editar"
-                          >
-                            <EditOutlinedIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => removeExpCat(c)}
-                            aria-label="Eliminar"
-                          >
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
-                      }
-                      sx={{ pr: 10 }}
+                    <Table
+                      size="small"
+                      stickyHeader
+                      sx={{ minWidth: TABLE_RECURRING_MIN_WIDTH }}
                     >
-                      <ListItemText primary={c.name} />
-                    </ListItem>
-                  ))}
-                  {expenseCategories.length === 0 && (
-                    <Typography variant="body2" color="text.secondary">
-                      Crea una categoría para registrar gastos.
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Activo</TableCell>
+                          <TableCell>Etiqueta</TableCell>
+                          <TableCell>Categoría</TableCell>
+                          <TableCell align="right">Monto</TableCell>
+                          <TableCell align="center">Día</TableCell>
+                          <TableCell align="center">Pagado</TableCell>
+                          <TableCell align="right">Acc.</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {recurringRules.map((r) => {
+                          const syntheticRow = r.isActive
+                            ? recurringExpenseForMonth(r.id, expenses)
+                            : undefined;
+                          return (
+                            <TableRow key={r.id}>
+                              <TableCell>
+                                <Switch
+                                  size="small"
+                                  checked={r.isActive}
+                                  onChange={(_, v) => toggleRecActive(r, v)}
+                                  inputProps={{ "aria-label": "Activo" }}
+                                />
+                              </TableCell>
+                              <TableCell>{r.label || "—"}</TableCell>
+                              <TableCell>{r.categoryName ?? "—"}</TableCell>
+                              <TableCell align="right">
+                                {formatCop(r.amount)}
+                              </TableCell>
+                              <TableCell align="center">
+                                {r.dayOfMonth}
+                              </TableCell>
+                              <TableCell align="center" padding="checkbox">
+                                {syntheticRow ? (
+                                  <Checkbox
+                                    checked={!!syntheticRow.paid}
+                                    onChange={(_, v) =>
+                                      toggleExpensePaid(syntheticRow, v)
+                                    }
+                                    size="small"
+                                    color="success"
+                                    inputProps={{
+                                      "aria-label": `${r.label || r.categoryName || "Recurrente"} pagado`,
+                                    }}
+                                  />
+                                ) : (
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    title={
+                                      r.isActive
+                                        ? undefined
+                                        : "Activa la regla para incluirla en el mes y poder marcarla como pagada"
+                                    }
+                                  >
+                                    —
+                                  </Typography>
+                                )}
+                              </TableCell>
+                              <TableCell align="right">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => openEditRec(r)}
+                                  aria-label="Editar"
+                                >
+                                  <EditOutlinedIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => removeRec(r)}
+                                  aria-label="Eliminar"
+                                >
+                                  <DeleteOutlineIcon fontSize="small" />
+                                </IconButton>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  {recurringRules.length === 0 && (
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mt: 1 }}
+                    >
+                      Sin reglas. Aparecerán en gastos del mes.
                     </Typography>
                   )}
-                </List>
-                </Box>
-              </Paper>
-              <Paper sx={{ p: 2, minWidth: 0, maxWidth: "100%" }}>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  flexWrap="wrap"
-                  gap={1}
-                  sx={{ mb: 1 }}
+                </Paper>
+                <Paper
+                  sx={{ p: 2, width: "100%", minWidth: 0, maxWidth: "100%" }}
                 >
-                  <Box>
-                    <Typography variant="subtitle1" fontWeight={700}>
-                      Gastos recurrentes
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      «Pagado» · {MONTHS.find((x) => x.v === month)?.label} {year}
-                    </Typography>
-                  </Box>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={openNewRec}
-                    disabled={expenseCategories.length === 0}
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    flexWrap="wrap"
+                    gap={1}
+                    sx={{ mb: 1 }}
                   >
-                    Agregar
-                  </Button>
-                </Stack>
-                <TableContainer
-                  sx={{
-                    ...TABLE_CONTAINER_SCROLL_SX,
-                    maxHeight: PANEL_BODY_MAX_HEIGHT,
-                  }}
-                >
-                  <Table
-                    size="small"
-                    stickyHeader
-                    sx={{ minWidth: TABLE_RECURRING_MIN_WIDTH }}
-                  >
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Activo</TableCell>
-                        <TableCell>Etiqueta</TableCell>
-                        <TableCell>Categoría</TableCell>
-                        <TableCell align="right">Monto</TableCell>
-                        <TableCell align="center">Día</TableCell>
-                        <TableCell align="center">Pagado</TableCell>
-                        <TableCell align="right">Acc.</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {recurringRules.map((r) => {
-                        const syntheticRow = r.isActive
-                          ? recurringExpenseForMonth(r.id, expenses)
-                          : undefined;
-                        return (
-                          <TableRow key={r.id}>
-                            <TableCell>
-                              <Switch
-                                size="small"
-                                checked={r.isActive}
-                                onChange={(_, v) => toggleRecActive(r, v)}
-                                inputProps={{ "aria-label": "Activo" }}
-                              />
-                            </TableCell>
-                            <TableCell>{r.label || "—"}</TableCell>
-                            <TableCell>{r.categoryName ?? "—"}</TableCell>
-                            <TableCell align="right">{formatCop(r.amount)}</TableCell>
-                            <TableCell align="center">{r.dayOfMonth}</TableCell>
-                            <TableCell align="center" padding="checkbox">
-                              {syntheticRow ? (
-                                <Checkbox
-                                  checked={!!syntheticRow.paid}
-                                  onChange={(_, v) => toggleExpensePaid(syntheticRow, v)}
-                                  size="small"
-                                  color="success"
-                                  inputProps={{
-                                    "aria-label": `${r.label || r.categoryName || "Recurrente"} pagado`,
-                                  }}
-                                />
-                              ) : (
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                  title={
-                                    r.isActive
-                                      ? undefined
-                                      : "Activa la regla para incluirla en el mes y poder marcarla como pagada"
-                                  }
-                                >
-                                  —
-                                </Typography>
-                              )}
-                            </TableCell>
-                            <TableCell align="right">
-                              <IconButton size="small" onClick={() => openEditRec(r)} aria-label="Editar">
-                                <EditOutlinedIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton size="small" onClick={() => removeRec(r)} aria-label="Eliminar">
-                                <DeleteOutlineIcon fontSize="small" />
-                              </IconButton>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                {recurringRules.length === 0 && (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Sin reglas. Aparecerán en gastos del mes.
-                  </Typography>
-                )}
-              </Paper>
-
-              <Paper sx={{ p: 2, width: "100%", minWidth: 0, maxWidth: "100%" }}>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  sx={{ mb: 2 }}
-                >
-                  <Typography variant="subtitle1" fontWeight={700}>
-                    Gastos del mes
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={<AddIcon />}
-                    onClick={openNewExpense}
-                    disabled={expenseCategories.length === 0}
-                  >
-                    Registrar gasto
-                  </Button>
-                </Stack>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
-                  Agrupados por categoría. Expandí cada bloque para ver y editar los movimientos.
-                </Typography>
-                {expenses.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    No hay gastos en este mes.
-                  </Typography>
-                ) : (
-                  <Box
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight={700}>
+                        Ingresos recurrentes
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
+                      >
+                        «Cobrado» · {MONTHS.find((x) => x.v === month)?.label}{" "}
+                        {year}
+                      </Typography>
+                    </Box>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      color="primary"
+                      startIcon={<AddIcon />}
+                      onClick={openNewRecInc}
+                      disabled={incomeCategories.length === 0}
+                    >
+                      Agregar
+                    </Button>
+                  </Stack>
+                  <TableContainer
                     sx={{
+                      ...TABLE_CONTAINER_SCROLL_SX,
                       maxHeight: PANEL_BODY_MAX_HEIGHT,
-                      overflowY: "auto",
-                      overflowX: "auto",
-                      WebkitOverflowScrolling: "touch",
-                      pr: 0.5,
                     }}
                   >
-                  <Stack spacing={1} sx={{ minWidth: 0 }}>
-                    {expensesByCategory.keys.map((categoryName) => {
-                      const rows = expensesByCategory.map.get(categoryName)!;
-                      const subtotal = rows.reduce((s, r) => s + r.amount, 0);
-                      return (
-                        <Accordion
-                          key={categoryName}
-                          disableGutters
-                          defaultExpanded={false}
+                    <Table
+                      size="small"
+                      stickyHeader
+                      sx={{ minWidth: TABLE_RECURRING_MIN_WIDTH }}
+                    >
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Activo</TableCell>
+                          <TableCell>Etiqueta</TableCell>
+                          <TableCell>Categoría</TableCell>
+                          <TableCell align="right">Monto</TableCell>
+                          <TableCell align="center">Día</TableCell>
+                          <TableCell align="center">Cobrado</TableCell>
+                          <TableCell align="right">Acc.</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {recurringIncomeRules.map((r) => {
+                          const syntheticInc = r.isActive
+                            ? recurringIncomeForMonth(r.id, incomes)
+                            : undefined;
+                          return (
+                            <TableRow key={r.id}>
+                              <TableCell>
+                                <Switch
+                                  size="small"
+                                  checked={r.isActive}
+                                  onChange={(_, v) => toggleRecIncActive(r, v)}
+                                  inputProps={{
+                                    "aria-label": "Activo ingreso recurrente",
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell>{r.label || "—"}</TableCell>
+                              <TableCell>{r.categoryName ?? "—"}</TableCell>
+                              <TableCell align="right">
+                                {formatCop(r.amount)}
+                              </TableCell>
+                              <TableCell align="center">
+                                {r.dayOfMonth}
+                              </TableCell>
+                              <TableCell align="center" padding="checkbox">
+                                {syntheticInc ? (
+                                  <Checkbox
+                                    checked={!!syntheticInc.received}
+                                    onChange={(_, v) =>
+                                      toggleIncomeReceived(syntheticInc, v)
+                                    }
+                                    size="small"
+                                    color="success"
+                                    inputProps={{
+                                      "aria-label": `${r.label || r.categoryName || "Ingreso recurrente"} cobrado`,
+                                    }}
+                                  />
+                                ) : (
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    title={
+                                      r.isActive
+                                        ? undefined
+                                        : "Activa la regla para incluirla en el mes y poder marcar cobro"
+                                    }
+                                  >
+                                    —
+                                  </Typography>
+                                )}
+                              </TableCell>
+                              <TableCell align="right">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => openEditRecInc(r)}
+                                  aria-label="Editar ingreso recurrente"
+                                >
+                                  <EditOutlinedIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => removeRecInc(r)}
+                                  aria-label="Eliminar ingreso recurrente"
+                                >
+                                  <DeleteOutlineIcon fontSize="small" />
+                                </IconButton>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  {recurringIncomeRules.length === 0 && (
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mt: 1 }}
+                    >
+                      Sin reglas. Se listarán en ingresos del mes.
+                    </Typography>
+                  )}
+                </Paper>
+                <Stack
+                  direction={{ xs: "column", md: "row" }}
+                  spacing={2}
+                  alignItems="flex-start"
+                  sx={{ width: "100%", minWidth: 0 }}
+                >
+                  <Box
+                    sx={{
+                      flex: 1,
+                      minWidth: 0,
+                      maxWidth: "100%",
+                      width: "100%",
+                    }}
+                  >
+                    <Paper
+                      sx={{
+                        p: 2,
+                        width: "100%",
+                        minWidth: 0,
+                        maxWidth: "100%",
+                      }}
+                    >
+                      <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="center"
+                        sx={{ mb: 2 }}
+                      >
+                        <Typography variant="subtitle1" fontWeight={700}>
+                          Ingresos del mes
+                        </Typography>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          startIcon={<AddIcon />}
+                          onClick={openNewIncome}
+                          disabled={incomeCategories.length === 0}
+                        >
+                          Registrar ingreso
+                        </Button>
+                      </Stack>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
+                        sx={{ mb: 1.5 }}
+                      >
+                        Agrupados por categoría. Expandí cada bloque para ver y
+                        editar los movimientos.
+                      </Typography>
+                      {incomes.length === 0 ? (
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ mt: 1 }}
+                        >
+                          No hay ingresos registrados en este mes.
+                        </Typography>
+                      ) : (
+                        <Box
                           sx={{
-                            border: 1,
-                            borderColor: "divider",
-                            borderRadius: 1,
-                            "&:before": { display: "none" },
-                            boxShadow: "none",
-                            overflow: "hidden",
+                            maxHeight: PANEL_BODY_MAX_HEIGHT,
+                            overflowY: "auto",
+                            overflowX: "auto",
+                            WebkitOverflowScrolling: "touch",
+                            pr: 0.5,
                           }}
                         >
-                          <AccordionSummary
-                            expandIcon={<ExpandMoreIcon fontSize="small" />}
-                            sx={{
-                              minHeight: 48,
-                              px: 1.5,
-                              bgcolor: "action.hover",
-                              "& .MuiAccordionSummary-content": { my: 1, alignItems: "center", gap: 1 },
-                            }}
-                          >
-                            <Typography fontWeight={700} sx={{ flex: 1, minWidth: 0 }}>
-                              {categoryName}
-                            </Typography>
-                            <Chip size="small" label={`${rows.length} ítem${rows.length === 1 ? "" : "s"}`} />
-                            <Typography variant="body2" fontWeight={700} color="primary" sx={{ flexShrink: 0 }}>
-                              {formatCop(subtotal)}
-                            </Typography>
-                          </AccordionSummary>
-                          <AccordionDetails sx={{ pt: 0, px: 0, pb: 0 }}>
-                            <TableContainer
-                              sx={{
-                                ...TABLE_CONTAINER_SCROLL_SX,
-                                maxHeight: ACCORDION_TABLE_MAX_HEIGHT,
-                              }}
-                            >
-                              <Table
-                                size="small"
-                                stickyHeader
-                                sx={{ minWidth: TABLE_MOVEMENTS_MIN_WIDTH }}
-                              >
-                                <TableHead>
-                                  <TableRow>
-                                    <TableCell>Fecha</TableCell>
-                                    <TableCell>Detalle</TableCell>
-                                    <TableCell align="center">Pagado</TableCell>
-                                    <TableCell align="right">Monto</TableCell>
-                                    <TableCell align="right" width={100}>
-                                      Acciones
-                                    </TableCell>
-                                  </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                  {rows.map((row) => (
-                                    <TableRow key={row.id}>
-                                      <TableCell>
-                                        {new Date(row.occurredAt).toLocaleDateString("es-CO")}
-                                        {row.isRecurring && (
-                                          <Chip
-                                            label="Recurrente"
-                                            size="small"
-                                            color="secondary"
-                                            variant="outlined"
-                                            sx={{ ml: 1, mt: 0.5, height: 22, display: "block", width: "fit-content" }}
-                                          />
-                                        )}
-                                      </TableCell>
-                                      <TableCell>
-                                        {row.label
-                                          ? `${row.label} · ${row.categoryName ?? ""}`
-                                          : row.categoryName ?? "—"}
-                                      </TableCell>
-                                      <TableCell align="center" padding="checkbox">
-                                        <Checkbox
-                                          checked={!!row.paid}
-                                          onChange={(_, v) => toggleExpensePaid(row, v)}
-                                          size="small"
-                                          color="success"
-                                          inputProps={{
-                                            "aria-label": `Gasto ${row.label || row.categoryName || ""} pagado`,
-                                          }}
-                                        />
-                                      </TableCell>
-                                      <TableCell align="right">{formatCop(row.amount)}</TableCell>
-                                      <TableCell align="right">
-                                        {!row.isRecurring ? (
-                                          <>
-                                            <IconButton size="small" onClick={() => openEditExpense(row)}>
-                                              <EditOutlinedIcon fontSize="small" />
-                                            </IconButton>
-                                            <IconButton size="small" onClick={() => removeExpense(row)}>
-                                              <DeleteOutlineIcon fontSize="small" />
-                                            </IconButton>
-                                          </>
-                                        ) : (
-                                          <Typography variant="caption" color="text.secondary">
-                                            Editar en recurrentes
-                                          </Typography>
-                                        )}
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </TableContainer>
-                          </AccordionDetails>
-                        </Accordion>
-                      );
-                    })}
-                  </Stack>
+                          <Stack spacing={1} sx={{ minWidth: 0 }}>
+                            {incomesByCategory.keys.map((categoryName) => {
+                              const rows =
+                                incomesByCategory.map.get(categoryName)!;
+                              const subtotal = rows.reduce(
+                                (s, r) => s + r.amount,
+                                0
+                              );
+                              return (
+                                <Accordion
+                                  key={categoryName}
+                                  disableGutters
+                                  defaultExpanded={false}
+                                  sx={{
+                                    border: 1,
+                                    borderColor: "divider",
+                                    borderRadius: 1,
+                                    "&:before": { display: "none" },
+                                    boxShadow: "none",
+                                    overflow: "hidden",
+                                  }}
+                                >
+                                  <AccordionSummary
+                                    expandIcon={
+                                      <ExpandMoreIcon fontSize="small" />
+                                    }
+                                    sx={{
+                                      minHeight: 48,
+                                      px: 1.5,
+                                      bgcolor: "action.hover",
+                                      "& .MuiAccordionSummary-content": {
+                                        my: 1,
+                                        alignItems: "center",
+                                        gap: 1,
+                                      },
+                                    }}
+                                  >
+                                    <Typography
+                                      fontWeight={700}
+                                      sx={{ flex: 1, minWidth: 0 }}
+                                    >
+                                      {categoryName}
+                                    </Typography>
+                                    <Chip
+                                      size="small"
+                                      label={`${rows.length} ítem${rows.length === 1 ? "" : "s"}`}
+                                    />
+                                    <Typography
+                                      variant="body2"
+                                      fontWeight={700}
+                                      color="primary"
+                                      sx={{ flexShrink: 0 }}
+                                    >
+                                      {formatCop(subtotal)}
+                                    </Typography>
+                                  </AccordionSummary>
+                                  <AccordionDetails
+                                    sx={{ pt: 0, px: 0, pb: 0 }}
+                                  >
+                                    <TableContainer
+                                      sx={{
+                                        ...TABLE_CONTAINER_SCROLL_SX,
+                                        maxHeight: ACCORDION_TABLE_MAX_HEIGHT,
+                                      }}
+                                    >
+                                      <Table
+                                        size="small"
+                                        stickyHeader
+                                        sx={{
+                                          minWidth: TABLE_MOVEMENTS_MIN_WIDTH,
+                                        }}
+                                      >
+                                        <TableHead>
+                                          <TableRow>
+                                            <TableCell>Fecha</TableCell>
+                                            <TableCell>Detalle</TableCell>
+                                            <TableCell align="center">
+                                              Cobrado
+                                            </TableCell>
+                                            <TableCell align="right">
+                                              Monto
+                                            </TableCell>
+                                            <TableCell
+                                              align="right"
+                                              width={100}
+                                            >
+                                              Acciones
+                                            </TableCell>
+                                          </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                          {rows.map((row) => (
+                                            <TableRow key={row.id}>
+                                              <TableCell>
+                                                {new Date(
+                                                  row.receivedAt
+                                                ).toLocaleDateString("es-CO")}
+                                                {row.isRecurring && (
+                                                  <Chip
+                                                    label="Recurrente"
+                                                    size="small"
+                                                    color="secondary"
+                                                    variant="outlined"
+                                                    sx={{
+                                                      ml: 1,
+                                                      mt: 0.5,
+                                                      height: 22,
+                                                      display: "block",
+                                                      width: "fit-content",
+                                                    }}
+                                                  />
+                                                )}
+                                              </TableCell>
+                                              <TableCell>
+                                                {row.label
+                                                  ? `${row.label} · ${row.categoryName ?? ""}`
+                                                  : (row.categoryName ?? "—")}
+                                              </TableCell>
+                                              <TableCell
+                                                align="center"
+                                                padding="checkbox"
+                                              >
+                                                {row.isRecurring ? (
+                                                  <Checkbox
+                                                    checked={!!row.received}
+                                                    onChange={(_, v) =>
+                                                      toggleIncomeReceived(
+                                                        row,
+                                                        v
+                                                      )
+                                                    }
+                                                    size="small"
+                                                    color="success"
+                                                    inputProps={{
+                                                      "aria-label": `Ingreso ${row.label || row.categoryName || ""} cobrado`,
+                                                    }}
+                                                  />
+                                                ) : (
+                                                  <Typography
+                                                    variant="caption"
+                                                    color="text.secondary"
+                                                  >
+                                                    —
+                                                  </Typography>
+                                                )}
+                                              </TableCell>
+                                              <TableCell align="right">
+                                                {formatCop(row.amount)}
+                                              </TableCell>
+                                              <TableCell align="right">
+                                                {!row.isRecurring ? (
+                                                  <>
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() =>
+                                                        openEditIncome(row)
+                                                      }
+                                                    >
+                                                      <EditOutlinedIcon fontSize="small" />
+                                                    </IconButton>
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() =>
+                                                        removeIncome(row)
+                                                      }
+                                                    >
+                                                      <DeleteOutlineIcon fontSize="small" />
+                                                    </IconButton>
+                                                  </>
+                                                ) : (
+                                                  <Typography
+                                                    variant="caption"
+                                                    color="text.secondary"
+                                                  >
+                                                    Editar en recurrentes
+                                                  </Typography>
+                                                )}
+                                              </TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </TableContainer>
+                                  </AccordionDetails>
+                                </Accordion>
+                              );
+                            })}
+                          </Stack>
+                        </Box>
+                      )}
+                    </Paper>
                   </Box>
-                )}
-              </Paper>
-            </Stack>
-          </Stack>
+                  <Box
+                    sx={{
+                      flex: 1,
+                      minWidth: 0,
+                      maxWidth: "100%",
+                      width: "100%",
+                    }}
+                  >
+                    <Paper
+                      sx={{
+                        p: 2,
+                        width: "100%",
+                        minWidth: 0,
+                        maxWidth: "100%",
+                      }}
+                    >
+                      <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="center"
+                        sx={{ mb: 2 }}
+                      >
+                        <Typography variant="subtitle1" fontWeight={700}>
+                          Gastos del mes
+                        </Typography>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          startIcon={<AddIcon />}
+                          onClick={openNewExpense}
+                          disabled={expenseCategories.length === 0}
+                        >
+                          Registrar gasto
+                        </Button>
+                      </Stack>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
+                        sx={{ mb: 1.5 }}
+                      >
+                        Agrupados por categoría. Expandí cada bloque para ver y
+                        editar los movimientos.
+                      </Typography>
+                      {expenses.length === 0 ? (
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ mt: 1 }}
+                        >
+                          No hay gastos en este mes.
+                        </Typography>
+                      ) : (
+                        <Box
+                          sx={{
+                            maxHeight: PANEL_BODY_MAX_HEIGHT,
+                            overflowY: "auto",
+                            overflowX: "auto",
+                            WebkitOverflowScrolling: "touch",
+                            pr: 0.5,
+                          }}
+                        >
+                          <Stack spacing={1} sx={{ minWidth: 0 }}>
+                            {expensesByCategory.keys.map((categoryName) => {
+                              const rows =
+                                expensesByCategory.map.get(categoryName)!;
+                              const subtotal = rows.reduce(
+                                (s, r) => s + r.amount,
+                                0
+                              );
+                              return (
+                                <Accordion
+                                  key={categoryName}
+                                  disableGutters
+                                  defaultExpanded={false}
+                                  sx={{
+                                    border: 1,
+                                    borderColor: "divider",
+                                    borderRadius: 1,
+                                    "&:before": { display: "none" },
+                                    boxShadow: "none",
+                                    overflow: "hidden",
+                                  }}
+                                >
+                                  <AccordionSummary
+                                    expandIcon={
+                                      <ExpandMoreIcon fontSize="small" />
+                                    }
+                                    sx={{
+                                      minHeight: 48,
+                                      px: 1.5,
+                                      bgcolor: "action.hover",
+                                      "& .MuiAccordionSummary-content": {
+                                        my: 1,
+                                        alignItems: "center",
+                                        gap: 1,
+                                      },
+                                    }}
+                                  >
+                                    <Typography
+                                      fontWeight={700}
+                                      sx={{ flex: 1, minWidth: 0 }}
+                                    >
+                                      {categoryName}
+                                    </Typography>
+                                    <Chip
+                                      size="small"
+                                      label={`${rows.length} ítem${rows.length === 1 ? "" : "s"}`}
+                                    />
+                                    <Typography
+                                      variant="body2"
+                                      fontWeight={700}
+                                      color="primary"
+                                      sx={{ flexShrink: 0 }}
+                                    >
+                                      {formatCop(subtotal)}
+                                    </Typography>
+                                  </AccordionSummary>
+                                  <AccordionDetails
+                                    sx={{ pt: 0, px: 0, pb: 0 }}
+                                  >
+                                    <TableContainer
+                                      sx={{
+                                        ...TABLE_CONTAINER_SCROLL_SX,
+                                        maxHeight: ACCORDION_TABLE_MAX_HEIGHT,
+                                      }}
+                                    >
+                                      <Table
+                                        size="small"
+                                        stickyHeader
+                                        sx={{
+                                          minWidth: TABLE_MOVEMENTS_MIN_WIDTH,
+                                        }}
+                                      >
+                                        <TableHead>
+                                          <TableRow>
+                                            <TableCell>Fecha</TableCell>
+                                            <TableCell>Detalle</TableCell>
+                                            <TableCell align="center">
+                                              Pagado
+                                            </TableCell>
+                                            <TableCell align="right">
+                                              Monto
+                                            </TableCell>
+                                            <TableCell
+                                              align="right"
+                                              width={100}
+                                            >
+                                              Acciones
+                                            </TableCell>
+                                          </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                          {rows.map((row) => (
+                                            <TableRow key={row.id}>
+                                              <TableCell>
+                                                {new Date(
+                                                  row.occurredAt
+                                                ).toLocaleDateString("es-CO")}
+                                                {row.isRecurring && (
+                                                  <Chip
+                                                    label="Recurrente"
+                                                    size="small"
+                                                    color="secondary"
+                                                    variant="outlined"
+                                                    sx={{
+                                                      ml: 1,
+                                                      mt: 0.5,
+                                                      height: 22,
+                                                      display: "block",
+                                                      width: "fit-content",
+                                                    }}
+                                                  />
+                                                )}
+                                              </TableCell>
+                                              <TableCell>
+                                                {row.label
+                                                  ? `${row.label} · ${row.categoryName ?? ""}`
+                                                  : (row.categoryName ?? "—")}
+                                              </TableCell>
+                                              <TableCell
+                                                align="center"
+                                                padding="checkbox"
+                                              >
+                                                <Checkbox
+                                                  checked={!!row.paid}
+                                                  onChange={(_, v) =>
+                                                    toggleExpensePaid(row, v)
+                                                  }
+                                                  size="small"
+                                                  color="success"
+                                                  inputProps={{
+                                                    "aria-label": `Gasto ${row.label || row.categoryName || ""} pagado`,
+                                                  }}
+                                                />
+                                              </TableCell>
+                                              <TableCell align="right">
+                                                {formatCop(row.amount)}
+                                              </TableCell>
+                                              <TableCell align="right">
+                                                {!row.isRecurring ? (
+                                                  <>
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() =>
+                                                        openEditExpense(row)
+                                                      }
+                                                    >
+                                                      <EditOutlinedIcon fontSize="small" />
+                                                    </IconButton>
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() =>
+                                                        removeExpense(row)
+                                                      }
+                                                    >
+                                                      <DeleteOutlineIcon fontSize="small" />
+                                                    </IconButton>
+                                                  </>
+                                                ) : (
+                                                  <Typography
+                                                    variant="caption"
+                                                    color="text.secondary"
+                                                  >
+                                                    Editar en recurrentes
+                                                  </Typography>
+                                                )}
+                                              </TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </TableContainer>
+                                  </AccordionDetails>
+                                </Accordion>
+                              );
+                            })}
+                          </Stack>
+                        </Box>
+                      )}
+                    </Paper>
+                  </Box>
+                </Stack>
+              </Stack>
+            </Box>
+          )}
+
+          {sectionTab === 1 && (
+            <Box
+              id="contabilidad-panel-categorias"
+              role="tabpanel"
+              aria-labelledby="contabilidad-tab-categorias"
+              sx={{ width: "100%", minWidth: 0, mb: 3 }}
+            >
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Tipos de ingreso y gasto. Quedan en esta pestaña para no saturar
+                el tablero del mes.
+              </Typography>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={2}
+                alignItems="flex-start"
+                sx={{ width: "100%", minWidth: 0 }}
+              >
+                <Box
+                  sx={{ flex: 1, minWidth: 0, maxWidth: "100%", width: "100%" }}
+                >
+                  <Paper sx={{ p: 2, minWidth: 0, maxWidth: "100%" }}>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      sx={{ mb: 1 }}
+                    >
+                      <Typography variant="subtitle1" fontWeight={700}>
+                        Categorías de ingreso
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={openNewIncCat}
+                      >
+                        Nueva
+                      </Button>
+                    </Stack>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      display="block"
+                      sx={{ mb: 1 }}
+                    >
+                      Sueldo, honorarios, rentas, otros…
+                    </Typography>
+                    <Box
+                      sx={{
+                        maxHeight: CATEGORY_LIST_MAX_HEIGHT,
+                        overflowY: "auto",
+                        overflowX: "hidden",
+                        mr: -0.5,
+                        pr: 0.5,
+                      }}
+                    >
+                      <List dense disablePadding>
+                        {incomeCategories.map((c) => (
+                          <ListItem
+                            key={c.id}
+                            secondaryAction={
+                              <Stack direction="row">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => openEditIncCat(c)}
+                                  aria-label="Editar"
+                                >
+                                  <EditOutlinedIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => removeIncCat(c)}
+                                  aria-label="Eliminar"
+                                >
+                                  <DeleteOutlineIcon fontSize="small" />
+                                </IconButton>
+                              </Stack>
+                            }
+                            sx={{ pr: 10 }}
+                          >
+                            <ListItemText primary={c.name} />
+                          </ListItem>
+                        ))}
+                        {incomeCategories.length === 0 && (
+                          <Typography variant="body2" color="text.secondary">
+                            Crea tipos de ingreso para registrar movimientos.
+                          </Typography>
+                        )}
+                      </List>
+                    </Box>
+                  </Paper>
+                </Box>
+                <Box
+                  sx={{ flex: 1, minWidth: 0, maxWidth: "100%", width: "100%" }}
+                >
+                  <Paper sx={{ p: 2, minWidth: 0, maxWidth: "100%" }}>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      sx={{ mb: 1 }}
+                    >
+                      <Typography variant="subtitle1" fontWeight={700}>
+                        Categorías de gasto
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={openNewExpCat}
+                      >
+                        Nueva
+                      </Button>
+                    </Stack>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      display="block"
+                      sx={{ mb: 1 }}
+                    >
+                      Suscripciones, hogar, hormiga…
+                    </Typography>
+                    <Box
+                      sx={{
+                        maxHeight: CATEGORY_LIST_MAX_HEIGHT,
+                        overflowY: "auto",
+                        overflowX: "hidden",
+                        mr: -0.5,
+                        pr: 0.5,
+                      }}
+                    >
+                      <List dense disablePadding>
+                        {expenseCategories.map((c) => (
+                          <ListItem
+                            key={c.id}
+                            secondaryAction={
+                              <Stack direction="row">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => openEditExpCat(c)}
+                                  aria-label="Editar"
+                                >
+                                  <EditOutlinedIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => removeExpCat(c)}
+                                  aria-label="Eliminar"
+                                >
+                                  <DeleteOutlineIcon fontSize="small" />
+                                </IconButton>
+                              </Stack>
+                            }
+                            sx={{ pr: 10 }}
+                          >
+                            <ListItemText primary={c.name} />
+                          </ListItem>
+                        ))}
+                        {expenseCategories.length === 0 && (
+                          <Typography variant="body2" color="text.secondary">
+                            Crea una categoría para registrar gastos.
+                          </Typography>
+                        )}
+                      </List>
+                    </Box>
+                  </Paper>
+                </Box>
+              </Stack>
+            </Box>
+          )}
         </>
       )}
 
@@ -1748,7 +2098,9 @@ export default function ContabilidadPage() {
         maxWidth="xs"
       >
         <DialogTitle>
-          {editingIncCat ? "Editar categoría de ingreso" : "Nueva categoría de ingreso"}
+          {editingIncCat
+            ? "Editar categoría de ingreso"
+            : "Nueva categoría de ingreso"}
         </DialogTitle>
         <DialogContent>
           <TextField
@@ -1775,7 +2127,9 @@ export default function ContabilidadPage() {
         maxWidth="xs"
       >
         <DialogTitle>
-          {editingExpCat ? "Editar categoría de gasto" : "Nueva categoría de gasto"}
+          {editingExpCat
+            ? "Editar categoría de gasto"
+            : "Nueva categoría de gasto"}
         </DialogTitle>
         <DialogContent>
           <TextField
@@ -1795,8 +2149,15 @@ export default function ContabilidadPage() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={incDialogOpen} onClose={() => setIncDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>{editingInc ? "Editar ingreso" : "Registrar ingreso"}</DialogTitle>
+      <Dialog
+        open={incDialogOpen}
+        onClose={() => setIncDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          {editingInc ? "Editar ingreso" : "Registrar ingreso"}
+        </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <FormControl fullWidth>
@@ -1846,8 +2207,15 @@ export default function ContabilidadPage() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={expDialogOpen} onClose={() => setExpDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>{editingExp ? "Editar gasto" : "Registrar gasto"}</DialogTitle>
+      <Dialog
+        open={expDialogOpen}
+        onClose={() => setExpDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          {editingExp ? "Editar gasto" : "Registrar gasto"}
+        </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <FormControl fullWidth>
@@ -1897,7 +2265,12 @@ export default function ContabilidadPage() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={recDialogOpen} onClose={() => setRecDialogOpen(false)} fullWidth maxWidth="sm">
+      <Dialog
+        open={recDialogOpen}
+        onClose={() => setRecDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>
           {editingRec ? "Editar gasto recurrente" : "Nuevo gasto recurrente"}
         </DialogTitle>
@@ -1956,7 +2329,8 @@ export default function ContabilidadPage() {
                 color="primary"
               />
               <Typography variant="caption" color="text.secondary">
-                Si está apagado, no se cuenta en los meses hasta que lo reactives
+                Si está apagado, no se cuenta en los meses hasta que lo
+                reactives
               </Typography>
             </Stack>
           </Stack>
@@ -1976,7 +2350,9 @@ export default function ContabilidadPage() {
         maxWidth="sm"
       >
         <DialogTitle>
-          {editingRecInc ? "Editar ingreso recurrente" : "Nuevo ingreso recurrente"}
+          {editingRecInc
+            ? "Editar ingreso recurrente"
+            : "Nuevo ingreso recurrente"}
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -2033,7 +2409,8 @@ export default function ContabilidadPage() {
                 color="primary"
               />
               <Typography variant="caption" color="text.secondary">
-                Si está apagado, no se cuenta en los meses hasta que lo reactives
+                Si está apagado, no se cuenta en los meses hasta que lo
+                reactives
               </Typography>
             </Stack>
           </Stack>
@@ -2055,12 +2432,17 @@ export default function ContabilidadPage() {
         <DialogTitle>Saldos por cuenta</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Indica cuánto tienes hoy en cada sitio. El total de arriba es la suma
-            de estas filas.
+            Indica cuánto tienes hoy en cada sitio. El total de arriba es la
+            suma de estas filas.
           </Typography>
           <Stack spacing={2} sx={{ mt: 0.5 }}>
             {liquidityRows.map((row, idx) => (
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1} key={idx} alignItems="flex-start">
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                key={idx}
+                alignItems="flex-start"
+              >
                 <TextField
                   label="Nombre (ej. Banco BBVA)"
                   value={row.label}
@@ -2089,9 +2471,7 @@ export default function ContabilidadPage() {
                   aria-label="Quitar fila"
                   size="small"
                   onClick={() =>
-                    setLiquidityRows((prev) =>
-                      prev.filter((_, i) => i !== idx)
-                    )
+                    setLiquidityRows((prev) => prev.filter((_, i) => i !== idx))
                   }
                   sx={{ mt: { xs: 0, sm: 0.5 } }}
                 >
@@ -2103,10 +2483,7 @@ export default function ContabilidadPage() {
               size="small"
               startIcon={<AddIcon />}
               onClick={() =>
-                setLiquidityRows((prev) => [
-                  ...prev,
-                  { label: "", amount: "" },
-                ])
+                setLiquidityRows((prev) => [...prev, { label: "", amount: "" }])
               }
             >
               Agregar cuenta
@@ -2114,7 +2491,9 @@ export default function ContabilidadPage() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setLiquidityDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setLiquidityDialogOpen(false)}>
+            Cancelar
+          </Button>
           <Button onClick={saveLiquidity} variant="contained">
             Guardar
           </Button>
