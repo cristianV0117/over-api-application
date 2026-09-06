@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import CircularProgress from "@mui/material/CircularProgress";
 import { toast } from "react-toastify";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -25,6 +27,7 @@ import {
   type CronLog,
   type CronScheduleType,
 } from "@/lib/api/cron";
+import { useUser } from "@/context/userContext";
 
 const INTERVALS = [
   { v: 1, label: "Cada 1 minuto" },
@@ -44,6 +47,8 @@ function formatWhen(iso: string) {
 }
 
 export default function CronPage() {
+  const router = useRouter();
+  const user = useUser();
   const [config, setConfig] = useState<CronConfig | null>(null);
   const [scheduleType, setScheduleType] = useState<CronScheduleType>("interval");
   const [everyMinutes, setEveryMinutes] = useState(5);
@@ -69,12 +74,20 @@ export default function CronPage() {
   }, []);
 
   useEffect(() => {
+    if (!user) return;
+    if (user.role !== "admin") {
+      router.replace("/dashboard");
+    }
+  }, [user, router]);
+
+  useEffect(() => {
+    if (user?.role !== "admin") return;
     refresh()
       .catch((e) =>
         toast.error(e instanceof Error ? e.message : "Error al cargar")
       )
       .finally(() => setLoading(false));
-  }, [refresh]);
+  }, [refresh, user?.role]);
 
   useEffect(() => {
     if (!config?.enabled) return;
@@ -118,6 +131,22 @@ export default function CronPage() {
       setRunning(false);
     }
   };
+
+  if (!user || loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (user.role !== "admin") {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ maxWidth: 860, mx: "auto", width: "100%" }}>
