@@ -78,10 +78,18 @@ export type FinanceSummary = {
   month: number;
   currency: "COP";
   income: number;
-  incomeBreakdown: { categoryId: string; categoryName: string; total: number }[];
+  incomeBreakdown: {
+    categoryId: string;
+    categoryName: string;
+    total: number;
+  }[];
   incomes: FinanceIncomeLine[];
   totalExpenses: number;
-  expenseBreakdown: { categoryId: string; categoryName: string; total: number }[];
+  expenseBreakdown: {
+    categoryId: string;
+    categoryName: string;
+    total: number;
+  }[];
   expenses: FinanceExpense[];
   remaining: number;
   liquidity: FinanceLiquiditySnapshot;
@@ -129,7 +137,9 @@ export async function listIncomeCategories(): Promise<IncomeCategory[]> {
   return res.json();
 }
 
-export async function createIncomeCategory(name: string): Promise<IncomeCategory> {
+export async function createIncomeCategory(
+  name: string
+): Promise<IncomeCategory> {
   const res = await fetch(`${BASE}/finance/income-categories`, {
     method: "POST",
     headers: getAuthHeaders(),
@@ -204,9 +214,7 @@ export async function updateFinanceIncome(
 ): Promise<FinanceIncomeLine> {
   const isRecurring = id.startsWith("recurring-income:");
   const q =
-    isRecurring && monthForRecurring
-      ? `?${monthQuery(monthForRecurring)}`
-      : "";
+    isRecurring && monthForRecurring ? `?${monthQuery(monthForRecurring)}` : "";
   const res = await fetch(
     `${BASE}/finance/incomes/${encodeURIComponent(id)}${q}`,
     {
@@ -243,7 +251,9 @@ export async function listExpenseCategories(): Promise<ExpenseCategory[]> {
   return res.json();
 }
 
-export async function createExpenseCategory(name: string): Promise<ExpenseCategory> {
+export async function createExpenseCategory(
+  name: string
+): Promise<ExpenseCategory> {
   const res = await fetch(`${BASE}/finance/categories`, {
     method: "POST",
     headers: getAuthHeaders(),
@@ -328,9 +338,7 @@ export async function updateFinanceExpense(
 ): Promise<FinanceExpense> {
   const isRecurring = id.startsWith("recurring:");
   const q =
-    isRecurring && monthForRecurring
-      ? `?${monthQuery(monthForRecurring)}`
-      : "";
+    isRecurring && monthForRecurring ? `?${monthQuery(monthForRecurring)}` : "";
   const res = await fetch(
     `${BASE}/finance/expenses/${encodeURIComponent(id)}${q}`,
     {
@@ -487,6 +495,171 @@ export async function deleteRecurringIncome(id: string): Promise<void> {
     const message = Array.isArray(err.message) ? err.message[0] : err.message;
     throw new Error(message || "Error al eliminar regla");
   }
+}
+
+export type FinanceInterestRateType = "NM" | "EA";
+
+export type FinanceDebt = {
+  id: string;
+  userId: string;
+  name: string;
+  creditor: string;
+  balance: number;
+  principal: number;
+  interestRate: number;
+  interestRateType: FinanceInterestRateType;
+  installmentAmount: number;
+  dayOfMonth: number;
+  totalInstallments: number | null;
+  paidInstallments: number;
+  startDate: string | null;
+  notes: string;
+  isActive: boolean;
+};
+
+export type FinanceDebtWrite = {
+  name: string;
+  creditor?: string;
+  balance: number;
+  principal?: number;
+  interestRate: number;
+  interestRateType: FinanceInterestRateType;
+  installmentAmount: number;
+  dayOfMonth: number;
+  totalInstallments?: number | null;
+  paidInstallments?: number;
+  startDate?: string | null;
+  notes?: string;
+  isActive?: boolean;
+};
+
+export async function listFinanceDebts(): Promise<FinanceDebt[]> {
+  const res = await fetch(`${BASE}/finance/debts`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al cargar deudas");
+  return res.json();
+}
+
+export async function createFinanceDebt(
+  data: FinanceDebtWrite
+): Promise<FinanceDebt> {
+  const res = await fetch(`${BASE}/finance/debts`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const message = Array.isArray(err.message) ? err.message[0] : err.message;
+    throw new Error(message || "Error al crear deuda");
+  }
+  return res.json();
+}
+
+export async function updateFinanceDebt(
+  id: string,
+  data: Partial<FinanceDebtWrite>
+): Promise<FinanceDebt> {
+  const res = await fetch(`${BASE}/finance/debts/${id}`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const message = Array.isArray(err.message) ? err.message[0] : err.message;
+    throw new Error(message || "Error al actualizar deuda");
+  }
+  return res.json();
+}
+
+export async function deleteFinanceDebt(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/finance/debts/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const message = Array.isArray(err.message) ? err.message[0] : err.message;
+    throw new Error(message || "Error al eliminar deuda");
+  }
+}
+
+export type AssistantMessage = {
+  role: "user" | "assistant";
+  content: string;
+  attachmentName?: string;
+  extractedDebt?: Partial<FinanceDebtWrite> | null;
+  createdAt: string;
+};
+
+export async function getAssistantHistory(): Promise<AssistantMessage[]> {
+  const res = await fetch(`${BASE}/finance/assistant/history`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al cargar el historial del asistente");
+  const data = await res.json();
+  return data.messages ?? [];
+}
+
+export async function clearAssistantHistory(): Promise<void> {
+  const res = await fetch(`${BASE}/finance/assistant/history`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al borrar el historial");
+}
+
+export async function sendAssistantChat(data: {
+  message: string;
+  year: number;
+  month: number;
+  attachment?: { mimeType: string; dataBase64: string; fileName?: string };
+}): Promise<{
+  reply: string;
+  extractedDebt: Partial<FinanceDebtWrite> | null;
+  messages: AssistantMessage[];
+}> {
+  const res = await fetch(`${BASE}/finance/assistant/chat`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const message = Array.isArray(err.message) ? err.message[0] : err.message;
+    throw new Error(message || "Error al consultar el asistente");
+  }
+  return res.json();
+}
+
+export async function downloadFinanceExport(params: {
+  fromYear: number;
+  fromMonth: number;
+  toYear: number;
+  toMonth: number;
+}): Promise<void> {
+  const q = new URLSearchParams({
+    fromYear: String(params.fromYear),
+    fromMonth: String(params.fromMonth),
+    toYear: String(params.toYear),
+    toMonth: String(params.toMonth),
+    format: "csv",
+  });
+  const res = await fetch(`${BASE}/finance/export?${q}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al exportar movimientos");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `movimientos-${params.fromYear}-${String(params.fromMonth).padStart(2, "0")}-${params.toYear}-${String(params.toMonth).padStart(2, "0")}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 export function formatCop(amount: number): string {
