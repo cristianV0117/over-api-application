@@ -615,7 +615,7 @@ export async function sendAssistantChat(data: {
   message: string;
   year: number;
   month: number;
-  attachment?: { mimeType: string; dataBase64: string; fileName?: string };
+  attachments?: { mimeType: string; dataBase64: string; fileName?: string }[];
 }): Promise<{
   reply: string;
   extractedDebt: Partial<FinanceDebtWrite> | null;

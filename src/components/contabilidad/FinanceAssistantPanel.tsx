@@ -48,6 +48,9 @@ type Props = {
 
 const ACCEPT =
   "image/jpeg,image/png,image/webp,image/gif,application/pdf,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,application/vnd.ms-excel,.xls,text/csv,.csv,text/plain,.txt";
+const MAX_FILES = 6;
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 16 * 1024 * 1024;
 
 function inferMime(file: File): string {
   if (file.type && file.type !== "application/octet-stream") return file.type;
@@ -99,7 +102,7 @@ export default function FinanceAssistantPanel({
 }: Props) {
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [input, setInput] = useState("");
-  const [pending, setPending] = useState<PendingFile | null>(null);
+  const [pending, setPending] = useState<PendingFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [booting, setBooting] = useState(true);
   const [savingDebt, setSavingDebt] = useState(false);
@@ -117,37 +120,69 @@ export default function FinanceAssistantPanel({
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  const pickFile = async (file: File | undefined) => {
-    if (!file) return;
-    if (!isAllowedAttachment(file)) {
-      toast.error("Usá imagen, PDF, Excel (.xlsx) o CSV.");
+  const pickFiles = async (list: FileList | File[] | null) => {
+    const files = list ? [...list] : [];
+    if (files.length === 0) return;
+    const remaining = MAX_FILES - pending.length;
+    if (remaining <= 0) {
+      toast.error(`Máximo ${MAX_FILES} archivos por mensaje`);
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error("El archivo no puede superar 8 MB");
-      return;
+    const chosen = files.slice(0, remaining);
+    if (files.length > remaining) {
+      toast.info(`Solo se agregaron ${remaining} (máximo ${MAX_FILES})`);
     }
-    const mimeType = inferMime(file);
-    const dataBase64 = await fileToBase64(file);
-    setPending({
-      fileName: file.name,
-      mimeType,
-      dataBase64,
-      previewUrl: mimeType.startsWith("image/")
-        ? URL.createObjectURL(file)
-        : undefined,
+    const currentTotal = pending.reduce(
+      (s, p) => s + Math.ceil((p.dataBase64.length * 3) / 4),
+      0
+    );
+    const next: PendingFile[] = [];
+    let addedBytes = 0;
+    for (const file of chosen) {
+      if (!isAllowedAttachment(file)) {
+        toast.error(`${file.name}: usá imagen, PDF, Excel o CSV`);
+        continue;
+      }
+      if (file.size > MAX_FILE_BYTES) {
+        toast.error(`${file.name} supera 5 MB`);
+        continue;
+      }
+      if (currentTotal + addedBytes + file.size > MAX_TOTAL_BYTES) {
+        toast.error("El total de adjuntos es demasiado grande");
+        break;
+      }
+      const mimeType = inferMime(file);
+      const dataBase64 = await fileToBase64(file);
+      next.push({
+        fileName: file.name,
+        mimeType,
+        dataBase64,
+        previewUrl: mimeType.startsWith("image/")
+          ? URL.createObjectURL(file)
+          : undefined,
+      });
+      addedBytes += file.size;
+    }
+    if (next.length) setPending((prev) => [...prev, ...next]);
+  };
+
+  const removePending = (index: number) => {
+    setPending((prev) => {
+      const file = prev[index];
+      if (file?.previewUrl) URL.revokeObjectURL(file.previewUrl);
+      return prev.filter((_, i) => i !== index);
     });
   };
 
   const send = async (preset?: string) => {
     const text = (preset ?? input).trim();
-    if ((!text && !pending) || loading) return;
+    if ((!text && pending.length === 0) || loading) return;
     setLoading(true);
     setInput("");
     const optimistic: AssistantMessage = {
       role: "user",
-      content: text || "Analizá el documento adjunto.",
-      attachmentName: pending?.fileName,
+      content: text || "Analizá los documentos adjuntos.",
+      attachmentName: pending.map((p) => p.fileName).join(" · ") || undefined,
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimistic]);
@@ -156,16 +191,17 @@ export default function FinanceAssistantPanel({
         message: optimistic.content,
         year,
         month,
-        attachment: pending
-          ? {
-              mimeType: pending.mimeType,
-              dataBase64: pending.dataBase64,
-              fileName: pending.fileName,
-            }
-          : undefined,
+        attachments: pending.map((p) => ({
+          mimeType: p.mimeType,
+          dataBase64: p.dataBase64,
+          fileName: p.fileName,
+        })),
       });
       setMessages(res.messages);
-      setPending(null);
+      pending.forEach((p) => {
+        if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+      });
+      setPending([]);
     } catch (e) {
       setMessages((prev) => prev.filter((m) => m !== optimistic));
       toast.error(e instanceof Error ? e.message : "Error del asistente");
@@ -238,8 +274,8 @@ export default function FinanceAssistantPanel({
           </Typography>
           <Typography variant="caption" color="text.secondary">
             Usa tus movimientos de {monthLabel} {year}, recurrentes y deudas.
-            Podés adjuntar pantallazo, PDF o Excel de un crédito. Orientación,
-            no asesoría formal.
+            Podés adjuntar varios pantallazos, PDF o Excel (hasta {MAX_FILES}).
+            Orientación, no asesoría formal.
           </Typography>
         </Box>
         <Button
@@ -369,42 +405,46 @@ export default function FinanceAssistantPanel({
         )}
       </Box>
 
-      {pending ? (
-        <Stack
-          direction="row"
-          spacing={1}
-          alignItems="center"
-          sx={{
-            mb: 1,
-            p: 1,
-            border: 1,
-            borderColor: "divider",
-            borderRadius: 1,
-          }}
-        >
-          {pending.previewUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={pending.previewUrl}
-              alt=""
-              style={{
-                width: 48,
-                height: 48,
-                objectFit: "cover",
-                borderRadius: 6,
+      {pending.length > 0 ? (
+        <Stack spacing={1} sx={{ mb: 1 }}>
+          {pending.map((file, index) => (
+            <Stack
+              key={`${file.fileName}-${index}`}
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              sx={{
+                p: 1,
+                border: 1,
+                borderColor: "divider",
+                borderRadius: 1,
               }}
-            />
-          ) : null}
-          <Typography variant="caption" sx={{ flex: 1 }} noWrap>
-            {pending.fileName}
-          </Typography>
-          <IconButton
-            size="small"
-            aria-label="Quitar adjunto"
-            onClick={() => setPending(null)}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
+            >
+              {file.previewUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={file.previewUrl}
+                  alt=""
+                  style={{
+                    width: 48,
+                    height: 48,
+                    objectFit: "cover",
+                    borderRadius: 6,
+                  }}
+                />
+              ) : null}
+              <Typography variant="caption" sx={{ flex: 1 }} noWrap>
+                {file.fileName}
+              </Typography>
+              <IconButton
+                size="small"
+                aria-label={`Quitar ${file.fileName}`}
+                onClick={() => removePending(index)}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Stack>
+          ))}
         </Stack>
       ) : null}
 
@@ -422,23 +462,24 @@ export default function FinanceAssistantPanel({
           ref={fileRef}
           type="file"
           accept={ACCEPT}
+          multiple
           hidden
           onChange={(e) => {
-            void pickFile(e.target.files?.[0]);
+            void pickFiles(e.target.files);
             e.target.value = "";
           }}
         />
         <IconButton
-          aria-label="Adjuntar documento"
+          aria-label="Adjuntar documentos"
           onClick={() => fileRef.current?.click()}
-          disabled={loading}
+          disabled={loading || pending.length >= MAX_FILES}
         >
           <AttachFileIcon />
         </IconButton>
         <TextField
           fullWidth
           size="small"
-          placeholder="Preguntá o adjuntá PDF, Excel o un pantallazo…"
+          placeholder="Preguntá o adjuntá varios PDF, Excel o pantallazos…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           multiline
@@ -447,7 +488,7 @@ export default function FinanceAssistantPanel({
         <IconButton
           type="submit"
           color="primary"
-          disabled={loading || (!input.trim() && !pending)}
+          disabled={loading || (!input.trim() && pending.length === 0)}
           aria-label="Enviar"
         >
           <SendIcon />
