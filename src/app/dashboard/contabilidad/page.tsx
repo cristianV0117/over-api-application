@@ -941,6 +941,7 @@ export default function ContabilidadPage() {
           month={month}
           monthLabel={MONTHS.find((x) => x.v === month)?.label ?? ""}
           onDebtCreated={loadDebts}
+          onLedgerSaved={refreshAll}
         />
       )}
 

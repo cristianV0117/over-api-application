@@ -586,11 +586,38 @@ export async function deleteFinanceDebt(id: string): Promise<void> {
   }
 }
 
+export type LedgerMovementDraft = {
+  amount: number;
+  date: string;
+  notes: string;
+  categoryName: string;
+  categoryId: string | null;
+};
+
+export type LedgerRecurringDraft = {
+  amount: number;
+  dayOfMonth: number;
+  label: string;
+  notes: string;
+  categoryName: string;
+  categoryId: string | null;
+};
+
+export type ExtractedLedger = {
+  expenses: LedgerMovementDraft[];
+  incomes: LedgerMovementDraft[];
+  expenseCategories: { name: string }[];
+  incomeCategories: { name: string }[];
+  recurringExpenses: LedgerRecurringDraft[];
+  recurringIncomes: LedgerRecurringDraft[];
+};
+
 export type AssistantMessage = {
   role: "user" | "assistant";
   content: string;
   attachmentName?: string;
   extractedDebt?: Partial<FinanceDebtWrite> | null;
+  extractedLedger?: ExtractedLedger | null;
   createdAt: string;
 };
 
@@ -619,6 +646,7 @@ export async function sendAssistantChat(data: {
 }): Promise<{
   reply: string;
   extractedDebt: Partial<FinanceDebtWrite> | null;
+  extractedLedger: ExtractedLedger | null;
   messages: AssistantMessage[];
 }> {
   const res = await fetch(`${BASE}/finance/assistant/chat`, {
