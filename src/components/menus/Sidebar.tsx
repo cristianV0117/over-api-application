@@ -18,6 +18,7 @@ import ViewKanbanOutlinedIcon from "@mui/icons-material/ViewKanbanOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
+import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import { useUser } from "@/context/userContext";
 import { avatarUrl } from "@/lib/api/profile";
 
@@ -31,6 +32,7 @@ const allItems = [
     label: "Contabilidad",
     Icon: AccountBalanceWalletOutlinedIcon,
   },
+  { href: "/dashboard/cron", label: "Cron", Icon: ScheduleOutlinedIcon },
   { href: "/dashboard/profile", label: "Perfil", Icon: PersonOutlineIcon },
   { href: "#", label: "Configuración", Icon: SettingsOutlinedIcon, disabled: true },
 ];
