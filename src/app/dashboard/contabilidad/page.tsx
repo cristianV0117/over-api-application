@@ -71,13 +71,11 @@ import {
   formatCop,
   getFinanceSummary,
   listExpenseCategories,
-  listFinanceDebts,
   listIncomeCategories,
   listRecurringExpenses,
   listRecurringIncomes,
   putFinanceLiquidity,
   type ExpenseCategory,
-  type FinanceDebt,
   type FinanceExpense,
   type FinanceIncomeLine,
   type FinanceRecurringRule,
@@ -219,7 +217,6 @@ export default function ContabilidadPage() {
 
   const [sectionTab, setSectionTab] = useState(0);
   const [pageTab, setPageTab] = useState(0);
-  const [debts, setDebts] = useState<FinanceDebt[]>([]);
   const [exporting, setExporting] = useState(false);
 
   const [liquidityDialogOpen, setLiquidityDialogOpen] = useState(false);
@@ -243,10 +240,6 @@ export default function ContabilidadPage() {
     setRecurringIncomeRules(await listRecurringIncomes());
   }, []);
 
-  const loadDebts = useCallback(async () => {
-    setDebts(await listFinanceDebts());
-  }, []);
-
   const loadSummary = useCallback(async () => {
     setSummary(await getFinanceSummary({ year, month }));
   }, [year, month]);
@@ -260,7 +253,6 @@ export default function ContabilidadPage() {
         loadExpenseCategories(),
         loadRecurringRules(),
         loadRecurringIncomeRules(),
-        loadDebts(),
       ]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al cargar datos");
@@ -273,7 +265,6 @@ export default function ContabilidadPage() {
     loadExpenseCategories,
     loadRecurringRules,
     loadRecurringIncomeRules,
-    loadDebts,
   ]);
 
   useEffect(() => {
@@ -956,7 +947,7 @@ export default function ContabilidadPage() {
           year={year}
           month={month}
           monthLabel={MONTHS.find((x) => x.v === month)?.label ?? ""}
-          onDebtCreated={loadDebts}
+          onDebtCreated={refreshAll}
           onLedgerSaved={refreshAll}
         />
       )}
