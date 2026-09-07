@@ -48,6 +48,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import FinanceAssistantPanel from "@/components/contabilidad/FinanceAssistantPanel";
@@ -218,6 +219,7 @@ export default function ContabilidadPage() {
   const [sectionTab, setSectionTab] = useState(0);
   const [pageTab, setPageTab] = useState(0);
   const [exporting, setExporting] = useState(false);
+  const [chartsOpen, setChartsOpen] = useState(false);
 
   const [liquidityDialogOpen, setLiquidityDialogOpen] = useState(false);
   const [liquidityRows, setLiquidityRows] = useState<
@@ -888,6 +890,14 @@ export default function ContabilidadPage() {
           <Button
             size="small"
             variant="outlined"
+            startIcon={<BarChartOutlinedIcon />}
+            onClick={() => setChartsOpen(true)}
+          >
+            Gráficas
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
             startIcon={<FileDownloadOutlinedIcon />}
             onClick={exportMovements}
             disabled={exporting}
@@ -1013,8 +1023,6 @@ export default function ContabilidadPage() {
               </CardContent>
             </Card>
           </Stack>
-
-          <FinanceChartsPanel year={year} month={month} />
 
           <Card
             sx={{
@@ -2594,6 +2602,21 @@ export default function ContabilidadPage() {
           <Button onClick={saveLiquidity} variant="contained">
             Guardar
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={chartsOpen}
+        onClose={() => setChartsOpen(false)}
+        fullWidth
+        maxWidth="lg"
+      >
+        <DialogTitle>Gráficas</DialogTitle>
+        <DialogContent dividers>
+          <FinanceChartsPanel year={year} month={month} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setChartsOpen(false)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
     </Box>
