@@ -647,6 +647,7 @@ export async function sendAssistantChat(data: {
   reply: string;
   extractedDebt: Partial<FinanceDebtWrite> | null;
   extractedLedger: ExtractedLedger | null;
+  applied: boolean;
   messages: AssistantMessage[];
 }> {
   const res = await fetch(`${BASE}/finance/assistant/chat`, {
@@ -688,6 +689,89 @@ export async function downloadFinanceExport(params: {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+export type FinanceOverviewPoint = {
+  year: number;
+  month: number;
+  income: number;
+  expenses: number;
+  remaining: number;
+};
+
+export type FinanceOverview = {
+  months: FinanceOverviewPoint[];
+  expenseBreakdown: FinanceSummary["expenseBreakdown"];
+  incomeBreakdown: FinanceSummary["incomeBreakdown"];
+};
+
+export async function getFinanceOverview(params: {
+  year: number;
+  month: number;
+  months?: number;
+}): Promise<FinanceOverview> {
+  const q = new URLSearchParams({
+    year: String(params.year),
+    month: String(params.month),
+    ...(params.months ? { months: String(params.months) } : {}),
+  });
+  const res = await fetch(`${BASE}/finance/overview?${q}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al cargar el histórico");
+  return res.json();
+}
+
+export type DebtForecastStep = {
+  month: number;
+  date: string;
+  payment: number;
+  interest: number;
+  principal: number;
+  balance: number;
+};
+
+export type DebtForecastItem = {
+  id: string;
+  name: string;
+  creditor: string;
+  balance: number;
+  installmentAmount: number;
+  interestRate: number;
+  interestRateType: string;
+  dayOfMonth: number;
+  paidInstallments: number;
+  totalInstallments: number | null;
+  months: number;
+  neverPays: boolean;
+  payoffDate: string | null;
+  totalPaid: number;
+  totalInterest: number;
+  extraMonthly: number;
+  monthlyRate: number;
+  schedule: DebtForecastStep[];
+};
+
+export type DebtForecast = {
+  extraMonthly: number;
+  totalBalance: number;
+  totalInstallment: number;
+  items: DebtForecastItem[];
+};
+
+export async function getDebtForecast(params?: {
+  extraMonthly?: number;
+  debtId?: string;
+}): Promise<DebtForecast> {
+  const q = new URLSearchParams();
+  if (params?.extraMonthly != null)
+    q.set("extraMonthly", String(params.extraMonthly));
+  if (params?.debtId) q.set("debtId", params.debtId);
+  const res = await fetch(`${BASE}/finance/debts/forecast?${q}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al calcular el crédito");
+  return res.json();
 }
 
 export function formatCop(amount: number): string {
