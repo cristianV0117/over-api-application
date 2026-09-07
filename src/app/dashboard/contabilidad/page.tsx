@@ -50,8 +50,9 @@ import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import FinanceAssistantPanel from "@/components/contabilidad/FinanceAssistantPanel";
-import FinanceDebtsPanel from "@/components/contabilidad/FinanceDebtsPanel";
 import PayLinksPanel from "@/components/contabilidad/PayLinksPanel";
+import FinanceChartsPanel from "@/components/contabilidad/FinanceChartsPanel";
+import NextLink from "next/link";
 import {
   createExpenseCategory,
   createFinanceExpense,
@@ -1013,6 +1014,8 @@ export default function ContabilidadPage() {
             </Card>
           </Stack>
 
+          <FinanceChartsPanel year={year} month={month} />
+
           <Card
             sx={{
               mb: 3,
@@ -1076,9 +1079,36 @@ export default function ContabilidadPage() {
             </CardContent>
           </Card>
 
-          <Box sx={{ mb: 3 }}>
-            <FinanceDebtsPanel debts={debts} onChanged={loadDebts} />
-          </Box>
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              justifyContent="space-between"
+              alignItems={{ sm: "center" }}
+              spacing={1}
+            >
+              <Box>
+                <Typography variant="subtitle1" fontWeight={700}>
+                  Créditos
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {debts.filter((d) => d.isActive).length
+                    ? `${debts.filter((d) => d.isActive).length} activos · saldo ${formatCop(
+                        debts
+                          .filter((d) => d.isActive)
+                          .reduce((s, d) => s + d.balance, 0)
+                      )}`
+                    : "Todavía no registraste créditos."}
+                </Typography>
+              </Box>
+              <Button
+                component={NextLink}
+                href="/dashboard/credito"
+                variant="contained"
+              >
+                Abrir módulo Crédito
+              </Button>
+            </Stack>
+          </Paper>
 
           <Stack
             direction={{ xs: "column", md: "row" }}
