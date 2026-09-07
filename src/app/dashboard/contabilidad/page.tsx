@@ -49,10 +49,11 @@ import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
+import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import FinanceAssistantPanel from "@/components/contabilidad/FinanceAssistantPanel";
 import PayLinksPanel from "@/components/contabilidad/PayLinksPanel";
 import FinanceChartsPanel from "@/components/contabilidad/FinanceChartsPanel";
-import NextLink from "next/link";
+import CreditoPanel from "@/components/contabilidad/CreditoPanel";
 import {
   createExpenseCategory,
   createFinanceExpense,
@@ -917,7 +918,7 @@ export default function ContabilidadPage() {
         <Tabs
           value={pageTab}
           onChange={(_, v) => setPageTab(v)}
-          aria-label="Contabilidad, asistente y pagos"
+          aria-label="Contabilidad, asistente, pagos y crédito"
           variant="scrollable"
           allowScrollButtonsMobile
         >
@@ -939,6 +940,12 @@ export default function ContabilidadPage() {
             label="Páginas de pago"
             id="page-tab-pagos"
           />
+          <Tab
+            icon={<CreditCardOutlinedIcon />}
+            iconPosition="start"
+            label="Crédito"
+            id="page-tab-credito"
+          />
         </Tabs>
       </Box>
 
@@ -955,6 +962,8 @@ export default function ContabilidadPage() {
       )}
 
       {pageTab === 2 && <PayLinksPanel />}
+
+      {pageTab === 3 && <CreditoPanel />}
 
       {pageTab === 0 && summary && (
         <>
@@ -1078,37 +1087,6 @@ export default function ContabilidadPage() {
               </Stack>
             </CardContent>
           </Card>
-
-          <Paper sx={{ p: 2, mb: 3 }}>
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              justifyContent="space-between"
-              alignItems={{ sm: "center" }}
-              spacing={1}
-            >
-              <Box>
-                <Typography variant="subtitle1" fontWeight={700}>
-                  Créditos
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {debts.filter((d) => d.isActive).length
-                    ? `${debts.filter((d) => d.isActive).length} activos · saldo ${formatCop(
-                        debts
-                          .filter((d) => d.isActive)
-                          .reduce((s, d) => s + d.balance, 0)
-                      )}`
-                    : "Todavía no registraste créditos."}
-                </Typography>
-              </Box>
-              <Button
-                component={NextLink}
-                href="/dashboard/credito"
-                variant="contained"
-              >
-                Abrir módulo Crédito
-              </Button>
-            </Stack>
-          </Paper>
 
           <Stack
             direction={{ xs: "column", md: "row" }}
