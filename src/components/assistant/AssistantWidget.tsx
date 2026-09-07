@@ -4,7 +4,12 @@ import { useState, useRef, useEffect } from "react";
 import NextLink from "next/link";
 import { createTask, type Task } from "@/lib/api/tasks";
 import { parseCreateTaskIntent } from "@/lib/chat/parseCreateTask";
-import { sendAssistantChat } from "@/lib/api/contabilidad";
+import {
+  createFinanceDebt,
+  formatCop,
+  sendAssistantChat,
+  type FinanceDebtWrite,
+} from "@/lib/api/contabilidad";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Fab from "@mui/material/Fab";
@@ -17,6 +22,7 @@ import Fade from "@mui/material/Fade";
 import ChatIcon from "@mui/icons-material/Chat";
 import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
 
 type MessageRole = "user" | "assistant";
 
@@ -25,21 +31,40 @@ type ChatMessage = {
   role: MessageRole;
   content: string;
   taskCreated?: Task;
+  extractedDebt?: Partial<FinanceDebtWrite> | null;
 };
 
 const BOT_NAME = "Asistente";
 const INITIAL_MESSAGE: ChatMessage = {
   id: "welcome",
   role: "assistant",
-  content: `Hola. Puedo registrar gastos e ingresos, y también crear tareas.\n\n• "Hoy gasté 1000 en una paleta"\n• "Me pagaron 200 mil de un freelance"\n• "Crea una tarea: Revisar PRs"`,
+  content: `Hola. Puedo registrar gastos, ingresos y créditos, y también crear tareas.\n\n• "Hoy gasté 1000 en una paleta"\n• Adjuntá un pantallazo del crédito y pedí que lo registre\n• "Crea una tarea: Revisar PRs"`,
 };
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function AssistantWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pending, setPending] = useState<
+    { fileName: string; mimeType: string; dataBase64: string }[]
+  >([]);
+  const [savingDebt, setSavingDebt] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -49,10 +74,65 @@ export default function AssistantWidget() {
     if (open) scrollToBottom();
   }, [messages, open]);
 
+  const pickFiles = async (list: FileList | null) => {
+    const files = list ? [...list].slice(0, 3) : [];
+    const next: { fileName: string; mimeType: string; dataBase64: string }[] =
+      [];
+    for (const file of files) {
+      if (file.size > 5 * 1024 * 1024) continue;
+      next.push({
+        fileName: file.name,
+        mimeType: file.type || "application/octet-stream",
+        dataBase64: await fileToBase64(file),
+      });
+    }
+    if (next.length) setPending((prev) => [...prev, ...next].slice(0, 3));
+  };
+
+  const saveDebt = async (debt: Partial<FinanceDebtWrite>) => {
+    if (!debt.balance || !debt.installmentAmount || !debt.name) return;
+    setSavingDebt(true);
+    try {
+      await createFinanceDebt({
+        name: debt.name,
+        creditor: debt.creditor,
+        balance: Number(debt.balance),
+        principal: debt.principal != null ? Number(debt.principal) : undefined,
+        interestRate: Number(debt.interestRate ?? 0),
+        interestRateType: debt.interestRateType === "EA" ? "EA" : "NM",
+        installmentAmount: Number(debt.installmentAmount),
+        dayOfMonth: Number(debt.dayOfMonth ?? 1) || 1,
+        totalInstallments: debt.totalInstallments ?? null,
+        paidInstallments: debt.paidInstallments ?? 0,
+        notes: debt.notes,
+        isActive: true,
+      });
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `assistant-${Date.now()}`,
+          role: "assistant",
+          content: "Crédito guardado. Lo ves en la pestaña Crédito.",
+        },
+      ]);
+    } catch (e) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `assistant-${Date.now()}`,
+          role: "assistant",
+          content: e instanceof Error ? e.message : "No se pudo guardar",
+        },
+      ]);
+    } finally {
+      setSavingDebt(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const text = input.trim();
-    if (!text || loading) return;
+    if ((!text && pending.length === 0) || loading) return;
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -63,7 +143,7 @@ export default function AssistantWidget() {
     setInput("");
     setLoading(true);
 
-    const intent = parseCreateTaskIntent(text);
+    const intent = pending.length === 0 ? parseCreateTaskIntent(text) : null;
 
     if (intent) {
       try {
@@ -90,12 +170,13 @@ export default function AssistantWidget() {
       try {
         const now = new Date();
         const res = await sendAssistantChat({
-          message: text,
+          message: text || "Analizá el documento adjunto y registrá lo que corresponda.",
           year: now.getFullYear(),
           month: now.getMonth() + 1,
+          attachments: pending,
         });
         const extra = res.applied
-          ? "\n\nQuedó registrado en tu contabilidad."
+          ? "\n\nQuedó registrado en tu contabilidad / créditos."
           : "";
         setMessages((prev) => [
           ...prev,
@@ -103,8 +184,10 @@ export default function AssistantWidget() {
             id: `assistant-${Date.now()}`,
             role: "assistant",
             content: (res.reply || "Listo.") + extra,
+            extractedDebt: res.extractedDebt,
           },
         ]);
+        setPending([]);
       } catch (err) {
         setMessages((prev) => [
           ...prev,
@@ -238,6 +321,23 @@ export default function AssistantWidget() {
                         )
                       )}
                     </Typography>
+                    {msg.extractedDebt ? (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="caption" display="block">
+                          {msg.extractedDebt.name} ·{" "}
+                          {formatCop(Number(msg.extractedDebt.balance ?? 0))}
+                        </Typography>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          sx={{ mt: 0.75 }}
+                          disabled={savingDebt}
+                          onClick={() => void saveDebt(msg.extractedDebt!)}
+                        >
+                          Guardar crédito
+                        </Button>
+                      </Box>
+                    ) : null}
                     {msg.taskCreated && (
                       <Link
                         component={NextLink}
@@ -266,11 +366,34 @@ export default function AssistantWidget() {
             </Box>
 
             <Box component="form" onSubmit={handleSubmit} sx={{ p: 2, borderTop: 1, borderColor: "divider", bgcolor: "action.hover" }}>
+              {pending.length > 0 ? (
+                <Typography variant="caption" display="block" sx={{ mb: 1 }}>
+                  Adjunto: {pending.map((p) => p.fileName).join(" · ")}
+                </Typography>
+              ) : null}
+              <input
+                ref={fileRef}
+                type="file"
+                hidden
+                accept="image/*,application/pdf,.pdf"
+                multiple
+                onChange={(e) => {
+                  void pickFiles(e.target.files);
+                  e.target.value = "";
+                }}
+              />
               <Box sx={{ display: "flex", gap: 1 }}>
+                <IconButton
+                  aria-label="Adjuntar"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={loading}
+                >
+                  <AttachFileIcon />
+                </IconButton>
                 <TextField
                   size="small"
                   fullWidth
-                  placeholder="Hoy gasté 1000 en una paleta…"
+                  placeholder="Gasté… o adjuntá el crédito"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   disabled={loading}
@@ -280,7 +403,7 @@ export default function AssistantWidget() {
                   type="submit"
                   variant="contained"
                   color="primary"
-                  disabled={loading || !input.trim()}
+                  disabled={loading || (!input.trim() && pending.length === 0)}
                   sx={{ minWidth: 48, px: 1.5 }}
                   aria-label="Enviar"
                 >

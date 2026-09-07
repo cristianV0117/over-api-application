@@ -50,7 +50,7 @@ export default function FinanceChartsPanel({ year, month }: Props) {
   const labels = data.months.map((m) => `${MONTHS[m.month - 1]} ${String(m.year).slice(2)}`);
 
   return (
-    <Stack spacing={2} sx={{ mb: 3, width: "100%" }}>
+    <Stack spacing={2} sx={{ width: "100%" }}>
       <Paper sx={{ p: 2 }}>
         <Typography variant="subtitle1" fontWeight={700} gutterBottom>
           Ingresos vs gastos (12 meses)

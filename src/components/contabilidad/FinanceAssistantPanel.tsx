@@ -48,6 +48,7 @@ const PROMPTS = [
   "Si pago $200.000 extra al mes, ¿cuándo termino los créditos?",
   "Cargá en mi contabilidad los movimientos de este extracto",
   "Hoy gasté 20 mil en gasolina y 50 mil en mercado",
+  "Registrá este crédito del adjunto",
 ];
 
 type PendingFile = {
