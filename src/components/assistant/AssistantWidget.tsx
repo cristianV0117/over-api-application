@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import NextLink from "next/link";
 import { createTask, type Task } from "@/lib/api/tasks";
 import { parseCreateTaskIntent } from "@/lib/chat/parseCreateTask";
+import { sendAssistantChat } from "@/lib/api/contabilidad";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Fab from "@mui/material/Fab";
@@ -30,7 +31,7 @@ const BOT_NAME = "Asistente";
 const INITIAL_MESSAGE: ChatMessage = {
   id: "welcome",
   role: "assistant",
-  content: `Hola. Puedo ayudarte a crear tareas. Escribe por ejemplo:\n\n• "Crea una tarea: Revisar PRs"\n• "Crear tarea Llamar al cliente. Seguimiento de venta"`,
+  content: `Hola. Puedo registrar gastos e ingresos, y también crear tareas.\n\n• "Hoy gasté 1000 en una paleta"\n• "Me pagaron 200 mil de un freelance"\n• "Crea una tarea: Revisar PRs"`,
 };
 
 export default function AssistantWidget() {
@@ -86,13 +87,36 @@ export default function AssistantWidget() {
         setMessages((prev) => [...prev, errorMessage]);
       }
     } else {
-      const noIntentMessage: ChatMessage = {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        content:
-          'No entendí. Prueba algo como: "Crea una tarea: Revisar PRs"',
-      };
-      setMessages((prev) => [...prev, noIntentMessage]);
+      try {
+        const now = new Date();
+        const res = await sendAssistantChat({
+          message: text,
+          year: now.getFullYear(),
+          month: now.getMonth() + 1,
+        });
+        const extra = res.applied
+          ? "\n\nQuedó registrado en tu contabilidad."
+          : "";
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `assistant-${Date.now()}`,
+            role: "assistant",
+            content: (res.reply || "Listo.") + extra,
+          },
+        ]);
+      } catch (err) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `assistant-${Date.now()}`,
+            role: "assistant",
+            content: `No pude procesarlo: ${
+              err instanceof Error ? err.message : "Error desconocido"
+            }`,
+          },
+        ]);
+      }
     }
 
     setLoading(false);
@@ -246,7 +270,7 @@ export default function AssistantWidget() {
                 <TextField
                   size="small"
                   fullWidth
-                  placeholder="Crea una tarea: …"
+                  placeholder="Hoy gasté 1000 en una paleta…"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   disabled={loading}

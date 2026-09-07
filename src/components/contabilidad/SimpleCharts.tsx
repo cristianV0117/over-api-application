@@ -169,4 +169,74 @@ export function LinePath({
   );
 }
 
+const SLICE = ["#f43f5e", "#fb7185", "#a78bfa", "#38bdf8", "#22c55e", "#f59e0b", "#e879f9"];
+
+export function Donut({
+  rows,
+}: {
+  rows: { label: string; value: number }[];
+}) {
+  const total = rows.reduce((s, r) => s + r.value, 0);
+  if (!total) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        Sin datos
+      </Typography>
+    );
+  }
+  const r = 56;
+  const c = 70;
+  const circ = 2 * Math.PI * r;
+  let acc = 0;
+  return (
+    <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center">
+      <svg width={140} height={140} role="img">
+        {rows.map((row, i) => {
+          const frac = row.value / total;
+          const dash = frac * circ;
+          const el = (
+            <circle
+              key={row.label}
+              cx={c}
+              cy={c}
+              r={r}
+              fill="none"
+              stroke={SLICE[i % SLICE.length]}
+              strokeWidth={16}
+              strokeDasharray={`${dash} ${circ - dash}`}
+              strokeDashoffset={-acc * circ}
+              transform={`rotate(-90 ${c} ${c})`}
+            >
+              <title>
+                {row.label}: {formatCop(row.value)}
+              </title>
+            </circle>
+          );
+          acc += frac;
+          return el;
+        })}
+      </svg>
+      <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}>
+        {rows.map((row, i) => (
+          <Typography key={row.label} variant="caption" noWrap>
+            <Box
+              component="span"
+              sx={{
+                display: "inline-block",
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                bgcolor: SLICE[i % SLICE.length],
+                mr: 0.75,
+              }}
+            />
+            {row.label} · {formatCop(row.value)} (
+            {Math.round((row.value / total) * 100)}%)
+          </Typography>
+        ))}
+      </Stack>
+    </Stack>
+  );
+}
+
 export const CHART_COLORS = { INCOME, EXPENSE, CREDIT };

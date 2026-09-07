@@ -19,7 +19,6 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
-import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import { useUser } from "@/context/userContext";
 import { avatarUrl } from "@/lib/api/profile";
 
@@ -32,11 +31,6 @@ const allItems = [
     href: "/dashboard/contabilidad",
     label: "Contabilidad",
     Icon: AccountBalanceWalletOutlinedIcon,
-  },
-  {
-    href: "/dashboard/credito",
-    label: "Crédito",
-    Icon: CreditCardOutlinedIcon,
   },
   { href: "/dashboard/cron", label: "Cron", Icon: ScheduleOutlinedIcon, adminOnly: true },
   { href: "/dashboard/profile", label: "Perfil", Icon: PersonOutlineIcon },
