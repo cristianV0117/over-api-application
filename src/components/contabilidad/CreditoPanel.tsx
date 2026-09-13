@@ -20,6 +20,8 @@ import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import FinanceDebtsPanel from "@/components/contabilidad/FinanceDebtsPanel";
+import { usePreferences } from "@/context/preferencesContext";
+import { monthLabel } from "@/i18n";
 import { CreditForecastChart } from "@/components/contabilidad/InteractiveCharts";
 import {
   formatCop,
@@ -29,28 +31,19 @@ import {
   type FinanceDebt,
 } from "@/lib/api/contabilidad";
 
-function formatPayoff(isoMonth: string | null, neverPays: boolean) {
-  if (neverPays || !isoMonth)
-    return "Con esta cuota no se cancela (interés ≥ cuota)";
+function formatPayoff(
+  isoMonth: string | null,
+  neverPays: boolean,
+  neverLabel: string,
+  monthName: (n: number) => string
+) {
+  if (neverPays || !isoMonth) return neverLabel;
   const [y, m] = isoMonth.split("-");
-  const months = [
-    "enero",
-    "febrero",
-    "marzo",
-    "abril",
-    "mayo",
-    "junio",
-    "julio",
-    "agosto",
-    "septiembre",
-    "octubre",
-    "noviembre",
-    "diciembre",
-  ];
-  return `${months[Number(m) - 1] ?? m} ${y}`;
+  return `${monthName(Number(m))} ${y}`;
 }
 
 export default function CreditoPanel() {
+  const { t, locale } = usePreferences();
   const [debts, setDebts] = useState<FinanceDebt[]>([]);
   const [forecast, setForecast] = useState<DebtForecast | null>(null);
   const [debtId, setDebtId] = useState("all");
@@ -74,20 +67,20 @@ export default function CreditoPanel() {
   useEffect(() => {
     loadDebts()
       .catch((e) =>
-        toast.error(e instanceof Error ? e.message : "Error al cargar créditos")
+        toast.error(e instanceof Error ? e.message : t("credit.loadError"))
       )
       .finally(() => setLoading(false));
-  }, [loadDebts]);
+  }, [loadDebts, t]);
 
   useEffect(() => {
     if (loading) return;
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       loadForecast().catch((e) =>
-        toast.error(e instanceof Error ? e.message : "Error al proyectar")
+        toast.error(e instanceof Error ? e.message : t("credit.forecastError"))
       );
     }, 250);
-    return () => clearTimeout(t);
-  }, [loadForecast, loading]);
+    return () => clearTimeout(timer);
+  }, [loadForecast, loading, t]);
 
   const selected = useMemo(() => {
     if (!forecast?.items.length) return null;
@@ -124,9 +117,7 @@ export default function CreditoPanel() {
   return (
     <Box sx={{ width: "100%", minWidth: 0 }}>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Registrá tus créditos y mirá cuánto falta, qué pasa si seguís pagando
-        la cuota actual y en qué fecha podrías cancelarlos. Orientación, no
-        asesoría formal.
+        {t("credit.intro")}
       </Typography>
 
       <Box sx={{ mb: 3 }}>
@@ -140,13 +131,13 @@ export default function CreditoPanel() {
           alignItems={{ sm: "center" }}
         >
           <FormControl size="small" sx={{ minWidth: 220 }}>
-            <InputLabel>Estudiar</InputLabel>
+            <InputLabel>{t("credit.study")}</InputLabel>
             <Select
-              label="Estudiar"
+              label={t("credit.study")}
               value={debtId}
               onChange={(e) => setDebtId(e.target.value)}
             >
-              <MenuItem value="all">Todos los créditos activos</MenuItem>
+              <MenuItem value="all">{t("credit.allActive")}</MenuItem>
               {debts
                 .filter((d) => d.isActive)
                 .map((d) => (
@@ -158,10 +149,10 @@ export default function CreditoPanel() {
           </FormControl>
           <TextField
             size="small"
-            label="Pago extra mensual (COP)"
+            label={t("credit.extra")}
             value={extra}
             onChange={(e) => setExtra(e.target.value)}
-            helperText="Sumalo a la cuota para ver si adelantás la fecha"
+            helperText={t("credit.extraHelp")}
             sx={{ minWidth: 220 }}
           />
         </Stack>
@@ -175,31 +166,38 @@ export default function CreditoPanel() {
             sx={{ mb: 3 }}
           >
             <Stat
-              title="Saldo pendiente"
+              title={t("credit.pending")}
               value={formatCop(forecast.totalBalance)}
             />
             <Stat
-              title="Cuotas del mes"
+              title={t("credit.monthInstallments")}
               value={formatCop(forecast.totalInstallment)}
             />
             <Stat
               title={
                 selected
-                  ? "Fecha estimada de pago"
-                  : "Primer crédito en terminar"
+                  ? t("credit.payoffDate")
+                  : t("credit.firstToEnd")
               }
               value={
                 selected
-                  ? formatPayoff(selected.payoffDate, selected.neverPays)
+                  ? formatPayoff(
+                      selected.payoffDate,
+                      selected.neverPays,
+                      t("credit.neverPays"),
+                      (n) => monthLabel(n, locale)
+                    )
                   : formatPayoff(
                       [...forecast.items].sort((a, b) => a.months - b.months)[0]
                         ?.payoffDate ?? null,
-                      forecast.items.every((i) => i.neverPays)
+                      forecast.items.every((i) => i.neverPays),
+                      t("credit.neverPays"),
+                      (n) => monthLabel(n, locale)
                     )
               }
             />
             <Stat
-              title="Intereses por pagar"
+              title={t("credit.interestLeft")}
               value={formatCop(
                 forecast.items.reduce((s, i) => s + i.totalInterest, 0)
               )}
@@ -221,11 +219,10 @@ export default function CreditoPanel() {
 
           <Paper sx={{ p: 2, mb: 3 }}>
             <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-              Saldo proyectado
+              {t("credit.projected")}
             </Typography>
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-              Zoom y pan para recorrer los meses. Si miras un solo crédito, también
-              ves interés vs capital de cada cuota.
+              {t("credit.projectedHint")}
             </Typography>
             <CreditForecastChart
               labels={linePoints.map((p) => p.label)}
@@ -246,8 +243,8 @@ export default function CreditoPanel() {
           {selected ? (
             <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                Cómo iría mes a mes (cuota actual
-                {extraNum > 0 ? " + extra" : ""})
+                {t("credit.scheduleTitle")}
+                {extraNum > 0 ? t("credit.plusExtra") : ""})
               </Typography>
               <TableContainer sx={{ maxHeight: 420 }}>
                 <Table size="small" stickyHeader>
@@ -296,7 +293,7 @@ export default function CreditoPanel() {
           ) : (
             <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                Resumen por crédito
+                {t("credit.summary")}
               </Typography>
               <TableContainer>
                 <Table size="small">
@@ -319,7 +316,12 @@ export default function CreditoPanel() {
                           {formatCop(item.installmentAmount)}
                         </TableCell>
                         <TableCell>
-                          {formatPayoff(item.payoffDate, item.neverPays)}
+                          {formatPayoff(
+                            item.payoffDate,
+                            item.neverPays,
+                            t("credit.neverPays"),
+                            (n) => monthLabel(n, locale)
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -332,7 +334,7 @@ export default function CreditoPanel() {
       ) : (
         !loading && (
           <Typography variant="body2" color="text.secondary">
-            Agregá un crédito arriba para ver la proyección.
+            {t("credit.empty")}
           </Typography>
         )
       )}

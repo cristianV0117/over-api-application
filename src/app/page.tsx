@@ -9,6 +9,9 @@ import CircularProgress from "@mui/material/CircularProgress";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { useRedirectIfAuthed } from "@/hooks/useRedirectIfAuthed";
+import { usePreferences } from "@/context/preferencesContext";
+import PreferenceToggles from "@/components/prefs/PreferenceToggles";
+import { useTheme } from "@mui/material/styles";
 
 /** Tema claro solo para la tarjeta de login sobre el panel morado. */
 const loginFormTheme = createTheme({
@@ -55,6 +58,10 @@ const loginFormTheme = createTheme({
 
 export default function Home() {
   const ready = useRedirectIfAuthed();
+  const { t } = usePreferences();
+  const theme = useTheme();
+  const dark = theme.palette.mode === "dark";
+  const leftBg = dark ? "#000000" : theme.palette.background.default;
 
   if (!ready) {
     return (
@@ -64,7 +71,7 @@ export default function Home() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          bgcolor: "#0a0c10",
+          bgcolor: "background.default",
         }}
       >
         <CircularProgress color="primary" sx={{ color: "#7c3aed" }} />
@@ -82,7 +89,7 @@ export default function Home() {
         width: "100%",
         maxWidth: "100vw",
         position: "relative",
-        bgcolor: "#000000",
+        bgcolor: leftBg,
       }}
     >
       {/* Clip SVG: borde curvo entre paneles (solo desktop) */}
@@ -106,8 +113,8 @@ export default function Home() {
           flex: { md: "0 0 50%" },
           width: { md: "50%" },
           minWidth: 0,
-          bgcolor: "#000000",
-          color: "rgba(255,255,255,0.92)",
+          bgcolor: leftBg,
+          color: dark ? "rgba(255,255,255,0.92)" : "text.primary",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -156,8 +163,8 @@ export default function Home() {
             </Typography>
           </Stack>
           <AppMascot maxWidth={{ xs: 200, sm: 248, md: 280 }} />
-          <Typography variant="body1" sx={{ color: "rgba(255, 255, 255, 0.72)", lineHeight: 1.65, px: 1 }}>
-            Tareas y equipo en un solo lugar. Te damos la bienvenida.
+          <Typography variant="body1" sx={{ color: dark ? "rgba(255, 255, 255, 0.72)" : "text.secondary", lineHeight: 1.65, px: 1 }}>
+            {t("login.welcome")}
           </Typography>
         </Stack>
       </Box>
@@ -218,6 +225,9 @@ export default function Home() {
           }}
         />
 
+        <Box sx={{ position: "absolute", top: 16, right: 16, zIndex: 2, color: "#fff" }}>
+          <PreferenceToggles contrast="onBrand" />
+        </Box>
         <ThemeProvider theme={loginFormTheme}>
           <Box
             sx={{

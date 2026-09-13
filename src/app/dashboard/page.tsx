@@ -3,6 +3,8 @@
 import NextLink from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useUser } from "@/context/userContext";
+import { usePreferences } from "@/context/preferencesContext";
+import { statusLabel } from "@/i18n";
 import { getTasks, getTaskStatuses } from "@/lib/api/tasks";
 import { buildTaskDashboardStats, DUE_SOON_HOURS } from "@/lib/taskStats";
 import { toast } from "react-toastify";
@@ -23,7 +25,6 @@ import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurned
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
 import type { Task, TaskStatus } from "@/lib/api/tasks";
-import { statusLabelEs } from "@/lib/taskStatusLabels";
 
 function StatCard({
   title,
@@ -78,6 +79,7 @@ function StatCard({
 
 export default function DashboardPage() {
   const user = useUser();
+  const { t, locale } = usePreferences();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [statuses, setStatuses] = useState<TaskStatus[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,7 +94,7 @@ export default function DashboardPage() {
           setStatuses(s);
         }
       } catch {
-        if (!cancelled) toast.error("No se pudieron cargar las estadísticas de tareas");
+        if (!cancelled) toast.error(t("home.statsError"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -115,40 +117,40 @@ export default function DashboardPage() {
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
-        Hola, {user?.name?.split(" ")[0] ?? "equipo"}
+        {t("home.hello", { name: user?.name?.split(" ")[0] ?? t("home.team") })}
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 640 }}>
-        Resumen de tus tareas y accesos rápidos.
+        {t("home.intro")}
         <Box component="span" sx={{ display: "block", mt: 0.5, opacity: 0.9 }}>
           {user?.email}
         </Box>
       </Typography>
 
       <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
-        Estadísticas de tareas
+        {t("home.taskStats")}
       </Typography>
 
       <Stack direction="row" flexWrap="wrap" useFlexGap spacing={2} sx={{ mb: 3 }}>
         <StatCard
-          title="Total"
+          title={t("home.total")}
           value={stats.total}
-          subtitle="Tareas registradas"
+          subtitle={t("home.totalSub")}
           icon={<AssignmentTurnedInOutlinedIcon />}
           color="primary.main"
           loading={loading}
         />
         <StatCard
-          title="Por vencer"
+          title={t("home.dueSoon")}
           value={stats.dueSoon}
-          subtitle={`En menos de ${DUE_SOON_HOURS} horas`}
+          subtitle={t("home.dueSoonSub", { hours: DUE_SOON_HOURS })}
           icon={<EventOutlinedIcon />}
           color="warning.main"
           loading={loading}
         />
         <StatCard
-          title="Vencidas"
+          title={t("home.overdue")}
           value={stats.overdue}
-          subtitle="Pendientes con fecha pasada"
+          subtitle={t("home.overdueSub")}
           icon={<WarningAmberOutlinedIcon />}
           color="error.main"
           loading={loading}
@@ -159,7 +161,7 @@ export default function DashboardPage() {
         <Card variant="outlined" sx={{ flex: 1, minWidth: 0, borderColor: "divider" }}>
           <CardContent>
             <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-              Por estado
+              {t("home.byStatus")}
             </Typography>
             {loading ? (
               <Stack spacing={1}>
@@ -177,7 +179,7 @@ export default function DashboardPage() {
                   <Box key={s.statusId}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
                       <Typography variant="body2" fontWeight={600}>
-                        {statusLabelEs(s.name)}
+                        {statusLabel(s.name, locale)}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         {s.count} ({stats.total ? Math.round((s.count / stats.total) * 100) : 0}%)
@@ -206,7 +208,7 @@ export default function DashboardPage() {
         <Card variant="outlined" sx={{ flex: 1, minWidth: 0, borderColor: "divider", maxWidth: { md: 420 } }}>
           <CardContent>
             <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-              Por prioridad
+              {t("home.byPriority")}
             </Typography>
             {loading ? (
               <Skeleton height={120} />
@@ -228,7 +230,7 @@ export default function DashboardPage() {
                       {p.count}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {p.label}
+                      {t(`priority.${p.value}` as "priority.low" | "priority.normal" | "priority.high")}
                     </Typography>
                   </Box>
                 ))}
@@ -239,22 +241,22 @@ export default function DashboardPage() {
       </Stack>
 
       <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
-        Accesos rápidos
+        {t("home.quick")}
       </Typography>
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} useFlexGap flexWrap="wrap">
         <Card variant="outlined" sx={{ flex: "1 1 260px", maxWidth: 360 }}>
           <CardContent>
             <PeopleOutlineIcon color="primary" sx={{ mb: 1 }} />
             <Typography variant="h6" fontWeight={700}>
-              Usuarios
+              {t("home.usersTitle")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Roles, permisos y alta de miembros.
+              {t("home.usersDesc")}
             </Typography>
           </CardContent>
           <CardActions sx={{ px: 2, pb: 2 }}>
             <Button component={NextLink} href="/dashboard/users" variant="contained" size="small">
-              Ir a usuarios
+              {t("home.usersCta")}
             </Button>
           </CardActions>
         </Card>
@@ -262,15 +264,15 @@ export default function DashboardPage() {
           <CardContent>
             <ViewKanbanOutlinedIcon color="primary" sx={{ mb: 1 }} />
             <Typography variant="h6" fontWeight={700}>
-              Tareas
+              {t("home.tasksTitle")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Tablero Kanban y prioridades.
+              {t("home.tasksDesc")}
             </Typography>
           </CardContent>
           <CardActions sx={{ px: 2, pb: 2 }}>
             <Button component={NextLink} href="/dashboard/tasks" variant="contained" size="small">
-              Ir a tareas
+              {t("home.tasksCta")}
             </Button>
           </CardActions>
         </Card>
@@ -278,10 +280,10 @@ export default function DashboardPage() {
           <CardContent>
             <AccountBalanceWalletOutlinedIcon color="primary" sx={{ mb: 1 }} />
             <Typography variant="h6" fontWeight={700}>
-              Contabilidad
+              {t("home.financeTitle")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Ingresos del mes, categorías y gastos en COP.
+              {t("home.financeDesc")}
             </Typography>
           </CardContent>
           <CardActions sx={{ px: 2, pb: 2 }}>
@@ -291,7 +293,7 @@ export default function DashboardPage() {
               variant="contained"
               size="small"
             >
-              Ir a contabilidad
+              {t("home.financeCta")}
             </Button>
           </CardActions>
         </Card>
@@ -299,15 +301,15 @@ export default function DashboardPage() {
           <CardContent>
             <PersonOutlineIcon color="primary" sx={{ mb: 1 }} />
             <Typography variant="h6" fontWeight={700}>
-              Perfil
+              {t("home.profileTitle")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Nombre y foto de perfil.
+              {t("home.profileDesc")}
             </Typography>
           </CardContent>
           <CardActions sx={{ px: 2, pb: 2 }}>
             <Button component={NextLink} href="/dashboard/profile" variant="outlined" size="small">
-              Editar perfil
+              {t("home.profileCta")}
             </Button>
           </CardActions>
         </Card>

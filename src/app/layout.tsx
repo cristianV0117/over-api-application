@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
-import { ToastContainer, Zoom } from "react-toastify";
 import AppProviders from "@/components/providers/AppProviders";
 import MaintenanceScreen from "@/components/maintenance/MaintenanceScreen";
 import { isMaintenanceMode } from "@/lib/isMaintenanceMode";
@@ -54,16 +53,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable}`}
         suppressHydrationWarning
       >
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("overapp.theme");var l=localStorage.getItem("overapp.locale");if(t==="light"||t==="dark"){document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;}if(l==="en"||l==="es"){document.documentElement.lang=l;}}catch(e){}})();`,
+          }}
+        />
         <AppProviders>
           {maintenance ? <MaintenanceScreen /> : children}
-          {!maintenance && (
-            <ToastContainer
-              position="top-right"
-              autoClose={4000}
-              transition={Zoom}
-              theme="dark"
-            />
-          )}
         </AppProviders>
       </body>
     </html>

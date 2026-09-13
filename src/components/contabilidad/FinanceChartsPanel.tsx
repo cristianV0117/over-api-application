@@ -19,25 +19,13 @@ import {
   IncomeExpenseCombo,
   SurplusDeficitBars,
 } from "@/components/contabilidad/InteractiveCharts";
-
-const MONTHS = [
-  "Ene",
-  "Feb",
-  "Mar",
-  "Abr",
-  "May",
-  "Jun",
-  "Jul",
-  "Ago",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dic",
-];
+import { usePreferences } from "@/context/preferencesContext";
+import { monthLabel } from "@/i18n";
 
 type Props = { year: number; month: number };
 
 export default function FinanceChartsPanel({ year, month }: Props) {
+  const { t, locale } = usePreferences();
   const [data, setData] = useState<FinanceOverview | null>(null);
 
   useEffect(() => {
@@ -45,9 +33,9 @@ export default function FinanceChartsPanel({ year, month }: Props) {
     getFinanceOverview({ year, month, months: 12 })
       .then(setData)
       .catch((e) =>
-        toast.error(e instanceof Error ? e.message : "Error en gráficas")
+        toast.error(e instanceof Error ? e.message : t("finance.chartsError"))
       );
-  }, [year, month]);
+  }, [year, month, t]);
 
   if (!data) {
     return (
@@ -57,19 +45,16 @@ export default function FinanceChartsPanel({ year, month }: Props) {
     );
   }
 
-  const labels = data.months.map(
-    (m) => `${MONTHS[m.month - 1]} ${String(m.year).slice(2)}`
-  );
+  const labels = data.months.map((m) => `${monthLabel(m.month, locale, true)} ${String(m.year).slice(2)}`);
 
   return (
     <Stack spacing={2} sx={{ width: "100%" }}>
       <Typography variant="caption" color="text.secondary">
-        Pasa el cursor para ver montos en COP. En la leyenda puedes ocultar
-        series; usa zoom, pan y descarga desde la barra de la gráfica.
+        {t("finance.chartsHint")}
       </Typography>
       <Paper sx={{ p: 2 }}>
         <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-          Ingresos vs gastos (12 meses)
+          {t("finance.incomeVsExpense")}
         </Typography>
         <IncomeExpenseCombo
           labels={labels}
@@ -81,7 +66,7 @@ export default function FinanceChartsPanel({ year, month }: Props) {
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
         <Paper sx={{ p: 2, flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-            Gastos de este mes
+            {t("finance.expensesThisMonth")}
           </Typography>
           <CategoryBars
             color={CHART_COLORS.EXPENSE}
@@ -93,7 +78,7 @@ export default function FinanceChartsPanel({ year, month }: Props) {
         </Paper>
         <Paper sx={{ p: 2, flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-            Ingresos de este mes
+            {t("finance.incomesThisMonth")}
           </Typography>
           <CategoryBars
             color={CHART_COLORS.INCOME}
@@ -107,7 +92,7 @@ export default function FinanceChartsPanel({ year, month }: Props) {
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
         <Paper sx={{ p: 2, flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-            Disponible mes a mes
+            {t("finance.availableMonthly")}
           </Typography>
           <CashflowArea
             color={CHART_COLORS.CASH}
@@ -117,7 +102,7 @@ export default function FinanceChartsPanel({ year, month }: Props) {
         </Paper>
         <Paper sx={{ p: 2, flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-            Mix de gastos
+            {t("finance.expenseMix")}
           </Typography>
           <ExpenseDonut
             rows={data.expenseBreakdown.map((b) => ({
@@ -129,7 +114,7 @@ export default function FinanceChartsPanel({ year, month }: Props) {
       </Stack>
       <Paper sx={{ p: 2 }}>
         <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-          Ahorro / déficit (ingresos − gastos)
+          {t("finance.surplusDeficit")}
         </Typography>
         <SurplusDeficitBars
           labels={labels}

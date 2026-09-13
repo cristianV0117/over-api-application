@@ -7,9 +7,12 @@ import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import { useRedirectIfAuthed } from "@/hooks/useRedirectIfAuthed";
+import { usePreferences } from "@/context/preferencesContext";
+import PreferenceToggles from "@/components/prefs/PreferenceToggles";
 
 export default function RegisterPage() {
   const ready = useRedirectIfAuthed();
+  const { t } = usePreferences();
 
   if (!ready) {
     return (
@@ -67,8 +70,11 @@ export default function RegisterPage() {
             OVER APP
           </Typography>
         </Stack>
+        <Box sx={{ position: "absolute", top: 16, right: 16 }}>
+          <PreferenceToggles />
+        </Box>
         <Typography variant="subtitle1" color="text.secondary" sx={{ mt: 1, maxWidth: 420, mx: "auto" }}>
-          Crea tu cuenta y empieza a organizar tareas con tu equipo.
+          {t("register.pageIntro")}
         </Typography>
       </Box>
       <Box sx={{ position: "relative", zIndex: 1, width: "100%", display: "flex", justifyContent: "center" }}>

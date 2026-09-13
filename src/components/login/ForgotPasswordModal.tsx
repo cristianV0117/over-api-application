@@ -10,6 +10,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
 import CloseIcon from "@mui/icons-material/Close";
+import { usePreferences } from "@/context/preferencesContext";
 
 interface ForgotPasswordModalProps {
   show: boolean;
@@ -20,6 +21,7 @@ export default function ForgotPasswordModal({
   show,
   onClose,
 }: ForgotPasswordModalProps) {
+  const { t } = usePreferences();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -41,11 +43,11 @@ export default function ForgotPasswordModal({
 
       if (!res.ok) throw new Error("Error al enviar el correo");
 
-      toast.info("Revisa tu bandeja de correo");
+      toast.info(t("forgot.sent"));
       setEmail("");
       onClose();
     } catch (err) {
-      toast.error("No se pudo enviar el enlace");
+      toast.error(t("forgot.fail"));
       console.error(err);
     } finally {
       setLoading(false);
@@ -55,7 +57,7 @@ export default function ForgotPasswordModal({
   return (
     <Dialog open={show} onClose={onClose} maxWidth="sm" fullWidth scroll="body">
       <DialogTitle sx={{ pr: 6 }}>
-        Recuperar contraseña
+        {t("forgot.title")}
         <IconButton
           aria-label="cerrar"
           onClick={onClose}
@@ -67,7 +69,7 @@ export default function ForgotPasswordModal({
       <form onSubmit={handleSubmit}>
         <DialogContent dividers>
           <TextField
-            label="Correo electrónico"
+            label={t("common.email")}
             type="email"
             id="forgotEmail"
             value={email}
@@ -80,10 +82,10 @@ export default function ForgotPasswordModal({
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={onClose} color="inherit">
-            Cancelar
+            {t("common.cancel")}
           </Button>
           <Button type="submit" variant="contained" color="primary" disabled={loading}>
-            {loading ? "Enviando…" : "Enviar enlace"}
+            {loading ? t("forgot.sending") : t("forgot.send")}
           </Button>
         </DialogActions>
       </form>

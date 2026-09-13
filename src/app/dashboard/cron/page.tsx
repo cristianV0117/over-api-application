@@ -30,6 +30,7 @@ import {
   type CronScheduleType,
 } from "@/lib/api/cron";
 import { useUser } from "@/context/userContext";
+import { usePreferences } from "@/context/preferencesContext";
 
 const INTERVALS = [
   { v: 1, label: "Cada 1 minuto" },
@@ -41,8 +42,8 @@ const INTERVALS = [
   { v: 1440, label: "Cada 24 horas" },
 ];
 
-function formatWhen(iso: string) {
-  return new Date(iso).toLocaleString("es-CO", {
+function formatWhen(iso: string, locale: string) {
+  return new Date(iso).toLocaleString(locale === "en" ? "en-US" : "es-CO", {
     dateStyle: "short",
     timeStyle: "medium",
   });
@@ -51,6 +52,7 @@ function formatWhen(iso: string) {
 export default function CronPage() {
   const router = useRouter();
   const user = useUser();
+  const { t, locale } = usePreferences();
   const [config, setConfig] = useState<CronConfig | null>(null);
   const [scheduleType, setScheduleType] = useState<CronScheduleType>("interval");
   const [everyMinutes, setEveryMinutes] = useState(5);
@@ -169,7 +171,7 @@ export default function CronPage() {
   return (
     <Box sx={{ maxWidth: 860, mx: "auto", width: "100%" }}>
       <Typography variant="h5" fontWeight={800} sx={{ mb: 1 }}>
-        Cron
+        {t("cron.title")}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         Check-in programado vía POST a SesameTime. Credenciales en variables de
@@ -290,7 +292,7 @@ export default function CronPage() {
           </Stack>
           {config?.lastRunAt ? (
             <Typography variant="caption" color="text.secondary">
-              Última corrida: {formatWhen(config.lastRunAt)} · TZ{" "}
+              Última corrida: {formatWhen(config.lastRunAt, locale)} · TZ{" "}
               {config.timezone}
             </Typography>
           ) : (
@@ -334,7 +336,7 @@ export default function CronPage() {
                   wordBreak: "break-word",
                 }}
               >
-                {`[${formatWhen(l.createdAt)}] (${l.source === "manual" ? "manual" : "cron"})\n${l.message}`}
+                {`[${formatWhen(l.createdAt, locale)}] (${l.source === "manual" ? "manual" : "cron"})\n${l.message}`}
               </Box>
             ))}
           </Stack>

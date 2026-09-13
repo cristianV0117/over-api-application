@@ -15,7 +15,8 @@ import {
 } from "@/lib/api/tasks";
 import CreateTaskModal from "@/components/tasks/CreateTaskModal";
 import { getDueUrgency } from "@/lib/taskStats";
-import { statusLabelEs } from "@/lib/taskStatusLabels";
+import { usePreferences } from "@/context/preferencesContext";
+import { statusLabel } from "@/i18n";
 import { toast } from "react-toastify";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -66,6 +67,7 @@ function orderedStatuses(statuses: TaskStatus[]): TaskStatus[] {
 }
 
 export default function TasksPage() {
+  const { t, locale } = usePreferences();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [statuses, setStatuses] = useState<TaskStatus[]>([]);
   const [loading, setLoading] = useState(true);
@@ -199,7 +201,7 @@ export default function TasksPage() {
       >
         <Box>
           <Typography variant="h4" gutterBottom>
-            Tareas
+            {t("tasks.title")}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Organiza el trabajo con columnas por estado. Arrastra mentalmente; aquí cambias el estado con el selector.
@@ -212,7 +214,7 @@ export default function TasksPage() {
           onClick={() => setShowModal(true)}
           sx={{ alignSelf: { sm: "center" } }}
         >
-          Nueva tarea
+          {t("tasks.new")}
         </Button>
       </Stack>
 
@@ -287,7 +289,7 @@ export default function TasksPage() {
                     justifyContent: "space-between",
                   }}
                 >
-                        {statusLabelEs(status.name)}
+                        {statusLabel(status.name, locale)}
                   <Chip
                     size="small"
                     label={columnTasks.length}
@@ -486,7 +488,7 @@ export default function TasksPage() {
                                   >
                                     {statuses.map((s) => (
                                       <MenuItem key={s.id} value={s.id} dense>
-                                        {statusLabelEs(s.name)}
+                                        {statusLabel(s.name, locale)}
                                       </MenuItem>
                                     ))}
                                   </Select>

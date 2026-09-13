@@ -55,6 +55,8 @@ import FinanceAssistantPanel from "@/components/contabilidad/FinanceAssistantPan
 import PayLinksPanel from "@/components/contabilidad/PayLinksPanel";
 import FinanceChartsPanel from "@/components/contabilidad/FinanceChartsPanel";
 import CreditoPanel from "@/components/contabilidad/CreditoPanel";
+import { usePreferences } from "@/context/preferencesContext";
+import { monthLabel } from "@/i18n";
 import {
   createExpenseCategory,
   createFinanceExpense,
@@ -109,20 +111,7 @@ const TABLE_CONTAINER_SCROLL_SX = {
 const TABLE_RECURRING_MIN_WIDTH = 720;
 const TABLE_MOVEMENTS_MIN_WIDTH = 640;
 
-const MONTHS = [
-  { v: 1, label: "Enero" },
-  { v: 2, label: "Febrero" },
-  { v: 3, label: "Marzo" },
-  { v: 4, label: "Abril" },
-  { v: 5, label: "Mayo" },
-  { v: 6, label: "Junio" },
-  { v: 7, label: "Julio" },
-  { v: 8, label: "Agosto" },
-  { v: 9, label: "Septiembre" },
-  { v: 10, label: "Octubre" },
-  { v: 11, label: "Noviembre" },
-  { v: 12, label: "Diciembre" },
-];
+const MONTH_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 
 function shiftMonth(year: number, month: number, delta: number) {
   const d = new Date(year, month - 1 + delta, 1);
@@ -151,6 +140,7 @@ function recurringIncomeForMonth(
 }
 
 export default function ContabilidadPage() {
+  const { t, locale } = usePreferences();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -257,7 +247,7 @@ export default function ContabilidadPage() {
         loadRecurringIncomeRules(),
       ]);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Error al cargar datos");
+        toast.error(e instanceof Error ? e.message : t("finance.loadError"));
     } finally {
       setLoading(false);
     }
@@ -283,7 +273,7 @@ export default function ContabilidadPage() {
         toYear: year,
         toMonth: month,
       });
-      toast.success("Descarga de movimientos lista");
+      toast.success(t("finance.exportOk"));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo exportar");
     } finally {
@@ -774,7 +764,7 @@ export default function ContabilidadPage() {
     const list = summary?.expenses ?? [];
     const map = new Map<string, FinanceExpense[]>();
     for (const row of list) {
-      const key = row.categoryName?.trim() || "Sin categoría";
+      const key = row.categoryName?.trim() || t("common.uncategorized");
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(row);
     }
@@ -785,18 +775,18 @@ export default function ContabilidadPage() {
       );
     }
     const keys = [...map.keys()].sort((a, b) => {
-      if (a === "Sin categoría") return 1;
-      if (b === "Sin categoría") return -1;
-      return a.localeCompare(b, "es", { sensitivity: "base" });
+      if (a === t("common.uncategorized")) return 1;
+      if (b === t("common.uncategorized")) return -1;
+      return a.localeCompare(b, locale === "en" ? "en" : "es", { sensitivity: "base" });
     });
     return { map, keys };
-  }, [summary]);
+  }, [summary, t, locale]);
 
   const incomesByCategory = useMemo(() => {
     const list = summary?.incomes ?? [];
     const map = new Map<string, FinanceIncomeLine[]>();
     for (const row of list) {
-      const key = row.categoryName?.trim() || "Sin categoría";
+      const key = row.categoryName?.trim() || t("common.uncategorized");
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(row);
     }
@@ -807,12 +797,12 @@ export default function ContabilidadPage() {
       );
     }
     const keys = [...map.keys()].sort((a, b) => {
-      if (a === "Sin categoría") return 1;
-      if (b === "Sin categoría") return -1;
-      return a.localeCompare(b, "es", { sensitivity: "base" });
+      if (a === t("common.uncategorized")) return 1;
+      if (b === t("common.uncategorized")) return -1;
+      return a.localeCompare(b, locale === "en" ? "en" : "es", { sensitivity: "base" });
     });
     return { map, keys };
-  }, [summary]);
+  }, [summary, t, locale]);
 
   return (
     <Box
@@ -834,7 +824,7 @@ export default function ContabilidadPage() {
         sx={{ mb: 3, width: "100%", minWidth: 0 }}
       >
         <Typography variant="h5" fontWeight={800} sx={{ minWidth: 0 }}>
-          Contabilidad personal
+          {t("finance.title")}
         </Typography>
         <Stack
           direction="row"
@@ -845,7 +835,7 @@ export default function ContabilidadPage() {
           sx={{ minWidth: 0, maxWidth: "100%" }}
         >
           <IconButton
-            aria-label="Mes anterior"
+            aria-label={t("common.prevMonth")}
             onClick={() => {
               const { year: y, month: m } = shiftMonth(year, month, -1);
               setYear(y);
@@ -855,22 +845,22 @@ export default function ContabilidadPage() {
             <ChevronLeftIcon />
           </IconButton>
           <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>Mes</InputLabel>
+            <InputLabel>{t("common.month")}</InputLabel>
             <Select
-              label="Mes"
+              label={t("common.month")}
               value={month}
               onChange={(e) => setMonth(Number(e.target.value))}
             >
-              {MONTHS.map((x) => (
-                <MenuItem key={x.v} value={x.v}>
-                  {x.label}
+              {MONTH_NUMBERS.map((v) => (
+                <MenuItem key={v} value={v}>
+                  {monthLabel(v, locale)}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
           <TextField
             size="small"
-            label="Año"
+            label={t("common.year")}
             type="number"
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
@@ -878,7 +868,7 @@ export default function ContabilidadPage() {
             inputProps={{ min: 2000, max: 2100 }}
           />
           <IconButton
-            aria-label="Mes siguiente"
+            aria-label={t("common.nextMonth")}
             onClick={() => {
               const { year: y, month: m } = shiftMonth(year, month, 1);
               setYear(y);
@@ -893,7 +883,7 @@ export default function ContabilidadPage() {
             startIcon={<BarChartOutlinedIcon />}
             onClick={() => setChartsOpen(true)}
           >
-            Gráficas
+            {t("finance.charts")}
           </Button>
           <Button
             size="small"
@@ -902,7 +892,7 @@ export default function ContabilidadPage() {
             onClick={exportMovements}
             disabled={exporting}
           >
-            Exportar
+            {t("finance.export")}
           </Button>
         </Stack>
       </Stack>
@@ -919,32 +909,32 @@ export default function ContabilidadPage() {
         <Tabs
           value={pageTab}
           onChange={(_, v) => setPageTab(v)}
-          aria-label="Contabilidad, asistente, pagos y crédito"
+          aria-label={t("finance.tabAria")}
           variant="scrollable"
           allowScrollButtonsMobile
         >
           <Tab
             icon={<AccountBalanceWalletOutlinedIcon />}
             iconPosition="start"
-            label="Contabilidad personal"
+            label={t("finance.tabPersonal")}
             id="page-tab-contabilidad"
           />
           <Tab
             icon={<AutoAwesomeOutlinedIcon />}
             iconPosition="start"
-            label="Asistente IA"
+            label={t("finance.tabAssistant")}
             id="page-tab-asistente"
           />
           <Tab
             icon={<LinkOutlinedIcon />}
             iconPosition="start"
-            label="Páginas de pago"
+            label={t("finance.tabPayLinks")}
             id="page-tab-pagos"
           />
           <Tab
             icon={<CreditCardOutlinedIcon />}
             iconPosition="start"
-            label="Crédito"
+            label={t("finance.tabCredit")}
             id="page-tab-credito"
           />
         </Tabs>
@@ -956,7 +946,7 @@ export default function ContabilidadPage() {
         <FinanceAssistantPanel
           year={year}
           month={month}
-          monthLabel={MONTHS.find((x) => x.v === month)?.label ?? ""}
+          monthLabel={monthLabel(month, locale)}
           onDebtCreated={refreshAll}
           onLedgerSaved={refreshAll}
         />
@@ -1215,14 +1205,14 @@ export default function ContabilidadPage() {
               <Tab
                 icon={<ReceiptLongOutlinedIcon />}
                 iconPosition="start"
-                label="Movimientos"
+                label={t("finance.movements")}
                 id="contabilidad-tab-movimientos"
                 aria-controls="contabilidad-panel-movimientos"
               />
               <Tab
                 icon={<CategoryOutlinedIcon />}
                 iconPosition="start"
-                label="Categorías"
+                label={t("finance.categories")}
                 id="contabilidad-tab-categorias"
                 aria-controls="contabilidad-panel-categorias"
               />
@@ -1257,7 +1247,7 @@ export default function ContabilidadPage() {
                         color="text.secondary"
                         display="block"
                       >
-                        «Pagado» · {MONTHS.find((x) => x.v === month)?.label}{" "}
+                        «Pagado» · {monthLabel(month, locale)}{" "}
                         {year}
                       </Typography>
                     </Box>
@@ -1395,7 +1385,7 @@ export default function ContabilidadPage() {
                         color="text.secondary"
                         display="block"
                       >
-                        «Cobrado» · {MONTHS.find((x) => x.v === month)?.label}{" "}
+                        «Cobrado» · {monthLabel(month, locale)}{" "}
                         {year}
                       </Typography>
                     </Box>
@@ -2218,7 +2208,7 @@ export default function ContabilidadPage() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIncCatDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setIncCatDialogOpen(false)}>{t("common.cancel")}</Button>
           <Button onClick={saveIncCat} variant="contained">
             Guardar
           </Button>
@@ -2247,7 +2237,7 @@ export default function ContabilidadPage() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setExpCatDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setExpCatDialogOpen(false)}>{t("common.cancel")}</Button>
           <Button onClick={saveExpCat} variant="contained">
             Guardar
           </Button>
@@ -2305,7 +2295,7 @@ export default function ContabilidadPage() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIncDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setIncDialogOpen(false)}>{t("common.cancel")}</Button>
           <Button onClick={saveIncome} variant="contained">
             Guardar
           </Button>
@@ -2363,7 +2353,7 @@ export default function ContabilidadPage() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setExpDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setExpDialogOpen(false)}>{t("common.cancel")}</Button>
           <Button onClick={saveExpense} variant="contained">
             Guardar
           </Button>
@@ -2441,7 +2431,7 @@ export default function ContabilidadPage() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRecDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setRecDialogOpen(false)}>{t("common.cancel")}</Button>
           <Button onClick={saveRec} variant="contained">
             Guardar
           </Button>
@@ -2521,7 +2511,7 @@ export default function ContabilidadPage() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRecIncDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setRecIncDialogOpen(false)}>{t("common.cancel")}</Button>
           <Button onClick={saveRecInc} variant="contained">
             Guardar
           </Button>
@@ -2611,12 +2601,12 @@ export default function ContabilidadPage() {
         fullWidth
         maxWidth="xl"
       >
-        <DialogTitle>Gráficas</DialogTitle>
+        <DialogTitle>{t("finance.charts")}</DialogTitle>
         <DialogContent dividers>
           <FinanceChartsPanel year={year} month={month} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setChartsOpen(false)}>Cerrar</Button>
+          <Button onClick={() => setChartsOpen(false)}>{t("common.close")}</Button>
         </DialogActions>
       </Dialog>
     </Box>
