@@ -2609,7 +2609,7 @@ export default function ContabilidadPage() {
         open={chartsOpen}
         onClose={() => setChartsOpen(false)}
         fullWidth
-        maxWidth="lg"
+        maxWidth="xl"
       >
         <DialogTitle>Gráficas</DialogTitle>
         <DialogContent dividers>
