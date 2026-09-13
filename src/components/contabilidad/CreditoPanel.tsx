@@ -20,7 +20,7 @@ import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import FinanceDebtsPanel from "@/components/contabilidad/FinanceDebtsPanel";
-import { CHART_COLORS, LinePath } from "@/components/contabilidad/SimpleCharts";
+import { CreditForecastChart } from "@/components/contabilidad/InteractiveCharts";
 import {
   formatCop,
   getDebtForecast,
@@ -223,7 +223,24 @@ export default function CreditoPanel() {
             <Typography variant="subtitle1" fontWeight={700} gutterBottom>
               Saldo proyectado
             </Typography>
-            <LinePath points={linePoints} color={CHART_COLORS.CREDIT} />
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+              Zoom y pan para recorrer los meses. Si miras un solo crédito, también
+              ves interés vs capital de cada cuota.
+            </Typography>
+            <CreditForecastChart
+              labels={linePoints.map((p) => p.label)}
+              balance={linePoints.map((p) => p.value)}
+              interest={
+                selected
+                  ? selected.schedule.map((s) => s.interest)
+                  : undefined
+              }
+              principal={
+                selected
+                  ? selected.schedule.map((s) => s.principal)
+                  : undefined
+              }
+            />
           </Paper>
 
           {selected ? (

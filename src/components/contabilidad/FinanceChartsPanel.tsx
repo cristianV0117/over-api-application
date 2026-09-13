@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -10,12 +12,13 @@ import {
   type FinanceOverview,
 } from "@/lib/api/contabilidad";
 import {
+  CashflowArea,
+  CategoryBars,
   CHART_COLORS,
-  Donut,
-  GroupedBars,
-  HBars,
-  LinePath,
-} from "@/components/contabilidad/SimpleCharts";
+  ExpenseDonut,
+  IncomeExpenseCombo,
+  SurplusDeficitBars,
+} from "@/components/contabilidad/InteractiveCharts";
 
 const MONTHS = [
   "Ene",
@@ -38,6 +41,7 @@ export default function FinanceChartsPanel({ year, month }: Props) {
   const [data, setData] = useState<FinanceOverview | null>(null);
 
   useEffect(() => {
+    setData(null);
     getFinanceOverview({ year, month, months: 12 })
       .then(setData)
       .catch((e) =>
@@ -45,30 +49,33 @@ export default function FinanceChartsPanel({ year, month }: Props) {
       );
   }, [year, month]);
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+        <CircularProgress size={28} />
+      </Box>
+    );
+  }
 
-  const labels = data.months.map((m) => `${MONTHS[m.month - 1]} ${String(m.year).slice(2)}`);
+  const labels = data.months.map(
+    (m) => `${MONTHS[m.month - 1]} ${String(m.year).slice(2)}`
+  );
 
   return (
     <Stack spacing={2} sx={{ width: "100%" }}>
+      <Typography variant="caption" color="text.secondary">
+        Pasa el cursor para ver montos en COP. En la leyenda puedes ocultar
+        series; usa zoom, pan y descarga desde la barra de la gráfica.
+      </Typography>
       <Paper sx={{ p: 2 }}>
         <Typography variant="subtitle1" fontWeight={700} gutterBottom>
           Ingresos vs gastos (12 meses)
         </Typography>
-        <GroupedBars
+        <IncomeExpenseCombo
           labels={labels}
-          series={[
-            {
-              name: "Ingresos",
-              color: CHART_COLORS.INCOME,
-              values: data.months.map((m) => m.income),
-            },
-            {
-              name: "Gastos",
-              color: CHART_COLORS.EXPENSE,
-              values: data.months.map((m) => m.expenses),
-            },
-          ]}
+          income={data.months.map((m) => m.income)}
+          expenses={data.months.map((m) => m.expenses)}
+          remaining={data.months.map((m) => m.remaining)}
         />
       </Paper>
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
@@ -76,7 +83,7 @@ export default function FinanceChartsPanel({ year, month }: Props) {
           <Typography variant="subtitle1" fontWeight={700} gutterBottom>
             Gastos de este mes
           </Typography>
-          <HBars
+          <CategoryBars
             color={CHART_COLORS.EXPENSE}
             rows={data.expenseBreakdown.map((b) => ({
               label: b.categoryName,
@@ -88,7 +95,7 @@ export default function FinanceChartsPanel({ year, month }: Props) {
           <Typography variant="subtitle1" fontWeight={700} gutterBottom>
             Ingresos de este mes
           </Typography>
-          <HBars
+          <CategoryBars
             color={CHART_COLORS.INCOME}
             rows={data.incomeBreakdown.map((b) => ({
               label: b.categoryName,
@@ -102,19 +109,17 @@ export default function FinanceChartsPanel({ year, month }: Props) {
           <Typography variant="subtitle1" fontWeight={700} gutterBottom>
             Disponible mes a mes
           </Typography>
-          <LinePath
-            color="#38bdf8"
-            points={data.months.map((m) => ({
-              label: `${MONTHS[m.month - 1]} ${String(m.year).slice(2)}`,
-              value: m.remaining,
-            }))}
+          <CashflowArea
+            color={CHART_COLORS.CASH}
+            labels={labels}
+            values={data.months.map((m) => m.remaining)}
           />
         </Paper>
         <Paper sx={{ p: 2, flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight={700} gutterBottom>
             Mix de gastos
           </Typography>
-          <Donut
+          <ExpenseDonut
             rows={data.expenseBreakdown.map((b) => ({
               label: b.categoryName,
               value: b.total,
@@ -126,22 +131,9 @@ export default function FinanceChartsPanel({ year, month }: Props) {
         <Typography variant="subtitle1" fontWeight={700} gutterBottom>
           Ahorro / déficit (ingresos − gastos)
         </Typography>
-        <GroupedBars
+        <SurplusDeficitBars
           labels={labels}
-          series={[
-            {
-              name: "Disponible",
-              color: "#38bdf8",
-              values: data.months.map((m) => Math.max(0, m.remaining)),
-            },
-            {
-              name: "Déficit",
-              color: "#f59e0b",
-              values: data.months.map((m) =>
-                m.remaining < 0 ? Math.abs(m.remaining) : 0
-              ),
-            },
-          ]}
+          values={data.months.map((m) => m.remaining)}
         />
       </Paper>
     </Stack>
