@@ -13,7 +13,8 @@ export type VehicleDocKind =
   | "soat"
   | "tecnomecanica"
   | "tarjetaPropiedad"
-  | "licencia";
+  | "licencia"
+  | "manual";
 
 export type VehicleFile = {
   fileName: string;
@@ -30,6 +31,8 @@ export type Vehicle = {
   year: number | null;
   color: string;
   notes: string;
+  odometerKm: number | null;
+  yearsOwned: number | null;
   soatExpiresAt: string | null;
   technoExpiresAt: string | null;
   licenseExpiresAt: string | null;
@@ -38,6 +41,7 @@ export type Vehicle = {
     tecnomecanica: VehicleFile | null;
     tarjetaPropiedad: VehicleFile | null;
     licencia: VehicleFile | null;
+    manual: VehicleFile | null;
   };
   createdAt: string;
 };
@@ -50,6 +54,8 @@ export type VehicleWrite = {
   year?: number;
   color?: string;
   notes?: string;
+  odometerKm?: number;
+  yearsOwned?: number;
   soatExpiresAt?: string | null;
   technoExpiresAt?: string | null;
   licenseExpiresAt?: string | null;
@@ -137,4 +143,43 @@ export async function openVehicleDocument(
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   window.open(url, "_blank", "noopener,noreferrer");
+}
+
+export type VehicleAssistantMessage = {
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
+};
+
+export async function getVehicleAssistantHistory(
+  vehicleId: string
+): Promise<VehicleAssistantMessage[]> {
+  const res = await fetch(`${BASE}/vehicles/${vehicleId}/assistant/history`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseError(res, "Error al cargar el chat"));
+  return res.json();
+}
+
+export async function clearVehicleAssistantHistory(
+  vehicleId: string
+): Promise<void> {
+  const res = await fetch(`${BASE}/vehicles/${vehicleId}/assistant/history`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseError(res, "Error al borrar el chat"));
+}
+
+export async function sendVehicleAssistantChat(
+  vehicleId: string,
+  message: string
+): Promise<{ reply: string; messages: VehicleAssistantMessage[] }> {
+  const res = await fetch(`${BASE}/vehicles/${vehicleId}/assistant/chat`, {
+    method: "POST",
+    headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
+  });
+  if (!res.ok) throw new Error(await parseError(res, "Error del asistente"));
+  return res.json();
 }
