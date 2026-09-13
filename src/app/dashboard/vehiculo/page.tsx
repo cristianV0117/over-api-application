@@ -37,16 +37,28 @@ import {
   type VehicleWrite,
 } from "@/lib/api/vehicles";
 import { usePreferences } from "@/context/preferencesContext";
+import VehicleAssistantPanel from "@/components/vehicles/VehicleAssistantPanel";
 
 const DOC_SLOTS: {
   kind: VehicleDocKind;
-  titleKey: "vehicle.doc.soat" | "vehicle.doc.techno" | "vehicle.doc.property" | "vehicle.doc.license";
-  hintKey: "vehicle.doc.soatHint" | "vehicle.doc.technoHint" | "vehicle.doc.propertyHint" | "vehicle.doc.licenseHint";
+  titleKey:
+    | "vehicle.doc.soat"
+    | "vehicle.doc.techno"
+    | "vehicle.doc.property"
+    | "vehicle.doc.license"
+    | "vehicle.doc.manual";
+  hintKey:
+    | "vehicle.doc.soatHint"
+    | "vehicle.doc.technoHint"
+    | "vehicle.doc.propertyHint"
+    | "vehicle.doc.licenseHint"
+    | "vehicle.doc.manualHint";
 }[] = [
   { kind: "soat", titleKey: "vehicle.doc.soat", hintKey: "vehicle.doc.soatHint" },
   { kind: "tecnomecanica", titleKey: "vehicle.doc.techno", hintKey: "vehicle.doc.technoHint" },
   { kind: "tarjetaPropiedad", titleKey: "vehicle.doc.property", hintKey: "vehicle.doc.propertyHint" },
   { kind: "licencia", titleKey: "vehicle.doc.license", hintKey: "vehicle.doc.licenseHint" },
+  { kind: "manual", titleKey: "vehicle.doc.manual", hintKey: "vehicle.doc.manualHint" },
 ];
 
 type FormState = {
@@ -57,6 +69,8 @@ type FormState = {
   year: string;
   color: string;
   notes: string;
+  odometerKm: string;
+  yearsOwned: string;
   soatExpiresAt: string;
   technoExpiresAt: string;
   licenseExpiresAt: string;
@@ -70,6 +84,8 @@ const emptyForm = (): FormState => ({
   year: "",
   color: "",
   notes: "",
+  odometerKm: "",
+  yearsOwned: "",
   soatExpiresAt: "",
   technoExpiresAt: "",
   licenseExpiresAt: "",
@@ -89,6 +105,8 @@ function fromVehicle(v: Vehicle): FormState {
     year: v.year ? String(v.year) : "",
     color: v.color,
     notes: v.notes,
+    odometerKm: v.odometerKm != null ? String(v.odometerKm) : "",
+    yearsOwned: v.yearsOwned != null ? String(v.yearsOwned) : "",
     soatExpiresAt: toDateInput(v.soatExpiresAt),
     technoExpiresAt: toDateInput(v.technoExpiresAt),
     licenseExpiresAt: toDateInput(v.licenseExpiresAt),
@@ -97,12 +115,16 @@ function fromVehicle(v: Vehicle): FormState {
 
 function toWrite(form: FormState): VehicleWrite {
   const year = form.year.trim() ? Number(form.year) : undefined;
+  const odometerKm = form.odometerKm.trim() ? Number(form.odometerKm) : undefined;
+  const yearsOwned = form.yearsOwned.trim() ? Number(form.yearsOwned) : undefined;
   return {
     type: form.type,
     plate: form.plate.trim(),
     brand: form.brand.trim(),
     model: form.model.trim(),
     year: Number.isFinite(year) ? year : undefined,
+    odometerKm: Number.isFinite(odometerKm) ? odometerKm : undefined,
+    yearsOwned: Number.isFinite(yearsOwned) ? yearsOwned : undefined,
     color: form.color.trim(),
     notes: form.notes.trim(),
     soatExpiresAt: form.soatExpiresAt || null,
@@ -329,6 +351,7 @@ export default function VehiculoPage() {
                     />
                   ))}
                 </Box>
+                <VehicleAssistantPanel vehicle={vehicle} />
               </Paper>
             );
           })}
@@ -408,6 +431,22 @@ function VehicleFields({
       />
       <TextField
         size="small"
+        label={t("vehicle.odometer")}
+        type="number"
+        value={form.odometerKm}
+        disabled={disabled}
+        onChange={(e) => set({ odometerKm: e.target.value })}
+      />
+      <TextField
+        size="small"
+        label={t("vehicle.yearsOwned")}
+        type="number"
+        value={form.yearsOwned}
+        disabled={disabled}
+        onChange={(e) => set({ yearsOwned: e.target.value })}
+      />
+      <TextField
+        size="small"
         label={t("vehicle.soatExpires")}
         type="date"
         value={form.soatExpiresAt}
@@ -458,6 +497,7 @@ function DocumentCard({
   hint: string;
   onUpdated: (v: Vehicle) => void;
 }) {
+  const { t } = usePreferences();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const file = vehicle.documents[kind];
@@ -468,8 +508,8 @@ function DocumentCard({
     const selected = e.target.files?.[0];
     e.target.value = "";
     if (!selected) return;
-    if (selected.size > 8 * 1024 * 1024) {
-      toast.error("El archivo debe ser menor a 8 MB");
+    if (selected.size > 12 * 1024 * 1024) {
+      toast.error(t("vehicle.fileTooBig"));
       return;
     }
     setBusy(true);
