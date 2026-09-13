@@ -16,6 +16,7 @@ import {
   TASK_PRIORITIES,
   type TaskPriority,
 } from "@/lib/api/tasks";
+import { usePreferences } from "@/context/preferencesContext";
 
 interface CreateTaskModalProps {
   show: boolean;
@@ -28,6 +29,7 @@ export default function CreateTaskModal({
   onClose,
   onCreated,
 }: CreateTaskModalProps) {
+  const { t } = usePreferences();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -48,7 +50,7 @@ export default function CreateTaskModal({
         dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
         priority,
       });
-      toast.success("Tarea creada");
+      toast.success(t("tasks.created"));
       setTitle("");
       setDescription("");
       setDueDate("");
@@ -56,7 +58,7 @@ export default function CreateTaskModal({
       onCreated();
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al crear tarea");
+      toast.error(err instanceof Error ? err.message : t("tasks.createError"));
     } finally {
       setLoading(false);
     }
@@ -66,7 +68,7 @@ export default function CreateTaskModal({
     <Dialog open={show} onClose={handleClose} maxWidth="sm" fullWidth scroll="body">
       <form onSubmit={handleSubmit}>
         <DialogTitle sx={{ pr: 6 }}>
-          Nueva tarea
+          {t("tasks.new")}
           <IconButton
             aria-label="cerrar"
             onClick={handleClose}
@@ -78,7 +80,7 @@ export default function CreateTaskModal({
         </DialogTitle>
         <DialogContent dividers>
           <TextField
-            label="Título"
+            label={t("tasks.titleLabel")}
             id="taskTitle"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -89,7 +91,7 @@ export default function CreateTaskModal({
             autoFocus
           />
           <TextField
-            label="Descripción (opcional)"
+            label={t("tasks.description")}
             id="taskDescription"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -101,7 +103,7 @@ export default function CreateTaskModal({
           />
           <TextField
             select
-            label="Prioridad"
+            label={t("tasks.priority")}
             id="taskPriority"
             value={priority}
             onChange={(e) => setPriority(e.target.value as TaskPriority)}
@@ -110,12 +112,12 @@ export default function CreateTaskModal({
           >
             {TASK_PRIORITIES.map((p) => (
               <MenuItem key={p.value} value={p.value}>
-                {p.label}
+                {t(`priority.${p.value}` as "priority.low" | "priority.normal" | "priority.high")}
               </MenuItem>
             ))}
           </TextField>
           <TextField
-            label="Fecha límite (opcional)"
+            label={t("tasks.dueDate")}
             type="datetime-local"
             id="taskDueDate"
             value={dueDate}
@@ -126,10 +128,10 @@ export default function CreateTaskModal({
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={handleClose} color="inherit" disabled={loading}>
-            Cancelar
+            {t("common.cancel")}
           </Button>
           <Button type="submit" variant="contained" color="primary" disabled={loading}>
-            {loading ? "Creando…" : "Crear tarea"}
+            {loading ? t("common.saving") : t("tasks.new")}
           </Button>
         </DialogActions>
       </form>

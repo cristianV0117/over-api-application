@@ -21,22 +21,23 @@ import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalance
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import DirectionsCarOutlinedIcon from "@mui/icons-material/DirectionsCarOutlined";
 import { useUser } from "@/context/userContext";
+import { usePreferences } from "@/context/preferencesContext";
 import { avatarUrl } from "@/lib/api/profile";
 
 const DRAWER_WIDTH = 268;
 
 const allItems = [
-  { href: "/dashboard/users", label: "Usuarios", Icon: PeopleOutlineIcon, adminOnly: true },
-  { href: "/dashboard/tasks", label: "Tareas", Icon: ViewKanbanOutlinedIcon },
+  { href: "/dashboard/users", labelKey: "sidebar.users" as const, Icon: PeopleOutlineIcon, adminOnly: true },
+  { href: "/dashboard/tasks", labelKey: "sidebar.tasks" as const, Icon: ViewKanbanOutlinedIcon },
   {
     href: "/dashboard/contabilidad",
-    label: "Contabilidad",
+    labelKey: "sidebar.finance" as const,
     Icon: AccountBalanceWalletOutlinedIcon,
   },
-  { href: "/dashboard/cron", label: "Cron", Icon: ScheduleOutlinedIcon, adminOnly: true },
-  { href: "/dashboard/vehiculo", label: "Vehículo", Icon: DirectionsCarOutlinedIcon },
-  { href: "/dashboard/profile", label: "Perfil", Icon: PersonOutlineIcon },
-  { href: "#", label: "Configuración", Icon: SettingsOutlinedIcon, disabled: true },
+  { href: "/dashboard/cron", labelKey: "sidebar.cron" as const, Icon: ScheduleOutlinedIcon, adminOnly: true },
+  { href: "/dashboard/vehiculo", labelKey: "sidebar.vehicle" as const, Icon: DirectionsCarOutlinedIcon },
+  { href: "/dashboard/profile", labelKey: "sidebar.profile" as const, Icon: PersonOutlineIcon },
+  { href: "/dashboard/settings", labelKey: "sidebar.settings" as const, Icon: SettingsOutlinedIcon },
 ];
 
 type SidebarProps = {
@@ -47,6 +48,7 @@ type SidebarProps = {
 export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const user = useUser();
+  const { t } = usePreferences();
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up("md"));
 
@@ -58,15 +60,18 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <Box sx={{ px: 2.5, py: 3 }}>
         <Typography variant="overline" sx={{ color: "text.secondary", letterSpacing: 2 }}>
-          Menú
+          {t("sidebar.menu")}
         </Typography>
       </Box>
       <List sx={{ px: 1.5, flex: 1 }}>
-        {items.map(({ href, label, Icon, disabled }) => {
+        {items.map((item) => {
+          const { href, labelKey, Icon } = item;
+          const disabled = Boolean("disabled" in item && item.disabled);
+          const label = t(labelKey);
           const selected = href !== "#" && pathname.startsWith(href);
           return (
             <ListItemButton
-              key={label}
+              key={labelKey}
               component={disabled ? "div" : NextLink}
               href={disabled ? undefined : href}
               selected={selected}
@@ -113,10 +118,10 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
         />
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="subtitle2" noWrap fontWeight={700}>
-            {user?.name ?? "Usuario"}
+            {user?.name ?? t("sidebar.userFallback")}
           </Typography>
           <Typography variant="caption" color="text.secondary" noWrap display="block">
-            Ver perfil
+            {t("sidebar.viewProfile")}
           </Typography>
         </Box>
       </Box>

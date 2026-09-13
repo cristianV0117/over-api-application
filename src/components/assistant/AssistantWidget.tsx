@@ -23,6 +23,7 @@ import ChatIcon from "@mui/icons-material/Chat";
 import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
+import { usePreferences } from "@/context/preferencesContext";
 
 type MessageRole = "user" | "assistant";
 
@@ -34,12 +35,7 @@ type ChatMessage = {
   extractedDebt?: Partial<FinanceDebtWrite> | null;
 };
 
-const BOT_NAME = "Asistente";
-const INITIAL_MESSAGE: ChatMessage = {
-  id: "welcome",
-  role: "assistant",
-  content: `Hola. Puedo registrar gastos, ingresos y créditos, y también crear tareas.\n\n• "Hoy gasté 1000 en una paleta"\n• Adjuntá un pantallazo del crédito y pedí que lo registre\n• "Crea una tarea: Revisar PRs"`,
-};
+const BOT_NAME_KEY = "assistant.name" as const;
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -55,8 +51,9 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 export default function AssistantWidget() {
+  const { t, locale } = usePreferences();
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState<
@@ -73,6 +70,20 @@ export default function AssistantWidget() {
   useEffect(() => {
     if (open) scrollToBottom();
   }, [messages, open]);
+
+  useEffect(() => {
+    setMessages((prev) => {
+      const rest = prev.filter((m) => m.id !== "welcome");
+      return [
+        {
+          id: "welcome",
+          role: "assistant",
+          content: t("assistant.welcome"),
+        },
+        ...rest,
+      ];
+    });
+  }, [locale, t]);
 
   const pickFiles = async (list: FileList | null) => {
     const files = list ? [...list].slice(0, 3) : [];
@@ -209,7 +220,7 @@ export default function AssistantWidget() {
     <>
       <Fab
         color="primary"
-        aria-label={open ? "Cerrar asistente" : "Abrir asistente"}
+        aria-label={open ? t("common.close") : t("assistant.open")}
         onClick={() => setOpen((o) => !o)}
         sx={{
           position: "fixed",
@@ -224,7 +235,7 @@ export default function AssistantWidget() {
         variant="extended"
       >
         <ChatIcon />
-        Asistente
+        {t(BOT_NAME_KEY)}
       </Fab>
 
       <Fade in={open}>
@@ -277,7 +288,7 @@ export default function AssistantWidget() {
             >
               <Typography variant="subtitle1" fontWeight={700}>
                 <ChatIcon sx={{ mr: 1, verticalAlign: "text-bottom", fontSize: 20 }} />
-                {BOT_NAME}
+                {t(BOT_NAME_KEY)}
               </Typography>
               <IconButton size="small" onClick={() => setOpen(false)} aria-label="Cerrar">
                 <CloseIcon />
@@ -309,7 +320,7 @@ export default function AssistantWidget() {
                   >
                     {msg.role === "assistant" && (
                       <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-                        {BOT_NAME}
+                        {t(BOT_NAME_KEY)}
                       </Typography>
                     )}
                     <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>

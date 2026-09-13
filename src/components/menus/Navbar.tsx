@@ -14,6 +14,8 @@ import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
 import LayersIcon from "@mui/icons-material/Layers";
 import { useLogout } from "@/hooks/useLogout";
+import { usePreferences } from "@/context/preferencesContext";
+import PreferenceToggles from "@/components/prefs/PreferenceToggles";
 
 type NavbarProps = {
   onMenuClick?: () => void;
@@ -24,6 +26,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
   const isMdUp = useMediaQuery(theme.breakpoints.up("md"));
   const pathname = usePathname();
   const logout = useLogout();
+  const { t } = usePreferences();
 
   const navLinkSx = {
     color: "text.secondary",
@@ -58,7 +61,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             color="inherit"
             edge="start"
             onClick={onMenuClick}
-            aria-label="abrir menú"
+            aria-label={t("nav.openMenu")}
             sx={{ flexShrink: 0 }}
           >
             <MenuIcon />
@@ -104,7 +107,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             color="inherit"
             sx={navLinkSx}
           >
-            Inicio
+            {t("nav.home")}
           </Button>
           <Button
             component={Link}
@@ -119,12 +122,14 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             CristianDev
           </Button>
           <Button href="#" color="inherit" sx={{ color: "text.secondary" }}>
-            Funciones
+            {t("nav.features")}
           </Button>
           <Button href="#" color="inherit" sx={{ color: "text.secondary" }}>
-            Contacto
+            {t("nav.contact")}
           </Button>
         </Stack>
+
+        <PreferenceToggles />
 
         <Button
           variant="contained"
@@ -136,7 +141,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             fontSize: { xs: "0.8125rem", sm: "0.875rem" },
           }}
         >
-          Cerrar sesión
+          {t("nav.logout")}
         </Button>
       </Toolbar>
     </AppBar>

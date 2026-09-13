@@ -6,6 +6,7 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import type { ApexOptions } from "apexcharts";
 import { formatCop } from "@/lib/api/contabilidad";
+import { usePreferences } from "@/context/preferencesContext";
 
 const ApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
@@ -19,7 +20,7 @@ const ApexChart = dynamic(() => import("react-apexcharts"), {
       }}
     >
       <Typography variant="caption" color="text.secondary">
-        Cargando gráfica…
+        Loading…
       </Typography>
     </Box>
   ),
@@ -53,12 +54,30 @@ function compactCop(value: number): string {
   }).format(value);
 }
 
-function emptyState(text = "Sin datos") {
+function emptyState(text: string) {
   return (
     <Typography variant="body2" color="text.secondary">
       {text}
     </Typography>
   );
+}
+
+function useChartCopy() {
+  const { t } = usePreferences();
+  return {
+    empty: t("finance.noData"),
+    needMore: t("finance.needMoreMonths"),
+    income: t("finance.income"),
+    expenses: t("finance.expense"),
+    available: t("finance.availableSeries"),
+    net: t("finance.net"),
+    total: t("common.amount"),
+    totalMonth: t("finance.totalMonth"),
+    balance: t("credit.balance"),
+    interest: t("credit.interest"),
+    principal: t("credit.principal"),
+    projected: t("credit.projected"),
+  };
 }
 
 function baseOptions(overrides: ApexOptions = {}): ApexOptions {
@@ -142,7 +161,8 @@ export function IncomeExpenseCombo({
   expenses: number[];
   remaining: number[];
 }) {
-  if (!labels.length) return emptyState();
+  const copy = useChartCopy();
+  if (!labels.length) return emptyState(copy.empty);
   const options = baseOptions({
     chart: {
       ...baseOptions().chart,
@@ -167,9 +187,9 @@ export function IncomeExpenseCombo({
         width="100%"
         options={options}
         series={[
-          { name: "Ingresos", type: "column", data: income },
-          { name: "Gastos", type: "column", data: expenses },
-          { name: "Disponible", type: "line", data: remaining },
+          { name: copy.income, type: "column", data: income },
+          { name: copy.expenses, type: "column", data: expenses },
+          { name: copy.available, type: "line", data: remaining },
         ]}
       />
     </ChartFrame>
@@ -183,7 +203,8 @@ export function CategoryBars({
   rows: { label: string; value: number }[];
   color: string;
 }) {
-  if (!rows.length) return emptyState();
+  const copy = useChartCopy();
+  if (!rows.length) return emptyState(copy.empty);
   const options = baseOptions({
     chart: { ...baseOptions().chart, type: "bar", toolbar: { show: false } },
     plotOptions: {
@@ -221,7 +242,7 @@ export function CategoryBars({
         height={Math.max(240, rows.length * 42)}
         width="100%"
         options={options}
-        series={[{ name: "Total", data: rows.map((r) => r.value) }]}
+        series={[{ name: copy.total, data: rows.map((r) => r.value) }]}
       />
     </ChartFrame>
   );
@@ -236,8 +257,9 @@ export function CashflowArea({
   values: number[];
   color?: string;
 }) {
+  const copy = useChartCopy();
   if (values.length < 2) {
-    return emptyState("Hace falta más de un mes para graficar.");
+    return emptyState(copy.needMore);
   }
   const options = baseOptions({
     chart: { ...baseOptions().chart, type: "area" },
@@ -278,7 +300,7 @@ export function CashflowArea({
         height={300}
         width="100%"
         options={options}
-        series={[{ name: "Disponible", data: values }]}
+        series={[{ name: copy.available, data: values }]}
       />
     </ChartFrame>
   );
@@ -289,8 +311,9 @@ export function ExpenseDonut({
 }: {
   rows: { label: string; value: number }[];
 }) {
+  const copy = useChartCopy();
   const total = rows.reduce((s, r) => s + r.value, 0);
-  if (!total) return emptyState();
+  if (!total) return emptyState(copy.empty);
   const options = baseOptions({
     chart: { ...baseOptions().chart, type: "donut", toolbar: { show: false } },
     labels: rows.map((r) => r.label),
@@ -311,7 +334,7 @@ export function ExpenseDonut({
             },
             total: {
               show: true,
-              label: "Total mes",
+              label: copy.totalMonth,
               color: "#94a3b8",
               formatter: () => formatCop(total),
             },
@@ -354,7 +377,8 @@ export function SurplusDeficitBars({
   labels: string[];
   values: number[];
 }) {
-  if (!labels.length) return emptyState();
+  const copy = useChartCopy();
+  if (!labels.length) return emptyState(copy.empty);
   const options = baseOptions({
     chart: { ...baseOptions().chart, type: "bar" },
     plotOptions: {
@@ -387,7 +411,7 @@ export function SurplusDeficitBars({
         height={300}
         width="100%"
         options={options}
-        series={[{ name: "Ingresos − gastos", data: values }]}
+        series={[{ name: copy.net, data: values }]}
       />
     </ChartFrame>
   );
@@ -404,8 +428,9 @@ export function CreditForecastChart({
   interest?: number[];
   principal?: number[];
 }) {
+  const copy = useChartCopy();
   if (balance.length < 2) {
-    return emptyState("Hace falta más de un mes para graficar.");
+    return emptyState(copy.needMore);
   }
   const hasBreakdown = Boolean(interest?.length && principal?.length);
   const options = baseOptions({
@@ -440,11 +465,11 @@ export function CreditForecastChart({
   });
   const series = hasBreakdown
     ? [
-        { name: "Saldo", type: "area" as const, data: balance },
-        { name: "Interés", type: "column" as const, data: interest ?? [] },
-        { name: "Capital", type: "column" as const, data: principal ?? [] },
+        { name: copy.balance, type: "area" as const, data: balance },
+        { name: copy.interest, type: "column" as const, data: interest ?? [] },
+        { name: copy.principal, type: "column" as const, data: principal ?? [] },
       ]
-    : [{ name: "Saldo proyectado", type: "area" as const, data: balance }];
+    : [{ name: copy.projected, type: "area" as const, data: balance }];
 
   return (
     <ChartFrame>

@@ -10,20 +10,22 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
-import { esES } from "@mui/x-data-grid/locales";
+import { enUS, esES } from "@mui/x-data-grid/locales";
+import { usePreferences } from "@/context/preferencesContext";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { useUser, useSetUser } from "@/context/userContext";
 import { adminImpersonate, listAdminUsers, type AdminUserRow } from "@/lib/api/adminUsers";
 import { toast } from "react-toastify";
 
-function roleLabel(role: string) {
-  return role === "admin" ? "Administrador" : "Usuario";
+function roleLabel(role: string, admin: string, user: string) {
+  return role === "admin" ? admin : user;
 }
 
 export default function Users() {
   const router = useRouter();
   const ctxUser = useUser();
   const setUser = useSetUser();
+  const { t, locale } = usePreferences();
   const [rows, setRows] = useState<AdminUserRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,9 +34,7 @@ export default function Users() {
       if (row.role === "admin") return;
       if (
         !confirm(
-          `¿Ver la aplicación como «${row.name}» (${row.email})?\n\n` +
-            "Podrás reproducir bugs con los mismos permisos que ese usuario. " +
-            "Usa solo cuando sea necesario y con consentimiento si aplica."
+          t("users.impersonateConfirm", { name: row.name, email: row.email })
         )
       ) {
         return;
@@ -48,13 +48,13 @@ export default function Users() {
         if (!res.ok) throw new Error("No se pudo cargar el perfil del usuario");
         const data = await res.json();
         setUser(data);
-        toast.success(`Modo infiltración: ${row.name}`);
+        toast.success(t("users.impersonate", { name: row.name }));
         router.push("/dashboard");
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Error al infiltrarse");
+        toast.error(e instanceof Error ? e.message : t("users.impersonateFail"));
       }
     },
-    [router, setUser]
+    [router, setUser, t]
   );
 
   useEffect(() => {
@@ -67,7 +67,7 @@ export default function Users() {
       try {
         setRows(await listAdminUsers());
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Error al cargar usuarios");
+        toast.error(e instanceof Error ? e.message : t("users.loadError"));
       } finally {
         setLoading(false);
       }
@@ -76,15 +76,15 @@ export default function Users() {
 
   const columns: GridColDef<AdminUserRow>[] = useMemo(
     () => [
-      { field: "name", headerName: "Nombre", flex: 1, minWidth: 160 },
-      { field: "email", headerName: "Correo", flex: 1.2, minWidth: 200 },
+      { field: "name", headerName: t("users.name"), flex: 1, minWidth: 160 },
+      { field: "email", headerName: t("users.email"), flex: 1.2, minWidth: 200 },
       {
         field: "role",
-        headerName: "Rol",
+        headerName: t("users.role"),
         width: 160,
         renderCell: (params) => (
           <Chip
-            label={roleLabel(params.value as string)}
+            label={roleLabel(params.value as string, t("users.admin"), t("users.user"))}
             size="small"
             variant="outlined"
             color={params.value === "admin" ? "secondary" : "default"}
@@ -122,7 +122,7 @@ export default function Users() {
         },
       },
     ],
-    [handleImpersonate]
+    [handleImpersonate, t]
   );
 
   if (!ctxUser) {
@@ -152,7 +152,7 @@ export default function Users() {
       >
         <Box>
           <Typography variant="h4" gutterBottom>
-            Usuarios
+            {t("users.title")}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Listado de cuentas registradas en la aplicación (solo administradores).
@@ -189,7 +189,10 @@ export default function Users() {
             initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
             pageSizeOptions={[5, 10, 25]}
             disableRowSelectionOnClick
-            localeText={esES.components.MuiDataGrid.defaultProps.localeText}
+            localeText={
+              (locale === "en" ? enUS : esES).components.MuiDataGrid.defaultProps
+                .localeText
+            }
           />
         </Box>
       )}

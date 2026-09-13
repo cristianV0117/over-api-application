@@ -1,8 +1,7 @@
-/** Etiquetas en español para estados estándar del tablero (nombres API en inglés). */
-export function statusLabelEs(apiName: string): string {
-  const n = apiName.toLowerCase().trim();
-  if (n === "to do") return "Por hacer";
-  if (n === "in progress") return "En curso";
-  if (n === "done") return "Hechas";
-  return apiName;
+import type { Locale } from "@/i18n/types";
+import { statusLabel } from "@/i18n";
+
+/** @deprecated usa statusLabel(name, locale) */
+export function statusLabelEs(apiName: string, locale: Locale = "es"): string {
+  return statusLabel(apiName, locale);
 }

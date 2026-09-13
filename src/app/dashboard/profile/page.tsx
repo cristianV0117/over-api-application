@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useUser, useSetUser } from "@/context/userContext";
+import { usePreferences } from "@/context/preferencesContext";
 import { getProfile, updateProfile, avatarUrl } from "@/lib/api/profile";
 import { toast } from "react-toastify";
 import Avatar from "@mui/material/Avatar";
@@ -18,6 +19,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 export default function ProfilePage() {
   const contextUser = useUser();
   const setUser = useSetUser();
+  const { t } = usePreferences();
   const [name, setName] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -33,7 +35,7 @@ export default function ProfilePage() {
           setAvatarPreview(avatarUrl(profile.avatarUrl));
         }
       } catch {
-        toast.error("Error al cargar perfil");
+        toast.error(t("profile.loadError"));
       } finally {
         setInitialLoading(false);
       }
@@ -45,7 +47,7 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        toast.error("La imagen debe ser menor a 2 MB");
+        toast.error(t("profile.imageTooBig"));
         return;
       }
       setAvatarFile(file);
@@ -71,9 +73,9 @@ export default function ProfilePage() {
         role: updated.role,
         avatarUrl: updated.avatarUrl,
       });
-      toast.success("Perfil actualizado");
+      toast.success(t("profile.updated"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al actualizar");
+      toast.error(err instanceof Error ? err.message : t("profile.updateError"));
     } finally {
       setLoading(false);
     }
@@ -100,14 +102,14 @@ export default function ProfilePage() {
     >
       <Box sx={{ width: "100%", maxWidth: 520 }}>
         <Typography variant="h4" gutterBottom textAlign="center">
-          Editar perfil
+          {t("profile.title")}
         </Typography>
         <Typography
           variant="body2"
           color="text.secondary"
           sx={{ mb: 3, textAlign: "center" }}
         >
-          Actualiza tu nombre y foto. El correo queda vinculado a tu cuenta.
+          {t("profile.subtitle")}
         </Typography>
 
         <Paper
@@ -121,7 +123,7 @@ export default function ProfilePage() {
         <Stack spacing={3} component="form" onSubmit={handleSubmit}>
           <Box textAlign="center">
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
-              Foto de perfil
+              {t("profile.photo")}
             </Typography>
             <Box sx={{ position: "relative", display: "inline-block" }}>
               <Avatar
@@ -142,7 +144,7 @@ export default function ProfilePage() {
                   "&:hover": { bgcolor: "action.hover" },
                 }}
                 size="small"
-                aria-label="Subir foto"
+                aria-label={t("profile.upload")}
               >
                 <PhotoCamera fontSize="small" />
                 <input
@@ -156,24 +158,24 @@ export default function ProfilePage() {
           </Box>
 
           <TextField
-            label="Nombre"
+            label={t("common.name")}
             id="profileName"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Tu nombre"
+            placeholder={t("profile.namePh")}
             fullWidth
           />
 
           <TextField
-            label="Email"
+            label={t("common.email")}
             value={contextUser?.email ?? ""}
             fullWidth
             disabled
-            helperText="El email no se puede cambiar"
+            helperText={t("profile.emailLocked")}
           />
 
           <Button type="submit" variant="contained" color="primary" size="large" disabled={loading} fullWidth>
-            {loading ? "Guardando…" : "Guardar cambios"}
+            {loading ? t("common.saving") : t("profile.save")}
           </Button>
         </Stack>
       </Paper>

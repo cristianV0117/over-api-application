@@ -36,16 +36,17 @@ import {
   type VehicleType,
   type VehicleWrite,
 } from "@/lib/api/vehicles";
+import { usePreferences } from "@/context/preferencesContext";
 
 const DOC_SLOTS: {
   kind: VehicleDocKind;
-  title: string;
-  hint: string;
+  titleKey: "vehicle.doc.soat" | "vehicle.doc.techno" | "vehicle.doc.property" | "vehicle.doc.license";
+  hintKey: "vehicle.doc.soatHint" | "vehicle.doc.technoHint" | "vehicle.doc.propertyHint" | "vehicle.doc.licenseHint";
 }[] = [
-  { kind: "soat", title: "SOAT", hint: "Póliza en PDF o foto" },
-  { kind: "tecnomecanica", title: "Tecnomecánica", hint: "Revisión en PDF o foto" },
-  { kind: "tarjetaPropiedad", title: "Tarjeta de propiedad", hint: "Documento del vehículo" },
-  { kind: "licencia", title: "Licencia de conducción", hint: "PDF o foto de la licencia" },
+  { kind: "soat", titleKey: "vehicle.doc.soat", hintKey: "vehicle.doc.soatHint" },
+  { kind: "tecnomecanica", titleKey: "vehicle.doc.techno", hintKey: "vehicle.doc.technoHint" },
+  { kind: "tarjetaPropiedad", titleKey: "vehicle.doc.property", hintKey: "vehicle.doc.propertyHint" },
+  { kind: "licencia", titleKey: "vehicle.doc.license", hintKey: "vehicle.doc.licenseHint" },
 ];
 
 type FormState = {
@@ -129,6 +130,7 @@ function expiryChip(iso: string | null, label: string) {
 }
 
 export default function VehiculoPage() {
+  const { t } = usePreferences();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -144,7 +146,7 @@ export default function VehiculoPage() {
 
   useEffect(() => {
     load()
-      .catch((e) => toast.error(e instanceof Error ? e.message : "Error al cargar"))
+      .catch((e) => toast.error(e instanceof Error ? e.message : t("vehicle.loadError")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -211,18 +213,16 @@ export default function VehiculoPage() {
   return (
     <Box sx={{ maxWidth: 920, mx: "auto", width: "100%" }}>
       <Typography variant="h5" fontWeight={800} sx={{ mb: 1 }}>
-        Vehículo
+        {t("vehicle.title")}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Guarda los datos de tu moto o carro y adjunta SOAT, tecnomecánica,
-        tarjeta de propiedad y licencia. Los archivos quedan en el volumen de
-        uploads.
+        {t("vehicle.subtitle")}
       </Typography>
 
       <Paper component="form" onSubmit={handleCreate} sx={{ p: 2, mb: 3 }}>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
           <AddOutlinedIcon fontSize="small" />
-          <Typography fontWeight={700}>Agregar vehículo</Typography>
+          <Typography fontWeight={700}>{t("vehicle.add")}</Typography>
         </Stack>
         <VehicleFields
           form={createForm}
@@ -236,13 +236,13 @@ export default function VehiculoPage() {
           disabled={creating}
           sx={{ mt: 2 }}
         >
-          Guardar vehículo
+          {t("vehicle.saveVehicle")}
         </Button>
       </Paper>
 
       {vehicles.length === 0 ? (
         <Typography color="text.secondary">
-          Aún no tienes un vehículo. Agrégalo arriba y luego sube los PDFs.
+          {t("vehicle.empty")}
         </Typography>
       ) : (
         <Stack spacing={2.5}>
@@ -266,7 +266,7 @@ export default function VehiculoPage() {
                     <Typography fontWeight={800}>{vehicle.plate}</Typography>
                     <Chip
                       size="small"
-                      label={vehicle.type === "moto" ? "Moto" : "Carro"}
+                      label={vehicle.type === "moto" ? t("vehicle.moto") : t("vehicle.car")}
                     />
                     {expiryChip(vehicle.soatExpiresAt, "SOAT")}
                     {expiryChip(vehicle.technoExpiresAt, "Tecno")}
@@ -280,7 +280,7 @@ export default function VehiculoPage() {
                       disabled={savingId === vehicle.id}
                       onClick={() => void handleSave(vehicle.id)}
                     >
-                      Guardar
+                      {t("common.save")}
                     </Button>
                     <IconButton
                       color="error"
@@ -301,7 +301,7 @@ export default function VehiculoPage() {
                 />
 
                 <Typography fontWeight={700} sx={{ mt: 2.5, mb: 1.5 }}>
-                  Documentos
+                  {t("vehicle.documents")}
                 </Typography>
                 <Box
                   sx={{
@@ -315,8 +315,8 @@ export default function VehiculoPage() {
                       key={slot.kind}
                       vehicle={vehicle}
                       kind={slot.kind}
-                      title={slot.title}
-                      hint={slot.hint}
+                      title={t(slot.titleKey)}
+                      hint={t(slot.hintKey)}
                       onUpdated={(next) => {
                         setVehicles((prev) =>
                           prev.map((v) => (v.id === next.id ? next : v))
@@ -347,6 +347,7 @@ function VehicleFields({
   onChange: (next: FormState) => void;
   disabled?: boolean;
 }) {
+  const { t } = usePreferences();
   const set = (patch: Partial<FormState>) => onChange({ ...form, ...patch });
   return (
     <Box
@@ -357,20 +358,20 @@ function VehicleFields({
       }}
     >
       <FormControl size="small" fullWidth>
-        <InputLabel>Tipo</InputLabel>
+        <InputLabel>{t("vehicle.type")}</InputLabel>
         <Select
-          label="Tipo"
+          label={t("vehicle.type")}
           value={form.type}
           disabled={disabled}
           onChange={(e) => set({ type: e.target.value as VehicleType })}
         >
-          <MenuItem value="moto">Moto</MenuItem>
-          <MenuItem value="carro">Carro</MenuItem>
+          <MenuItem value="moto">{t("vehicle.moto")}</MenuItem>
+          <MenuItem value="carro">{t("vehicle.car")}</MenuItem>
         </Select>
       </FormControl>
       <TextField
         size="small"
-        label="Placa"
+        label={t("vehicle.plate")}
         value={form.plate}
         disabled={disabled}
         onChange={(e) => set({ plate: e.target.value.toUpperCase() })}
@@ -378,21 +379,21 @@ function VehicleFields({
       />
       <TextField
         size="small"
-        label="Marca"
+        label={t("vehicle.brand")}
         value={form.brand}
         disabled={disabled}
         onChange={(e) => set({ brand: e.target.value })}
       />
       <TextField
         size="small"
-        label="Modelo"
+        label={t("vehicle.model")}
         value={form.model}
         disabled={disabled}
         onChange={(e) => set({ model: e.target.value })}
       />
       <TextField
         size="small"
-        label="Año"
+        label={t("vehicle.year")}
         type="number"
         value={form.year}
         disabled={disabled}
@@ -400,14 +401,14 @@ function VehicleFields({
       />
       <TextField
         size="small"
-        label="Color"
+        label={t("vehicle.color")}
         value={form.color}
         disabled={disabled}
         onChange={(e) => set({ color: e.target.value })}
       />
       <TextField
         size="small"
-        label="Vence SOAT"
+        label={t("vehicle.soatExpires")}
         type="date"
         value={form.soatExpiresAt}
         disabled={disabled}
@@ -416,7 +417,7 @@ function VehicleFields({
       />
       <TextField
         size="small"
-        label="Vence tecnomecánica"
+        label={t("vehicle.technoExpires")}
         type="date"
         value={form.technoExpiresAt}
         disabled={disabled}
@@ -425,7 +426,7 @@ function VehicleFields({
       />
       <TextField
         size="small"
-        label="Vence licencia"
+        label={t("vehicle.licenseExpires")}
         type="date"
         value={form.licenseExpiresAt}
         disabled={disabled}
@@ -434,7 +435,7 @@ function VehicleFields({
       />
       <TextField
         size="small"
-        label="Notas"
+        label={t("common.notes")}
         value={form.notes}
         disabled={disabled}
         onChange={(e) => set({ notes: e.target.value })}

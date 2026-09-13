@@ -8,12 +8,14 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { useUser, useSetUser } from "@/context/userContext";
+import { usePreferences } from "@/context/preferencesContext";
 import { adminStopImpersonation } from "@/lib/api/adminUsers";
 
 export default function ImpersonationBanner() {
   const user = useUser();
   const setUser = useSetUser();
   const router = useRouter();
+  const { t } = usePreferences();
   const imp = user?.impersonation;
   if (!imp) return null;
 
@@ -64,7 +66,7 @@ export default function ImpersonationBanner() {
               component="div"
               sx={{ fontWeight: 600, lineHeight: 1.45 }}
             >
-              Modo infiltración: estás viendo la app como{" "}
+              {t("imp.title")}{" "}
               <Box component="span" sx={{ color: "primary.light", wordBreak: "break-word" }}>
                 {user?.name}
               </Box>
@@ -75,7 +77,7 @@ export default function ImpersonationBanner() {
               color="text.secondary"
               sx={{ lineHeight: 1.5, wordBreak: "break-word" }}
             >
-              Usuario: {user?.email}
+              {t("imp.user")}: {user?.email}
             </Typography>
             <Typography
               variant="caption"
@@ -83,7 +85,7 @@ export default function ImpersonationBanner() {
               color="text.secondary"
               sx={{ lineHeight: 1.5, wordBreak: "break-word" }}
             >
-              Tu cuenta admin: {imp.impersonatorName}
+              {t("imp.adminAccount")}: {imp.impersonatorName}
               {imp.impersonatorEmail ? ` · ${imp.impersonatorEmail}` : ""}
             </Typography>
           </Stack>
@@ -95,7 +97,7 @@ export default function ImpersonationBanner() {
           onClick={handleStop}
           sx={{ flexShrink: 0, alignSelf: { xs: "stretch", sm: "center" } }}
         >
-          Volver a mi cuenta admin
+          {t("imp.back")}
         </Button>
       </Stack>
     </Box>

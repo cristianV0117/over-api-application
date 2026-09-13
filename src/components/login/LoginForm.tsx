@@ -18,6 +18,7 @@ import LoginIcon from "@mui/icons-material/Login";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import ForgotPasswordModal from "@/components/login/ForgotPasswordModal";
+import { usePreferences } from "@/context/preferencesContext";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -25,6 +26,7 @@ export default function LoginForm() {
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const { t } = usePreferences();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,17 +49,17 @@ export default function LoginForm() {
       if (!response.ok) {
         const message = Array.isArray(data.message)
           ? data.message[0]
-          : data.message || "Credenciales incorrectas";
+          : data.message || t("login.badCreds");
         toast.error(message);
         return;
       }
 
       localStorage.setItem("token", data.token);
-      toast.success("Inicio de sesión exitoso");
+      toast.success(t("login.success"));
       router.push("/dashboard");
     } catch (error) {
       console.error("Error al iniciar sesión", error);
-      toast.error("Error en el servidor");
+      toast.error(t("login.serverError"));
     }
   };
 
@@ -84,12 +86,12 @@ export default function LoginForm() {
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
             <LoginIcon color="primary" />
             <Typography variant="h5" fontWeight={700}>
-              Iniciar sesión
+              {t("login.title")}
             </Typography>
           </Stack>
 
           <TextField
-            label="Correo electrónico"
+            label={t("common.email")}
             type="email"
             id="email"
             placeholder="usuario@correo.com"
@@ -101,7 +103,7 @@ export default function LoginForm() {
           />
 
           <TextField
-            label="Contraseña"
+            label={t("common.password")}
             type={showPassword ? "text" : "password"}
             id="password"
             value={password}
@@ -113,7 +115,7 @@ export default function LoginForm() {
               endAdornment: (
                 <InputAdornment position="end">
                   <IconButton
-                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    aria-label={showPassword ? t("common.hidePassword") : t("common.showPassword")}
                     onClick={() => setShowPassword((p) => !p)}
                     edge="end"
                   >
@@ -132,15 +134,15 @@ export default function LoginForm() {
               onClick={() => setShowForgotModal(true)}
               sx={{ cursor: "pointer", border: "none", background: "none", font: "inherit" }}
             >
-              ¿Olvidaste tu contraseña?
+              {t("login.forgot")}
             </Link>
           </Box>
 
           <Button type="submit" variant="contained" color="primary" size="large" fullWidth>
-            Ingresar
+            {t("login.submit")}
           </Button>
 
-          <Divider sx={{ color: "text.secondary" }}>o</Divider>
+          <Divider sx={{ color: "text.secondary" }}>{t("login.or")}</Divider>
 
           <Button
             type="button"
@@ -151,13 +153,13 @@ export default function LoginForm() {
             onClick={handleGoogleLogin}
             sx={{ borderColor: "divider" }}
           >
-            Continuar con Google
+            {t("login.google")}
           </Button>
 
           <Typography variant="body2" color="text.secondary" textAlign="center">
-            ¿No tienes cuenta?{" "}
+            {t("login.noAccount")}{" "}
             <Link component={NextLink} href="/register" color="primary" underline="hover">
-              Regístrate
+              {t("login.register")}
             </Link>
           </Typography>
         </Stack>

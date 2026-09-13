@@ -15,6 +15,7 @@ import IconButton from "@mui/material/IconButton";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { usePreferences } from "@/context/preferencesContext";
 
 export default function RegisterForm() {
   const [name, setName] = useState("");
@@ -22,6 +23,7 @@ export default function RegisterForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const { t } = usePreferences();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,17 +46,17 @@ export default function RegisterForm() {
       if (!response.ok) {
         const message = Array.isArray(data.message)
           ? data.message[0]
-          : data.message || "No se pudo crear la cuenta";
+          : data.message || t("register.fail");
         toast.error(message);
         return;
       }
 
       localStorage.setItem("token", data.token);
-      toast.success("Cuenta creada. Bienvenido.");
+      toast.success(t("register.success"));
       router.push("/dashboard");
     } catch (error) {
       console.error("Error al registrarse", error);
-      toast.error("Error en el servidor");
+      toast.error(t("login.serverError"));
     }
   };
 
@@ -74,15 +76,15 @@ export default function RegisterForm() {
         <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
           <PersonAddIcon color="primary" />
           <Typography variant="h5" fontWeight={700}>
-            Crear cuenta
+            {t("register.title")}
           </Typography>
         </Stack>
 
         <TextField
-          label="Nombre"
+          label={t("common.name")}
           type="text"
           id="name"
-          placeholder="Tu nombre"
+          placeholder={t("profile.namePh")}
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
@@ -91,7 +93,7 @@ export default function RegisterForm() {
         />
 
         <TextField
-          label="Correo electrónico"
+          label={t("common.email")}
           type="email"
           id="email"
           placeholder="usuario@correo.com"
@@ -103,10 +105,10 @@ export default function RegisterForm() {
         />
 
         <TextField
-          label="Contraseña"
+          label={t("common.password")}
           type={showPassword ? "text" : "password"}
           id="password"
-          helperText="Mínimo 8 caracteres"
+          helperText={t("register.passwordHint")}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -116,7 +118,7 @@ export default function RegisterForm() {
             endAdornment: (
               <InputAdornment position="end">
                 <IconButton
-                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  aria-label={showPassword ? t("common.hidePassword") : t("common.showPassword")}
                   onClick={() => setShowPassword((p) => !p)}
                   edge="end"
                 >
@@ -128,13 +130,13 @@ export default function RegisterForm() {
         />
 
         <Button type="submit" variant="contained" color="primary" size="large" fullWidth>
-          Registrarse
+          {t("register.submit")}
         </Button>
 
         <Typography variant="body2" color="text.secondary" textAlign="center">
-          ¿Ya tienes cuenta?{" "}
+          {t("register.haveAccount")}{" "}
           <Link component={NextLink} href="/" color="primary" underline="hover">
-            Inicia sesión
+            {t("register.login")}
           </Link>
         </Typography>
       </Stack>

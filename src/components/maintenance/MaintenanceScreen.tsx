@@ -4,12 +4,14 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import AppMascot from "@/components/brand/AppMascot";
+import { usePreferences } from "@/context/preferencesContext";
 
 const bg = "#0a0c10";
 const primaryLight = "#a78bfa";
 const accent = "#c94b6d";
 
 export default function MaintenanceScreen() {
+  const { t } = usePreferences();
   return (
     <Box
       sx={{
@@ -53,10 +55,10 @@ export default function MaintenanceScreen() {
               color: "transparent",
             }}
           >
-            OVER APP en mantenimiento
+            {t("maintenance.title")}
           </Typography>
           <Typography variant="body1" sx={{ color: "rgba(255,255,255,0.72)", lineHeight: 1.65 }}>
-            Estamos mejorando la aplicación. En unos minutos debería volver a estar disponible.
+            {t("maintenance.body")}
           </Typography>
           <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block", mt: 1.5 }}>
             Si necesitas desactivar este mensaje, pon{" "}

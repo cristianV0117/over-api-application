@@ -9,6 +9,7 @@ import Stack from "@mui/material/Stack";
 import CloseIcon from "@mui/icons-material/Close";
 import IosShareIcon from "@mui/icons-material/IosShare";
 import AddBoxIcon from "@mui/icons-material/AddBox";
+import { usePreferences } from "@/context/preferencesContext";
 
 const STORAGE_KEY = "overapp-pwa-install-hint-dismissed";
 
@@ -25,6 +26,7 @@ function isStandalone(): boolean {
 }
 
 export default function InstallPWABanner() {
+  const { t } = usePreferences();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export default function InstallPWABanner() {
     >
       <IconButton
         size="small"
-        aria-label="Cerrar aviso"
+        aria-label={t("pwa.close")}
         onClick={() => {
           try {
             localStorage.setItem(STORAGE_KEY, "1");
@@ -72,19 +74,19 @@ export default function InstallPWABanner() {
         <IosShareIcon sx={{ color: "primary.light", mt: 0.25, flexShrink: 0 }} fontSize="small" />
         <Box>
           <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-            Instalar OVER en tu iPhone
+            {t("pwa.title")}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1, lineHeight: 1.5 }}>
-            Sin App Store: en Safari, pulsa{" "}
+            {t("pwa.body1")}{" "}
             <Box component="span" sx={{ color: "primary.light", fontWeight: 600 }}>
-              Compartir
+              {t("pwa.share")}
             </Box>{" "}
-            <IosShareIcon sx={{ fontSize: 16, verticalAlign: "text-bottom", mx: 0.25 }} /> y elige{" "}
+            <IosShareIcon sx={{ fontSize: 16, verticalAlign: "text-bottom", mx: 0.25 }} /> {t("pwa.body2")}{" "}
             <Box component="span" sx={{ color: "primary.light", fontWeight: 600 }}>
-              Añadir a pantalla de inicio
+              {t("pwa.addHome")}
             </Box>{" "}
             <AddBoxIcon sx={{ fontSize: 16, verticalAlign: "text-bottom", mx: 0.25 }} />.
-            Abre la web con HTTPS (producción).
+            {" "}{t("pwa.body3")}
           </Typography>
           <Button
             size="small"
@@ -98,7 +100,7 @@ export default function InstallPWABanner() {
               setVisible(false);
             }}
           >
-            Entendido
+            {t("pwa.ok")}
           </Button>
         </Box>
       </Stack>

@@ -29,7 +29,7 @@ export default function DashboardLayout({
           alignItems: "center",
           justifyContent: "center",
           minHeight: "100vh",
-          bgcolor: "#000000",
+          bgcolor: "background.default",
         }}
       >
         <CircularProgress color="primary" />
@@ -47,7 +47,7 @@ export default function DashboardLayout({
           flexDirection: "column",
           minHeight: "100vh",
           position: "relative",
-          bgcolor: "#000000",
+          bgcolor: "background.default",
         }}
       >
         <DashboardAmbientBackground />
