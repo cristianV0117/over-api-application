@@ -31,15 +31,18 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
+import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import DriveFileRenameOutlineOutlinedIcon from "@mui/icons-material/DriveFileRenameOutlineOutlined";
 import {
   breadcrumbPath,
   createDriveFolder,
   deleteDriveNode,
+  fetchDriveFileBlob,
   findNode,
+  isDriveImage,
   listDriveTree,
-  openDriveFile,
   renameDriveNode,
   uploadDriveFile,
   type DriveNode,
@@ -47,6 +50,9 @@ import {
 import { usePreferences } from "@/context/preferencesContext";
 
 const MAX_SIZE = 12 * 1024 * 1024;
+const ACCEPT_FILES =
+  "image/*,.heic,.heif,.jpg,.jpeg,.png,.webp,.gif,.bmp,.avif,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip";
+const ACCEPT_IMAGES = "image/*,.heic,.heif,.jpg,.jpeg,.png,.webp,.gif,.bmp,.avif";
 
 function formatSize(bytes: number | null): string {
   if (bytes == null) return "";
@@ -70,7 +76,7 @@ function FileGlyph({
   if (mime.includes("pdf") || name.endsWith(".pdf")) {
     return <PictureAsPdfOutlinedIcon sx={{ fontSize: size, color: "error.main" }} />;
   }
-  if (mime.startsWith("image/") || /\.(png|jpe?g|gif|webp)$/.test(name)) {
+  if (mime.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp|avif|heic|heif|tiff?)$/.test(name)) {
     return <ImageOutlinedIcon sx={{ fontSize: size, color: "info.main" }} />;
   }
   if (mime.includes("sheet") || mime.includes("excel") || /\.(xlsx?|csv)$/.test(name)) {
@@ -80,6 +86,67 @@ function FileGlyph({
     return <DescriptionOutlinedIcon sx={{ fontSize: size, color: "text.secondary" }} />;
   }
   return <InsertDriveFileOutlinedIcon sx={{ fontSize: size, color: "text.secondary" }} />;
+}
+
+function DriveImageThumb({ id, alt }: { id: string; alt: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    let cancelled = false;
+    fetchDriveFileBlob(id)
+      .then((blob) => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setUrl(objectUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [id]);
+
+  if (failed || !url) {
+    return (
+      <Box
+        sx={{
+          width: 72,
+          height: 72,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: 2,
+          bgcolor: "action.hover",
+        }}
+      >
+        {failed ? (
+          <ImageOutlinedIcon sx={{ fontSize: 32, color: "info.main" }} />
+        ) : (
+          <CircularProgress size={18} />
+        )}
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      component="img"
+      src={url}
+      alt={alt}
+      onError={() => setFailed(true)}
+      sx={{
+        width: 72,
+        height: 72,
+        objectFit: "cover",
+        borderRadius: 2,
+        bgcolor: "action.hover",
+      }}
+    />
+  );
 }
 
 function FolderTree({
@@ -165,6 +232,7 @@ function FolderTree({
 export default function ArchivosPage() {
   const { t } = usePreferences();
   const uploadRef = useRef<HTMLInputElement>(null);
+  const imageUploadRef = useRef<HTMLInputElement>(null);
   const [tree, setTree] = useState<DriveNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentId, setCurrentId] = useState<string | null>(null);
@@ -180,6 +248,10 @@ export default function ArchivosPage() {
   const [menu, setMenu] = useState<{
     anchor: HTMLElement;
     node: DriveNode;
+  } | null>(null);
+  const [preview, setPreview] = useState<{
+    node: DriveNode;
+    url: string;
   } | null>(null);
 
   const load = async () => {
@@ -297,7 +369,16 @@ export default function ArchivosPage() {
       return;
     }
     try {
-      await openDriveFile(node.id);
+      const blob = await fetchDriveFileBlob(node.id);
+      const url = URL.createObjectURL(blob);
+      if (isDriveImage(node)) {
+        setPreview((prev) => {
+          if (prev?.url) URL.revokeObjectURL(prev.url);
+          return { node, url };
+        });
+        return;
+      }
+      window.open(url, "_blank", "noopener,noreferrer");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("files.openFail"));
     }
@@ -320,7 +401,7 @@ export default function ArchivosPage() {
             {t("files.subtitle")}
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           <Button
             variant="outlined"
             startIcon={<CreateNewFolderOutlinedIcon />}
@@ -331,6 +412,14 @@ export default function ArchivosPage() {
             disabled={busy}
           >
             {t("files.newFolder")}
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<AddPhotoAlternateOutlinedIcon />}
+            onClick={() => imageUploadRef.current?.click()}
+            disabled={busy}
+          >
+            {t("files.uploadImage")}
           </Button>
           <Button
             variant="contained"
@@ -345,6 +434,18 @@ export default function ArchivosPage() {
             type="file"
             hidden
             multiple
+            accept={ACCEPT_FILES}
+            onChange={(e) => {
+              if (e.target.files) void handleUploadFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={imageUploadRef}
+            type="file"
+            hidden
+            multiple
+            accept={ACCEPT_IMAGES}
             onChange={(e) => {
               if (e.target.files) void handleUploadFiles(e.target.files);
               e.target.value = "";
@@ -513,7 +614,11 @@ export default function ArchivosPage() {
                     </IconButton>
                   </Box>
                   <Stack alignItems="center" spacing={1} sx={{ pb: 1 }}>
-                    <FileGlyph node={node} size={36} />
+                    {isDriveImage(node) ? (
+                      <DriveImageThumb id={node.id} alt={node.name} />
+                    ) : (
+                      <FileGlyph node={node} size={36} />
+                    )}
                     <Typography
                       variant="body2"
                       fontWeight={600}
@@ -640,6 +745,48 @@ export default function ArchivosPage() {
             {t("files.save")}
           </Button>
         </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(preview)}
+        onClose={() => {
+          if (preview?.url) URL.revokeObjectURL(preview.url);
+          setPreview(null);
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, pr: 1 }}>
+          <Typography component="span" fontWeight={700} noWrap sx={{ flex: 1 }}>
+            {preview?.node.name ?? t("files.preview")}
+          </Typography>
+          <IconButton
+            onClick={() => {
+              if (preview?.url) URL.revokeObjectURL(preview.url);
+              setPreview(null);
+            }}
+          >
+            <CloseOutlinedIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ display: "flex", justifyContent: "center", pb: 3 }}>
+          {preview && (
+            <Box
+              component="img"
+              src={preview.url}
+              alt={preview.node.name}
+              onError={() => {
+                window.open(preview.url, "_blank", "noopener,noreferrer");
+              }}
+              sx={{
+                maxWidth: "100%",
+                maxHeight: "75vh",
+                objectFit: "contain",
+                borderRadius: 2,
+              }}
+            />
+          )}
+        </DialogContent>
       </Dialog>
     </Box>
   );

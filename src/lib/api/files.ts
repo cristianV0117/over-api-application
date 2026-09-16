@@ -84,14 +84,28 @@ export async function deleteDriveNode(id: string): Promise<void> {
   if (!res.ok) throw new Error(await parseError(res, "Error al eliminar"));
 }
 
-export async function openDriveFile(id: string): Promise<void> {
+export async function fetchDriveFileBlob(id: string): Promise<Blob> {
   const res = await fetch(`${BASE}/files/${id}/download`, {
     headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error(await parseError(res, "No se pudo abrir el archivo"));
-  const blob = await res.blob();
+  return res.blob();
+}
+
+export async function openDriveFile(id: string): Promise<void> {
+  const blob = await fetchDriveFileBlob(id);
   const url = URL.createObjectURL(blob);
   window.open(url, "_blank", "noopener,noreferrer");
+}
+
+export function isDriveImage(node: DriveNode): boolean {
+  if (node.kind !== "file") return false;
+  const mime = (node.mimeType ?? "").toLowerCase();
+  const name = node.name.toLowerCase();
+  return (
+    mime.startsWith("image/") ||
+    /\.(png|jpe?g|gif|webp|bmp|avif|heic|heif|tiff?)$/.test(name)
+  );
 }
 
 export function findNode(
