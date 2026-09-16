@@ -149,7 +149,7 @@ export default function ProfilePage() {
                 <PhotoCamera fontSize="small" />
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   hidden
                   onChange={handleAvatarChange}
                 />

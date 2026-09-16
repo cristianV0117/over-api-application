@@ -19,8 +19,6 @@ export default function ResetPassword() {
       alert("Las contraseñas no coinciden.");
       return;
     }
-
-    console.log("Nueva contraseña:", password);
   };
 
   return (

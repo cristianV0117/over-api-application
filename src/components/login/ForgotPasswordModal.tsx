@@ -37,7 +37,7 @@ export default function ForgotPasswordModal({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email, name: "Usuario" }),
+          body: JSON.stringify({ email }),
         }
       );
 
