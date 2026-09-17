@@ -505,6 +505,7 @@ export type FinanceDebt = {
   name: string;
   creditor: string;
   balance: number;
+  paymentBaseBalance?: number | null;
   principal: number;
   interestRate: number;
   interestRateType: FinanceInterestRateType;
@@ -728,6 +729,8 @@ export type DebtForecastStep = {
   payment: number;
   interest: number;
   principal: number;
+  extraPrincipal?: number;
+  paid?: boolean;
   balance: number;
 };
 
@@ -772,6 +775,45 @@ export async function getDebtForecast(params?: {
   });
   if (!res.ok) throw new Error("Error al calcular el crédito");
   return res.json();
+}
+
+export async function upsertDebtPayment(
+  debtId: string,
+  data: { year: number; month: number; amount: number }
+): Promise<void> {
+  const res = await fetch(`${BASE}/finance/debts/${debtId}/payments`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const message = Array.isArray(err.message) ? err.message[0] : err.message;
+    throw new Error(message || "Error al registrar el pago");
+  }
+}
+
+export async function deleteDebtPayment(
+  debtId: string,
+  year: number,
+  month: number
+): Promise<void> {
+  const q = new URLSearchParams({
+    year: String(year),
+    month: String(month),
+  });
+  const res = await fetch(
+    `${BASE}/finance/debts/${debtId}/payments?${q}`,
+    {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    }
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const message = Array.isArray(err.message) ? err.message[0] : err.message;
+    throw new Error(message || "Error al eliminar el pago");
+  }
 }
 
 export function formatCop(amount: number): string {

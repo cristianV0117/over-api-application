@@ -5,7 +5,9 @@ import { toast } from "react-toastify";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import Checkbox from "@mui/material/Checkbox";
 import FormControl from "@mui/material/FormControl";
+import IconButton from "@mui/material/IconButton";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
@@ -18,18 +20,33 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import FinanceDebtsPanel from "@/components/contabilidad/FinanceDebtsPanel";
 import { usePreferences } from "@/context/preferencesContext";
 import { monthLabel } from "@/i18n";
 import { CreditForecastChart } from "@/components/contabilidad/InteractiveCharts";
 import {
+  deleteDebtPayment,
   formatCop,
   getDebtForecast,
   listFinanceDebts,
+  upsertDebtPayment,
   type DebtForecast,
+  type DebtForecastStep,
   type FinanceDebt,
 } from "@/lib/api/contabilidad";
+
+function parseMoney(raw: string): number {
+  return Number(raw.replace(/\./g, "").replace(/,/g, "")) || 0;
+}
+
+function parseYm(date: string): { year: number; month: number } | null {
+  const [year, month] = date.split("-").map(Number);
+  if (!year || !month) return null;
+  return { year, month };
+}
 
 function formatPayoff(
   isoMonth: string | null,
@@ -49,8 +66,10 @@ export default function CreditoPanel() {
   const [debtId, setDebtId] = useState("all");
   const [extra, setExtra] = useState("0");
   const [loading, setLoading] = useState(true);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [savingDate, setSavingDate] = useState<string | null>(null);
 
-  const extraNum = Number(extra.replace(/\./g, "").replace(/,/g, "")) || 0;
+  const extraNum = parseMoney(extra);
 
   const loadDebts = useCallback(async () => {
     setDebts(await listFinanceDebts());
@@ -112,6 +131,46 @@ export default function CreditoPanel() {
   const onChanged = async () => {
     await loadDebts();
     await loadForecast();
+  };
+
+  useEffect(() => {
+    setDrafts({});
+  }, [selected?.id]);
+
+  const savePayment = async (
+    row: DebtForecastStep,
+    amount: number,
+    cleared = false
+  ) => {
+    if (!selected) return;
+    const ym = parseYm(row.date);
+    if (!ym) return;
+    setSavingDate(row.date);
+    try {
+      if (cleared || amount <= 0) {
+        if (row.paid) {
+          await deleteDebtPayment(selected.id, ym.year, ym.month);
+          toast.success(t("credit.paymentCleared"));
+        }
+      } else {
+        await upsertDebtPayment(selected.id, {
+          year: ym.year,
+          month: ym.month,
+          amount,
+        });
+        toast.success(t("credit.paymentSaved"));
+      }
+      setDrafts((prev) => {
+        const next = { ...prev };
+        delete next[row.date];
+        return next;
+      });
+      await onChanged();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t("credit.paymentError"));
+    } finally {
+      setSavingDate(null);
+    }
   };
 
   return (
@@ -246,37 +305,120 @@ export default function CreditoPanel() {
                 {t("credit.scheduleTitle")}
                 {extraNum > 0 ? t("credit.plusExtra") : ""})
               </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+                sx={{ mb: 1 }}
+              >
+                {t("credit.scheduleHint")}
+              </Typography>
               <TableContainer sx={{ maxHeight: 420 }}>
                 <Table size="small" stickyHeader>
                   <TableHead>
                     <TableRow>
+                      <TableCell padding="checkbox">{t("credit.paid")}</TableCell>
                       <TableCell>#</TableCell>
                       <TableCell>Mes</TableCell>
-                      <TableCell align="right">Pago</TableCell>
-                      <TableCell align="right">Interés</TableCell>
-                      <TableCell align="right">Capital</TableCell>
-                      <TableCell align="right">Saldo</TableCell>
+                      <TableCell align="right">{t("credit.actualPayment")}</TableCell>
+                      <TableCell align="right">{t("credit.interest")}</TableCell>
+                      <TableCell align="right">{t("credit.principal")}</TableCell>
+                      <TableCell align="right">
+                        {t("credit.extraPrincipal")}
+                      </TableCell>
+                      <TableCell align="right">{t("credit.balance")}</TableCell>
+                      <TableCell />
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {selected.schedule.map((row) => (
-                      <TableRow key={row.month}>
-                        <TableCell>{row.month}</TableCell>
-                        <TableCell>{row.date}</TableCell>
-                        <TableCell align="right">
-                          {formatCop(row.payment)}
-                        </TableCell>
-                        <TableCell align="right">
-                          {formatCop(row.interest)}
-                        </TableCell>
-                        <TableCell align="right">
-                          {formatCop(row.principal)}
-                        </TableCell>
-                        <TableCell align="right">
-                          {formatCop(row.balance)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {selected.schedule.map((row) => {
+                      const paid = !!row.paid;
+                      const draft = drafts[row.date];
+                      const display =
+                        draft ?? (paid ? String(row.payment) : "");
+                      const extraCapital = row.extraPrincipal ?? 0;
+                      const busy = savingDate === row.date;
+                      return (
+                        <TableRow
+                          key={`${row.month}-${row.date}`}
+                          sx={{
+                            bgcolor: paid ? "action.selected" : undefined,
+                          }}
+                        >
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              checked={paid}
+                              disabled={busy}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  const amount =
+                                    parseMoney(display) ||
+                                    selected.installmentAmount;
+                                  void savePayment(row, amount);
+                                } else {
+                                  void savePayment(row, 0, true);
+                                }
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>{row.month}</TableCell>
+                          <TableCell>{row.date}</TableCell>
+                          <TableCell align="right" sx={{ minWidth: 140 }}>
+                            <TextField
+                              size="small"
+                              value={display}
+                              disabled={busy}
+                              placeholder={String(selected.installmentAmount)}
+                              onChange={(e) =>
+                                setDrafts((prev) => ({
+                                  ...prev,
+                                  [row.date]: e.target.value,
+                                }))
+                              }
+                              onBlur={() => {
+                                const amount = parseMoney(display);
+                                if (!paid && !amount) return;
+                                if (paid && amount === row.payment) return;
+                                if (amount > 0) void savePayment(row, amount);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key !== "Enter") return;
+                                (e.target as HTMLInputElement).blur();
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell align="right">
+                            {formatCop(row.interest)}
+                          </TableCell>
+                          <TableCell align="right">
+                            {formatCop(row.principal)}
+                          </TableCell>
+                          <TableCell align="right">
+                            {extraCapital > 0 ? formatCop(extraCapital) : "—"}
+                          </TableCell>
+                          <TableCell align="right">
+                            {formatCop(row.balance)}
+                          </TableCell>
+                          <TableCell>
+                            {paid ? (
+                              <Tooltip title={t("credit.clearPayment")}>
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    disabled={busy}
+                                    onClick={() =>
+                                      void savePayment(row, 0, true)
+                                    }
+                                  >
+                                    <DeleteOutlineIcon fontSize="small" />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            ) : null}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -294,6 +436,14 @@ export default function CreditoPanel() {
             <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle1" fontWeight={700} gutterBottom>
                 {t("credit.summary")}
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+                sx={{ mb: 1 }}
+              >
+                {t("credit.pickOne")}
               </Typography>
               <TableContainer>
                 <Table size="small">

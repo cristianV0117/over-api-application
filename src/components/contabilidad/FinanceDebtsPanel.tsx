@@ -366,6 +366,7 @@ export default function FinanceDebtsPanel({ debts, onChanged }: Props) {
                 type="number"
                 fullWidth
                 value={form.paidInstallments}
+                helperText="También se actualiza al marcar meses pagados en la tabla del crédito."
                 onChange={(e) =>
                   setForm((f) => ({ ...f, paidInstallments: e.target.value }))
                 }
