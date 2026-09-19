@@ -25,6 +25,8 @@ import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { certificationEntries, educationEntries, experienceEntries } from "./professionalData";
+import { featuredProjects } from "./featuredProjects";
+import FeaturedProjectCard from "./FeaturedProjectCard";
 
 const bg = "#060608";
 const accentFrom = "#6b2fb8";
@@ -556,20 +558,13 @@ export default function CristianDevPage() {
               <CardContent sx={{ p: 3 }}>
                 <Typography sx={sectionTitleSx}>🚀 Proyectos y aprendizaje</Typography>
                 <Typography variant="body2" sx={{ color: muted, lineHeight: 1.8, mb: 2 }}>
-                  🔭 Actualmente en{" "}
-                  <Link
-                    href="https://over-api-application-production.up.railway.app/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    sx={{
-                      color: "#f5b4ff",
-                      fontWeight: 600,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 0.5,
-                    }}
-                  >
-                    Over API App <LaunchIcon sx={{ fontSize: 16 }} />
+                  🔭 En producción:{" "}
+                  <Link href="#proyectos-propios" sx={{ color: "#f5b4ff", fontWeight: 600 }}>
+                    OVER APP
+                  </Link>
+                  {" · "}
+                  <Link href="#proyectos-propios" sx={{ color: "#f5b4ff", fontWeight: 600 }}>
+                    Gloomi
                   </Link>
                 </Typography>
                 <Typography variant="body2" sx={{ color: muted, lineHeight: 1.8 }}>
@@ -603,6 +598,19 @@ export default function CristianDevPage() {
                 </Stack>
               </CardContent>
             </Card>
+
+            <Box
+              id="proyectos-propios"
+              sx={{ gridColumn: { md: "span 12" }, display: "grid", gap: 2.5 }}
+            >
+              <Typography sx={{ ...sectionTitleSx, mb: 0 }}>🧪 Proyectos propios</Typography>
+              <Typography variant="body2" sx={{ color: muted, lineHeight: 1.7, mt: -1 }}>
+                Contexto, stack y una vista embebida. Si el iframe no carga (algunos hosts bloquean el embed), usá «Abrir proyecto».
+              </Typography>
+              {featuredProjects.map((project) => (
+                <FeaturedProjectCard key={project.id} project={project} />
+              ))}
+            </Box>
 
             <Card sx={{ ...bentoCardSx, gridColumn: { md: "span 12" } }}>
               <CardContent sx={{ p: 3 }}>
@@ -706,22 +714,27 @@ export default function CristianDevPage() {
                   />
                   <Box
                     component="img"
-                    src="https://github-readme-stats.vercel.app/api/top-langs/?username=cristianV0117&layout=compact&bg_color=0d1117&title_color=e8deff&text_color=c9d1d9&border_color=30363d"
-                    alt="Top lenguajes"
+                    src="https://github-stats-extended.vercel.app/api?username=cristianV0117&show_icons=true&hide_border=true&bg_color=0d1117&title_color=e8deff&text_color=c9d1d9&icon_color=bc6ff1&border_color=30363d"
+                    alt="Estadísticas de GitHub"
                     sx={{ maxWidth: "100%", height: "auto", borderRadius: 1 }}
                   />
                   <Box
                     component="img"
-                    src="https://github-readme-stats.vercel.app/api?username=cristianV0117&show_icons=true&bg_color=0d1117&title_color=e8deff&text_color=c9d1d9&icon_color=bc6ff1&border_color=30363d"
-                    alt="Estadísticas GitHub"
+                    src="https://github-stats-extended.vercel.app/api/top-langs/?username=cristianV0117&layout=compact&hide_border=true&bg_color=0d1117&title_color=e8deff&text_color=c9d1d9&border_color=30363d"
+                    alt="Lenguajes más usados"
                     sx={{ maxWidth: "100%", height: "auto", borderRadius: 1 }}
                   />
-                  <Box
-                    component="img"
-                    src="https://github-readme-activity-graph.vercel.app/graph?username=cristianV0117&theme=github-compact&bg_color=0d1117&color=c9d1d9&line=bc6ff1&point=e8deff"
-                    alt="Actividad en GitHub"
-                    sx={{ maxWidth: "100%", height: "auto", borderRadius: 1 }}
-                  />
+                  <Box sx={{ width: "100%", textAlign: "center" }}>
+                    <Typography variant="caption" sx={{ color: muted, display: "block", mb: 1 }}>
+                      Contribuciones
+                    </Typography>
+                    <Box
+                      component="img"
+                      src="https://ghchart.rshah.org/bc6ff1/cristianV0117"
+                      alt="Calendario de contribuciones en GitHub"
+                      sx={{ maxWidth: "100%", height: "auto" }}
+                    />
+                  </Box>
                 </Stack>
               </CardContent>
             </Card>
