@@ -11,6 +11,7 @@ const es = {
   "sidebar.cron": "Cron",
   "sidebar.vehicle": "Vehículo",
   "sidebar.files": "Archivos",
+  "sidebar.portfolio": "Portafolio",
   "sidebar.profile": "Perfil",
   "sidebar.settings": "Configuración",
   "sidebar.viewProfile": "Ver perfil",

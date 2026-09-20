@@ -13,6 +13,7 @@ const en: Record<MessageKey, string> = {
   "sidebar.cron": "Cron",
   "sidebar.vehicle": "Vehicle",
   "sidebar.files": "Files",
+  "sidebar.portfolio": "Portfolio",
   "sidebar.profile": "Profile",
   "sidebar.settings": "Settings",
   "sidebar.viewProfile": "View profile",
