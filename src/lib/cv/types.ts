@@ -24,6 +24,7 @@ export type CvTheme = {
   chipBg: string;
   chipText: string;
   fontFamily: string;
+  repeatSidebar?: boolean;
 };
 
 export type CvHeader = {
@@ -89,7 +90,7 @@ export const SECTION_TYPES: CvSectionType[] = [
   "custom",
 ];
 
-export const THEME_FIELDS: { key: keyof CvTheme; label: string }[] = [
+export const THEME_FIELDS: { key: Exclude<keyof CvTheme, "fontFamily" | "repeatSidebar">; label: string }[] = [
   { key: "sidebarBg", label: "Fondo barra" },
   { key: "sidebarText", label: "Texto barra" },
   { key: "sidebarMuted", label: "Texto suave barra" },

@@ -32,6 +32,7 @@ import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { formatDateRange, formatDuration } from "@/lib/cv/dates";
+import { compressProjectShot } from "@/lib/cv/photo";
 import { iconSvg, TECH_ICONS } from "@/lib/cv/techIcons";
 import type { CvColumn, CvSection } from "@/lib/cv/types";
 import { SECTION_LABELS } from "@/lib/cv/types";
@@ -431,7 +432,8 @@ type ProjectItem = {
   tagline: string;
   description: string;
   url: string;
-  embedUrl: string;
+  imageDataUrl?: string;
+  embedUrl?: string;
   tags?: string[];
 };
 
@@ -442,7 +444,7 @@ function emptyProject(): ProjectItem {
     tagline: "",
     description: "",
     url: "",
-    embedUrl: "",
+    imageDataUrl: "",
     tags: [],
   };
 }
@@ -463,8 +465,7 @@ function ProjectList({
   return (
     <Stack spacing={2}>
       <Typography variant="caption" color="text.secondary">
-        Arrastra para reordenar. El PDF muestra nombre, descripción, etiquetas y enlace. El iframe solo se ve aquí
-        (un PDF no puede incrustar una web).
+        Arrastra para reordenar. Sube una captura de la página; esa imagen es la que sale en el PDF.
       </Typography>
       <SortableRows
         items={items}
@@ -503,21 +504,49 @@ function ProjectList({
               value={item.url ?? ""}
               onChange={(e) => patch(i, { ...item, url: e.target.value })}
             />
-            <TextField
-              size="small"
-              label="URL para vista embebida (opcional)"
-              value={item.embedUrl ?? ""}
-              onChange={(e) => patch(i, { ...item, embedUrl: e.target.value })}
-            />
-            <TagInput tags={asTags(item.tags)} onChange={(tags) => patch(i, { ...item, tags })} />
-            {item.embedUrl ? (
+            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+              <Button component="label" variant="outlined" size="small">
+                {item.imageDataUrl ? "Cambiar captura" : "Agregar captura"}
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    void compressProjectShot(file)
+                      .then((imageDataUrl) => patch(i, { ...item, imageDataUrl }))
+                      .catch(() => undefined);
+                  }}
+                />
+              </Button>
+              {item.imageDataUrl ? (
+                <Button
+                  size="small"
+                  color="error"
+                  onClick={() => patch(i, { ...item, imageDataUrl: "" })}
+                >
+                  Quitar imagen
+                </Button>
+              ) : null}
+            </Stack>
+            {item.imageDataUrl ? (
               <Box
-                component="iframe"
-                src={item.embedUrl}
-                title={item.name || "Proyecto"}
-                sx={{ width: "100%", height: 180, border: 1, borderColor: "divider", borderRadius: 1 }}
+                component="img"
+                src={item.imageDataUrl}
+                alt={item.name || "Captura del proyecto"}
+                sx={{
+                  width: "100%",
+                  maxHeight: 160,
+                  objectFit: "cover",
+                  borderRadius: 1,
+                  border: 1,
+                  borderColor: "divider",
+                }}
               />
             ) : null}
+            <TagInput tags={asTags(item.tags)} onChange={(tags) => patch(i, { ...item, tags })} />
           </Stack>
         )}
       />

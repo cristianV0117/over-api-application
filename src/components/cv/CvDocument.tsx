@@ -34,11 +34,20 @@ function boldOf(family: string) {
   return family;
 }
 
-function stylesFor(theme: CvTheme, family: string) {
+function stylesFor(theme: CvTheme, family: string, repeat: boolean) {
   const bold = boldOf(family);
   const weight = family === "Helvetica" || family === "Courier" ? undefined : 700;
   return StyleSheet.create({
-    page: { fontSize: 9, fontFamily: family, paddingLeft: "32%" },
+    page: {
+      fontSize: 9,
+      fontFamily: family,
+      paddingTop: 40,
+      paddingBottom: 32,
+      paddingRight: repeat ? 22 : 0,
+      paddingLeft: repeat ? "32%" : 0,
+      backgroundColor: theme.pageBg,
+    },
+    bodyRow: { flexDirection: "row" },
     sidebarBg: {
       position: "absolute",
       left: 0,
@@ -52,15 +61,28 @@ function stylesFor(theme: CvTheme, family: string) {
       left: 0,
       top: 0,
       width: "32%",
-      paddingTop: 28,
+      paddingTop: 40,
       paddingHorizontal: 16,
       paddingBottom: 24,
       color: theme.sidebarText,
     },
+    sidebarFlow: {
+      width: "32%",
+      backgroundColor: theme.sidebarBg,
+      color: theme.sidebarText,
+      paddingTop: 40,
+      paddingHorizontal: 16,
+      paddingBottom: 32,
+      marginTop: -40,
+      marginBottom: -32,
+    },
     main: {
-      paddingTop: 28,
-      paddingHorizontal: 22,
-      paddingBottom: 24,
+      paddingLeft: 22,
+    },
+    mainFlow: {
+      width: "68%",
+      paddingLeft: 22,
+      paddingRight: 22,
     },
     photo: {
       width: 78,
@@ -152,6 +174,13 @@ function stylesFor(theme: CvTheme, family: string) {
     jobMeta: { fontSize: 7.5, color: theme.body, textAlign: "right", fontFamily: family },
     jobDesc: { fontSize: 8, color: theme.body, lineHeight: 1.4, marginTop: 4, fontFamily: family },
     jobBlock: { marginBottom: 12 },
+    projectShot: {
+      width: "100%",
+      height: 118,
+      objectFit: "cover",
+      marginTop: 6,
+      marginBottom: 4,
+    },
     eduTitle: { fontFamily: bold, fontWeight: weight, fontSize: 8, color: theme.sidebarText },
     link: { fontSize: 7.5, color: theme.heading, textDecoration: "none", marginTop: 2, fontFamily: family },
   });
@@ -330,12 +359,16 @@ function MainSection({
             tagline: string;
             description: string;
             url: string;
+            imageDataUrl?: string;
             tags?: string[];
           }>(c).map((project, i) => (
-            <View key={i} wrap={false} minPresenceAhead={72} style={s.jobBlock}>
+            <View key={i} wrap={false} minPresenceAhead={96} style={s.jobBlock}>
               <Text style={s.company}>{project.name}</Text>
               {project.role ? <Text style={s.jobRole}>{project.role}</Text> : null}
               {project.tagline ? <Text style={s.jobRole}>{project.tagline}</Text> : null}
+              {project.imageDataUrl ? (
+                <Image src={project.imageDataUrl} style={s.projectShot} />
+              ) : null}
               {project.description ? <Text style={s.jobDesc}>{project.description}</Text> : null}
               {project.url ? (
                 <Link src={project.url} style={s.link}>
@@ -370,7 +403,8 @@ export function CvPdfDocument({
   iconPngs?: Record<string, string>;
 }) {
   const family = fontFamilyOf(config.theme.fontFamily);
-  const s = stylesFor(config.theme, family);
+  const repeat = Boolean(config.theme.repeatSidebar);
+  const s = stylesFor(config.theme, family, repeat);
   const sidebar = config.sections
     .filter((x) => x.column === "sidebar" && x.visible)
     .sort((a, b) => a.order - b.order);
@@ -381,40 +415,61 @@ export function CvPdfDocument({
   const photo = h.showPhoto && h.photoDataUrl ? h.photoDataUrl : "";
   const locale = config.locale === "en" ? "en" : "es";
 
+  const sidebarInner = (
+    <>
+      {photo ? <Image src={photo} style={s.photo} /> : null}
+      {sidebar.map((section) => (
+        <SidebarSection
+          key={section.id}
+          section={section}
+          s={s}
+          accent={config.theme.accent}
+          iconPngs={iconPngs}
+        />
+      ))}
+    </>
+  );
+
+  const mainInner = (
+    <>
+      <View wrap={false}>
+        <Text style={s.name}>{h.fullName}</Text>
+        <Text style={s.role}>{h.role}</Text>
+        {h.location ? <Text style={s.contact}>{h.location}</Text> : null}
+        {h.phone ? <Text style={s.contact}>{h.phone}</Text> : null}
+        {h.email ? <Text style={s.contact}>{h.email}</Text> : null}
+      </View>
+      {main.map((section) => (
+        <MainSection
+          key={section.id}
+          section={section}
+          s={s}
+          iconPngs={iconPngs}
+          locale={locale}
+        />
+      ))}
+    </>
+  );
+
   return (
     <Document title={h.fullName || config.name} author={h.fullName}>
       <Page size="A4" wrap style={s.page}>
-        <View style={s.sidebarBg} fixed />
-        <View style={s.sidebar} fixed>
-          {photo ? <Image src={photo} style={s.photo} /> : null}
-          {sidebar.map((section) => (
-            <SidebarSection
-              key={section.id}
-              section={section}
-              s={s}
-              accent={config.theme.accent}
-              iconPngs={iconPngs}
-            />
-          ))}
-        </View>
-        <View style={s.main}>
-          <View wrap={false}>
-            <Text style={s.name}>{h.fullName}</Text>
-            <Text style={s.role}>{h.role}</Text>
-            {h.location ? <Text style={s.contact}>{h.location}</Text> : null}
-            {h.phone ? <Text style={s.contact}>{h.phone}</Text> : null}
-            {h.email ? <Text style={s.contact}>{h.email}</Text> : null}
+        {repeat ? (
+          <>
+            <View style={s.sidebarBg} fixed />
+            <View style={s.sidebar} fixed>
+              {sidebarInner}
+            </View>
+            <View style={s.main}>{mainInner}</View>
+          </>
+        ) : (
+          <View style={s.bodyRow}>
+            <View style={s.sidebarFlow} wrap={false}>
+              {sidebarInner}
+            </View>
+            <View style={s.mainFlow}>{mainInner}</View>
           </View>
-          {main.map((section) => (
-            <MainSection
-              key={section.id}
-              section={section}
-              s={s}
-              iconPngs={iconPngs}
-              locale={locale}
-            />
-          ))}
-        </View>
+        )}
       </Page>
     </Document>
   );

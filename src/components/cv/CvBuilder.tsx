@@ -267,6 +267,16 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
                 </Stack>
 
                 <style>{cvFontFaceCss()}</style>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={Boolean(theme.repeatSidebar)}
+                      onChange={(e) => setTheme({ ...theme, repeatSidebar: e.target.checked })}
+                    />
+                  }
+                  label="Repetir barra izquierda en todas las hojas"
+                />
+
                 <Typography variant="subtitle2">Tipo de letra</Typography>
                 <TextField
                   select
@@ -299,6 +309,7 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
                           setTheme({
                             ...palette.theme,
                             fontFamily: theme.fontFamily || palette.theme.fontFamily,
+                            repeatSidebar: theme.repeatSidebar,
                           })
                         }
                         sx={{ textTransform: "none", pr: 1.5 }}

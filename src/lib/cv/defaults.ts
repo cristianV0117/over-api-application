@@ -9,6 +9,7 @@ export function normalizeTheme(theme?: Partial<CvTheme> | null): CvTheme {
     ...DEFAULT_CV_THEME,
     ...theme,
     fontFamily: theme?.fontFamily || DEFAULT_CV_THEME.fontFamily,
+    repeatSidebar: Boolean(theme?.repeatSidebar),
   };
 }
 
@@ -67,7 +68,7 @@ export function emptyConfig(type: CvSectionType): Record<string, unknown> {
             tagline: "",
             description: "",
             url: "",
-            embedUrl: "",
+            imageDataUrl: "",
             tags: [],
           },
         ],
