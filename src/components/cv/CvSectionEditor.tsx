@@ -1,14 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import IconButton from "@mui/material/IconButton";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
+import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { formatDateRange, formatDuration } from "@/lib/cv/dates";
 import { iconSvg, TECH_ICONS } from "@/lib/cv/techIcons";
 import type { CvColumn, CvSection } from "@/lib/cv/types";
 import { SECTION_LABELS } from "@/lib/cv/types";
@@ -20,6 +25,11 @@ type Props = {
 
 function listOf<T>(value: unknown, fallback: T): T[] {
   return Array.isArray(value) ? (value as T[]) : [fallback];
+}
+
+function asTags(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((x) => String(x ?? "").trim()).filter(Boolean);
 }
 
 export default function CvSectionEditor({ section, onChange }: Props) {
@@ -88,17 +98,19 @@ export default function CvSectionEditor({ section, onChange }: Props) {
 
       {type === "education" && (
         <ItemList
-          items={listOf<{ title: string; place: string; year: string; detail: string }>(config.items, {
-            title: "",
-            place: "",
-            year: "",
-            detail: "",
-          })}
+          items={listOf<{
+            title: string;
+            institution: string;
+            place: string;
+            year: string;
+            detail: string;
+          }>(config.items, { title: "", institution: "", place: "", year: "", detail: "" })}
           onChange={(items) => setConfig("items", items)}
-          blank={{ title: "", place: "", year: "", detail: "" }}
+          blank={{ title: "", institution: "", place: "", year: "", detail: "" }}
           fields={[
-            { key: "title", label: "Título" },
-            { key: "place", label: "Lugar" },
+            { key: "title", label: "Título / carrera" },
+            { key: "institution", label: "Universidad" },
+            { key: "place", label: "Ciudad" },
             { key: "year", label: "Año" },
             { key: "detail", label: "Detalle", multiline: true },
           ]}
@@ -135,56 +147,310 @@ export default function CvSectionEditor({ section, onChange }: Props) {
 
       {type === "courses" && (
         <ItemList
-          items={listOf<{ title: string; date: string }>(config.items, { title: "", date: "" })}
+          items={listOf<{ title: string; provider: string; date: string }>(config.items, {
+            title: "",
+            provider: "",
+            date: "",
+          })}
           onChange={(items) => setConfig("items", items)}
-          blank={{ title: "", date: "" }}
+          blank={{ title: "", provider: "", date: "" }}
           fields={[
             { key: "title", label: "Curso" },
+            { key: "provider", label: "Plataforma (Udemy, CodelyTV…)" },
             { key: "date", label: "Fecha" },
           ]}
         />
       )}
 
       {type === "experience" && (
-        <ItemList
-          items={listOf<{
-            company: string;
-            role: string;
-            location: string;
-            start: string;
-            end: string;
-            duration: string;
-            description: string;
-          }>(config.items, {
-            company: "",
-            role: "",
-            location: "",
-            start: "",
-            end: "",
-            duration: "",
-            description: "",
-          })}
+        <ExperienceList
+          items={listOf<ExperienceItem>(config.items, emptyExperience())}
           onChange={(items) => setConfig("items", items)}
-          blank={{
-            company: "",
-            role: "",
-            location: "",
-            start: "",
-            end: "",
-            duration: "",
-            description: "",
-          }}
-          fields={[
-            { key: "company", label: "Empresa" },
-            { key: "role", label: "Cargo" },
-            { key: "location", label: "Lugar" },
-            { key: "start", label: "Inicio" },
-            { key: "end", label: "Fin" },
-            { key: "duration", label: "Duración" },
-            { key: "description", label: "Descripción", multiline: true },
-          ]}
         />
       )}
+
+      {type === "projects" && (
+        <ProjectList
+          items={listOf<ProjectItem>(config.items, emptyProject())}
+          onChange={(items) => setConfig("items", items)}
+        />
+      )}
+    </Stack>
+  );
+}
+
+type ExperienceItem = {
+  company: string;
+  role: string;
+  location: string;
+  startMonth?: string;
+  endMonth?: string;
+  current?: boolean;
+  start?: string;
+  end?: string;
+  duration?: string;
+  description: string;
+  tags?: string[];
+};
+
+function emptyExperience(): ExperienceItem {
+  return {
+    company: "",
+    role: "",
+    location: "",
+    startMonth: "",
+    endMonth: "",
+    current: false,
+    description: "",
+    tags: [],
+  };
+}
+
+function ExperienceList({
+  items,
+  onChange,
+}: {
+  items: ExperienceItem[];
+  onChange: (next: ExperienceItem[]) => void;
+}) {
+  const patch = (index: number, next: ExperienceItem) => {
+    const list = [...items];
+    list[index] = next;
+    onChange(list);
+  };
+
+  return (
+    <Stack spacing={2}>
+      {items.map((item, i) => {
+        const duration = formatDuration(item.startMonth, item.endMonth, Boolean(item.current));
+        const range = formatDateRange(
+          item.startMonth,
+          item.endMonth,
+          Boolean(item.current),
+          item.start,
+          item.end
+        );
+        return (
+          <Stack key={i} direction="row" spacing={1} alignItems="flex-start">
+            <Stack spacing={1} flex={1}>
+              <TextField
+                size="small"
+                label="Empresa"
+                value={item.company ?? ""}
+                onChange={(e) => patch(i, { ...item, company: e.target.value })}
+              />
+              <TextField
+                size="small"
+                label="Cargo"
+                value={item.role ?? ""}
+                onChange={(e) => patch(i, { ...item, role: e.target.value })}
+              />
+              <TextField
+                size="small"
+                label="Lugar"
+                value={item.location ?? ""}
+                onChange={(e) => patch(i, { ...item, location: e.target.value })}
+              />
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                <TextField
+                  size="small"
+                  type="month"
+                  label="Fecha de inicio"
+                  InputLabelProps={{ shrink: true }}
+                  value={item.startMonth ?? ""}
+                  onChange={(e) => patch(i, { ...item, startMonth: e.target.value })}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  size="small"
+                  type="month"
+                  label="Fecha de fin"
+                  InputLabelProps={{ shrink: true }}
+                  disabled={Boolean(item.current)}
+                  value={item.current ? "" : item.endMonth ?? ""}
+                  onChange={(e) => patch(i, { ...item, endMonth: e.target.value })}
+                  sx={{ flex: 1 }}
+                />
+              </Stack>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={Boolean(item.current)}
+                    onChange={(e) => patch(i, { ...item, current: e.target.checked })}
+                  />
+                }
+                label="Trabajo actualmente aquí"
+              />
+              {range || duration ? (
+                <Typography variant="caption" color="text.secondary">
+                  {range}
+                  {duration ? ` · ${duration}` : ""}
+                </Typography>
+              ) : (
+                <Typography variant="caption" color="text.secondary">
+                  Elige inicio y fin; la duración se calcula sola.
+                </Typography>
+              )}
+              <TextField
+                size="small"
+                label="Descripción"
+                multiline
+                minRows={3}
+                value={item.description ?? ""}
+                onChange={(e) => patch(i, { ...item, description: e.target.value })}
+              />
+              <TagInput tags={asTags(item.tags)} onChange={(tags) => patch(i, { ...item, tags })} />
+            </Stack>
+            <IconButton size="small" color="error" onClick={() => onChange(items.filter((_, j) => j !== i))}>
+              <DeleteOutlineIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+        );
+      })}
+      <Button size="small" startIcon={<AddIcon />} onClick={() => onChange([...items, emptyExperience()])}>
+        Agregar
+      </Button>
+    </Stack>
+  );
+}
+
+type ProjectItem = {
+  name: string;
+  role: string;
+  tagline: string;
+  description: string;
+  url: string;
+  embedUrl: string;
+  tags?: string[];
+};
+
+function emptyProject(): ProjectItem {
+  return {
+    name: "",
+    role: "",
+    tagline: "",
+    description: "",
+    url: "",
+    embedUrl: "",
+    tags: [],
+  };
+}
+
+function ProjectList({
+  items,
+  onChange,
+}: {
+  items: ProjectItem[];
+  onChange: (next: ProjectItem[]) => void;
+}) {
+  const patch = (index: number, next: ProjectItem) => {
+    const list = [...items];
+    list[index] = next;
+    onChange(list);
+  };
+
+  return (
+    <Stack spacing={2}>
+      <Typography variant="caption" color="text.secondary">
+        El PDF muestra nombre, descripción, etiquetas y enlace. El iframe solo se ve aquí en el editor (los PDF no
+        pueden incrustar páginas web).
+      </Typography>
+      {items.map((item, i) => (
+        <Stack key={i} direction="row" spacing={1} alignItems="flex-start">
+          <Stack spacing={1} flex={1}>
+            <TextField
+              size="small"
+              label="Nombre del proyecto"
+              value={item.name ?? ""}
+              onChange={(e) => patch(i, { ...item, name: e.target.value })}
+            />
+            <TextField
+              size="small"
+              label="Rol"
+              value={item.role ?? ""}
+              onChange={(e) => patch(i, { ...item, role: e.target.value })}
+            />
+            <TextField
+              size="small"
+              label="Frase corta"
+              value={item.tagline ?? ""}
+              onChange={(e) => patch(i, { ...item, tagline: e.target.value })}
+            />
+            <TextField
+              size="small"
+              label="Descripción"
+              multiline
+              minRows={3}
+              value={item.description ?? ""}
+              onChange={(e) => patch(i, { ...item, description: e.target.value })}
+            />
+            <TextField
+              size="small"
+              label="URL del proyecto"
+              value={item.url ?? ""}
+              onChange={(e) => patch(i, { ...item, url: e.target.value })}
+            />
+            <TextField
+              size="small"
+              label="URL para vista embebida (opcional)"
+              value={item.embedUrl ?? ""}
+              onChange={(e) => patch(i, { ...item, embedUrl: e.target.value })}
+            />
+            <TagInput tags={asTags(item.tags)} onChange={(tags) => patch(i, { ...item, tags })} />
+            {item.embedUrl ? (
+              <Box
+                component="iframe"
+                src={item.embedUrl}
+                title={item.name || "Proyecto"}
+                sx={{ width: "100%", height: 180, border: 1, borderColor: "divider", borderRadius: 1 }}
+              />
+            ) : null}
+          </Stack>
+          <IconButton size="small" color="error" onClick={() => onChange(items.filter((_, j) => j !== i))}>
+            <DeleteOutlineIcon fontSize="small" />
+          </IconButton>
+        </Stack>
+      ))}
+      <Button size="small" startIcon={<AddIcon />} onClick={() => onChange([...items, emptyProject()])}>
+        Agregar
+      </Button>
+    </Stack>
+  );
+}
+
+function TagInput({ tags, onChange }: { tags: string[]; onChange: (next: string[]) => void }) {
+  const [draft, setDraft] = useState("");
+
+  const add = (raw: string) => {
+    const value = raw.trim().replace(/,$/, "");
+    if (!value) return;
+    const exists = tags.some((tag) => tag.toLowerCase() === value.toLowerCase());
+    if (!exists) onChange([...tags, value]);
+    setDraft("");
+  };
+
+  return (
+    <Stack spacing={0.75}>
+      <TextField
+        size="small"
+        label="Etiquetas de tecnología"
+        placeholder="Escribe PHP y pulsa Enter"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === ",") {
+            e.preventDefault();
+            add(draft);
+          }
+        }}
+        onBlur={() => add(draft)}
+        helperText="Enter o coma para agregar"
+      />
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+        {tags.map((tag) => (
+          <Chip key={tag} size="small" label={tag} onDelete={() => onChange(tags.filter((x) => x !== tag))} />
+        ))}
+      </Box>
     </Stack>
   );
 }

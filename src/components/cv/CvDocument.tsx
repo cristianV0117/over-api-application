@@ -1,10 +1,11 @@
 "use client";
 
-import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Image, Link, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { formatDateRange, jobDuration } from "@/lib/cv/dates";
 import { fontFamilyOf } from "@/lib/cv/fonts";
 import type { CvConfig, CvSection, CvTheme } from "@/lib/cv/types";
 
-function asItems<T extends Record<string, string>>(config: Record<string, unknown>): T[] {
+function asItems<T>(config: Record<string, unknown>): T[] {
   if (!Array.isArray(config.items)) return [];
   return config.items as T[];
 }
@@ -21,6 +22,11 @@ function asIconIds(config: Record<string, unknown>): string[] {
   return config.items.map((x) => String(x ?? "")).filter(Boolean);
 }
 
+function asTags(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((x) => String(x ?? "").trim()).filter(Boolean);
+}
+
 function boldOf(family: string) {
   if (family === "Helvetica") return "Helvetica-Bold";
   if (family === "Times-Roman") return "Times-Bold";
@@ -32,18 +38,26 @@ function stylesFor(theme: CvTheme, family: string) {
   const bold = boldOf(family);
   const weight = family === "Helvetica" || family === "Courier" ? undefined : 700;
   return StyleSheet.create({
-    page: { flexDirection: "row", fontSize: 9, fontFamily: family },
-    sidebar: {
+    page: { fontSize: 9, fontFamily: family, paddingLeft: "32%" },
+    sidebarBg: {
+      position: "absolute",
+      left: 0,
+      top: 0,
+      bottom: 0,
       width: "32%",
       backgroundColor: theme.sidebarBg,
-      color: theme.sidebarText,
+    },
+    sidebar: {
+      position: "absolute",
+      left: 0,
+      top: 0,
+      width: "32%",
       paddingTop: 28,
       paddingHorizontal: 16,
       paddingBottom: 24,
+      color: theme.sidebarText,
     },
     main: {
-      width: "68%",
-      backgroundColor: theme.pageBg,
       paddingTop: 28,
       paddingHorizontal: 22,
       paddingBottom: 24,
@@ -75,6 +89,19 @@ function stylesFor(theme: CvTheme, family: string) {
       letterSpacing: 0.4,
       textTransform: "uppercase",
       paddingVertical: 3,
+      paddingHorizontal: 5,
+      marginRight: 3,
+      marginBottom: 3,
+      fontFamily: family,
+    },
+    tagChip: {
+      borderWidth: 0.6,
+      borderColor: theme.heading,
+      color: theme.heading,
+      fontSize: 6.5,
+      letterSpacing: 0.3,
+      textTransform: "uppercase",
+      paddingVertical: 2,
       paddingHorizontal: 5,
       marginRight: 3,
       marginBottom: 3,
@@ -113,7 +140,7 @@ function stylesFor(theme: CvTheme, family: string) {
       marginBottom: 10,
       marginTop: 14,
     },
-    jobHead: { flexDirection: "row", justifyContent: "space-between" },
+    jobHead: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
     company: {
       fontSize: 9,
       fontFamily: bold,
@@ -123,9 +150,24 @@ function stylesFor(theme: CvTheme, family: string) {
     },
     jobRole: { fontSize: 8, color: theme.body, marginTop: 1, fontFamily: family },
     jobMeta: { fontSize: 7.5, color: theme.body, textAlign: "right", fontFamily: family },
-    jobDesc: { fontSize: 8, color: theme.body, lineHeight: 1.4, marginTop: 4, marginBottom: 10, fontFamily: family },
+    jobDesc: { fontSize: 8, color: theme.body, lineHeight: 1.4, marginTop: 4, fontFamily: family },
+    jobBlock: { marginBottom: 12 },
     eduTitle: { fontFamily: bold, fontWeight: weight, fontSize: 8, color: theme.sidebarText },
+    link: { fontSize: 7.5, color: theme.heading, textDecoration: "none", marginTop: 2, fontFamily: family },
   });
+}
+
+function TagRow({ tags, style }: { tags: string[]; style: ReturnType<typeof stylesFor>["tagChip"] }) {
+  if (!tags.length) return null;
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 5 }}>
+      {tags.map((tag) => (
+        <Text key={tag} style={style}>
+          {tag}
+        </Text>
+      ))}
+    </View>
+  );
 }
 
 function SidebarSection({
@@ -141,14 +183,14 @@ function SidebarSection({
 }) {
   const c = section.config;
   return (
-    <View>
+    <View wrap={false} minPresenceAhead={28}>
       <Text style={s.sideTitle}>{section.title}</Text>
       {section.type === "about" || section.type === "custom" ? (
         <Text style={s.sideText}>{String(c.text ?? "")}</Text>
       ) : null}
       {section.type === "personal"
         ? asItems<{ label: string; value: string }>(c).map((item, i) => (
-            <View key={i} style={{ marginBottom: 6 }}>
+            <View key={i} style={{ marginBottom: 6 }} wrap={false}>
               <Text style={[s.sideText, { color: accent }]}>{item.label}</Text>
               <Text style={s.sideText}>{item.value}</Text>
             </View>
@@ -156,19 +198,25 @@ function SidebarSection({
         : null}
       {section.type === "links"
         ? asItems<{ label: string; url: string }>(c).map((item, i) => (
-            <View key={i} style={{ marginBottom: 5 }}>
+            <View key={i} style={{ marginBottom: 5 }} wrap={false}>
               <Text style={s.sideText}>{item.label}</Text>
               <Text style={s.sideText}>{item.url}</Text>
             </View>
           ))
         : null}
       {section.type === "education"
-        ? asItems<{ title: string; place: string; year: string; detail: string }>(c).map((item, i) => (
-            <View key={i} style={{ marginBottom: 8 }}>
-              <Text style={s.eduTitle}>
-                {item.title}
-                {item.place ? ` / ${item.place}` : ""}
-                {item.year ? ` / ${item.year}` : ""}
+        ? asItems<{
+            title: string;
+            institution?: string;
+            place: string;
+            year: string;
+            detail: string;
+          }>(c).map((item, i) => (
+            <View key={i} style={{ marginBottom: 8 }} wrap={false}>
+              <Text style={s.eduTitle}>{item.title}</Text>
+              {item.institution ? <Text style={s.sideText}>{item.institution}</Text> : null}
+              <Text style={s.sideText}>
+                {[item.place, item.year].filter(Boolean).join(" · ")}
               </Text>
               {item.detail ? <Text style={s.sideText}>{item.detail}</Text> : null}
             </View>
@@ -201,10 +249,12 @@ function SidebarSection({
           ))
         : null}
       {section.type === "courses"
-        ? asItems<{ title: string; date: string }>(c).map((item, i) => (
-            <View key={i} style={{ marginBottom: 6, flexDirection: "row", justifyContent: "space-between" }}>
-              <Text style={[s.sideText, { flex: 1, textTransform: "uppercase", fontSize: 7 }]}>{item.title}</Text>
-              <Text style={[s.sideText, { fontSize: 7 }]}>{item.date}</Text>
+        ? asItems<{ title: string; provider?: string; date: string }>(c).map((item, i) => (
+            <View key={i} style={{ marginBottom: 6 }} wrap={false}>
+              <Text style={[s.sideText, { textTransform: "uppercase", fontSize: 7 }]}>{item.title}</Text>
+              <Text style={[s.sideText, { fontSize: 7 }]}>
+                {[item.provider, item.date].filter(Boolean).join(" · ")}
+              </Text>
             </View>
           ))
         : null}
@@ -216,42 +266,83 @@ function MainSection({
   section,
   s,
   iconPngs,
+  locale,
 }: {
   section: CvSection;
   s: ReturnType<typeof stylesFor>;
   iconPngs: Record<string, string>;
+  locale: "es" | "en";
 }) {
   const c = section.config;
   return (
     <View>
-      <Text style={s.mainTitle}>{section.title}</Text>
+      <Text style={s.mainTitle} minPresenceAhead={56}>
+        {section.title}
+      </Text>
       {section.type === "experience"
         ? asItems<{
             company: string;
             role: string;
             location: string;
-            start: string;
-            end: string;
-            duration: string;
+            startMonth?: string;
+            endMonth?: string;
+            current?: boolean;
+            start?: string;
+            end?: string;
+            duration?: string;
             description: string;
-          }>(c).map((job, i) => (
-            <View key={i} wrap={false}>
-              <View style={s.jobHead}>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.company}>
-                    {job.company}
-                    {job.role ? `   ${job.role}` : ""}
-                  </Text>
-                  {job.location ? <Text style={s.jobRole}>{job.location}</Text> : null}
+            tags?: string[];
+          }>(c).map((job, i) => {
+            const range = formatDateRange(
+              job.startMonth,
+              job.endMonth,
+              Boolean(job.current),
+              job.start,
+              job.end,
+              locale
+            );
+            const duration = jobDuration(job, locale);
+            return (
+              <View key={i} wrap={false} minPresenceAhead={72} style={s.jobBlock}>
+                <View style={s.jobHead}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.company}>
+                      {job.company}
+                      {job.role ? `   ${job.role}` : ""}
+                    </Text>
+                    {job.location ? <Text style={s.jobRole}>{job.location}</Text> : null}
+                  </View>
+                  <View>
+                    {range ? <Text style={s.jobMeta}>{range}</Text> : null}
+                    {duration ? <Text style={s.jobMeta}>{duration}</Text> : null}
+                  </View>
                 </View>
-                <View>
-                  <Text style={s.jobMeta}>
-                    {[job.start, job.end].filter(Boolean).join(" - ")}
-                  </Text>
-                  {job.duration ? <Text style={s.jobMeta}>{job.duration}</Text> : null}
-                </View>
+                {job.description ? <Text style={s.jobDesc}>{job.description}</Text> : null}
+                <TagRow tags={asTags(job.tags)} style={s.tagChip} />
               </View>
-              {job.description ? <Text style={s.jobDesc}>{job.description}</Text> : null}
+            );
+          })
+        : null}
+      {section.type === "projects"
+        ? asItems<{
+            name: string;
+            role: string;
+            tagline: string;
+            description: string;
+            url: string;
+            tags?: string[];
+          }>(c).map((project, i) => (
+            <View key={i} wrap={false} minPresenceAhead={72} style={s.jobBlock}>
+              <Text style={s.company}>{project.name}</Text>
+              {project.role ? <Text style={s.jobRole}>{project.role}</Text> : null}
+              {project.tagline ? <Text style={s.jobRole}>{project.tagline}</Text> : null}
+              {project.description ? <Text style={s.jobDesc}>{project.description}</Text> : null}
+              {project.url ? (
+                <Link src={project.url} style={s.link}>
+                  {project.url.replace(/^https?:\/\//, "")}
+                </Link>
+              ) : null}
+              <TagRow tags={asTags(project.tags)} style={s.tagChip} />
             </View>
           ))
         : null}
@@ -288,11 +379,13 @@ export function CvPdfDocument({
     .sort((a, b) => a.order - b.order);
   const h = config.header;
   const photo = h.showPhoto && h.photoDataUrl ? h.photoDataUrl : "";
+  const locale = config.locale === "en" ? "en" : "es";
 
   return (
     <Document title={h.fullName || config.name} author={h.fullName}>
-      <Page size="A4" style={s.page}>
-        <View style={s.sidebar}>
+      <Page size="A4" wrap style={s.page}>
+        <View style={s.sidebarBg} fixed />
+        <View style={s.sidebar} fixed>
           {photo ? <Image src={photo} style={s.photo} /> : null}
           {sidebar.map((section) => (
             <SidebarSection
@@ -305,13 +398,21 @@ export function CvPdfDocument({
           ))}
         </View>
         <View style={s.main}>
-          <Text style={s.name}>{h.fullName}</Text>
-          <Text style={s.role}>{h.role}</Text>
-          {h.location ? <Text style={s.contact}>{h.location}</Text> : null}
-          {h.phone ? <Text style={s.contact}>{h.phone}</Text> : null}
-          {h.email ? <Text style={s.contact}>{h.email}</Text> : null}
+          <View wrap={false}>
+            <Text style={s.name}>{h.fullName}</Text>
+            <Text style={s.role}>{h.role}</Text>
+            {h.location ? <Text style={s.contact}>{h.location}</Text> : null}
+            {h.phone ? <Text style={s.contact}>{h.phone}</Text> : null}
+            {h.email ? <Text style={s.contact}>{h.email}</Text> : null}
+          </View>
           {main.map((section) => (
-            <MainSection key={section.id} section={section} s={s} iconPngs={iconPngs} />
+            <MainSection
+              key={section.id}
+              section={section}
+              s={s}
+              iconPngs={iconPngs}
+              locale={locale}
+            />
           ))}
         </View>
       </Page>

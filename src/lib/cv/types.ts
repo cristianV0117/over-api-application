@@ -7,6 +7,7 @@ export type CvSectionType =
   | "languages"
   | "courses"
   | "experience"
+  | "projects"
   | "icons"
   | "custom";
 
@@ -69,6 +70,7 @@ export const SECTION_LABELS: Record<CvSectionType, string> = {
   languages: "Idiomas",
   courses: "Cursos",
   experience: "Experiencia laboral",
+  projects: "Proyectos",
   icons: "Iconos tech",
   custom: "Texto libre",
 };
@@ -82,6 +84,7 @@ export const SECTION_TYPES: CvSectionType[] = [
   "languages",
   "courses",
   "experience",
+  "projects",
   "icons",
   "custom",
 ];

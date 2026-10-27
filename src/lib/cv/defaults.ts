@@ -34,7 +34,7 @@ export function emptyConfig(type: CvSectionType): Record<string, unknown> {
     case "links":
       return { items: [{ label: "", url: "" }] };
     case "education":
-      return { items: [{ title: "", place: "", year: "", detail: "" }] };
+      return { items: [{ title: "", institution: "", place: "", year: "", detail: "" }] };
     case "skills":
       return { items: [""] };
     case "icons":
@@ -42,7 +42,7 @@ export function emptyConfig(type: CvSectionType): Record<string, unknown> {
     case "languages":
       return { items: [{ name: "", level: "" }] };
     case "courses":
-      return { items: [{ title: "", date: "" }] };
+      return { items: [{ title: "", provider: "", date: "" }] };
     case "experience":
       return {
         items: [
@@ -50,10 +50,25 @@ export function emptyConfig(type: CvSectionType): Record<string, unknown> {
             company: "",
             role: "",
             location: "",
-            start: "",
-            end: "",
-            duration: "",
+            startMonth: "",
+            endMonth: "",
+            current: false,
             description: "",
+            tags: [],
+          },
+        ],
+      };
+    case "projects":
+      return {
+        items: [
+          {
+            name: "",
+            role: "",
+            tagline: "",
+            description: "",
+            url: "",
+            embedUrl: "",
+            tags: [],
           },
         ],
       };
@@ -63,7 +78,7 @@ export function emptyConfig(type: CvSectionType): Record<string, unknown> {
 }
 
 export function defaultColumn(type: CvSectionType): CvColumn {
-  return type === "experience" ? "main" : "sidebar";
+  return type === "experience" || type === "projects" ? "main" : "sidebar";
 }
 
 export function createSection(type: CvSectionType, existing: CvSection[]): CvSection {
