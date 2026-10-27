@@ -81,7 +81,7 @@ function stylesFor(theme: CvTheme, family: string) {
       fontFamily: family,
     },
     iconRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 4 },
-    icon: { width: 14, height: 14, marginRight: 6, marginBottom: 6 },
+    icon: { width: 18, height: 18, marginRight: 7, marginBottom: 7 },
     name: {
       fontSize: 18,
       fontFamily: bold,
@@ -141,7 +141,7 @@ function SidebarSection({
 }) {
   const c = section.config;
   return (
-    <View wrap={false}>
+    <View>
       <Text style={s.sideTitle}>{section.title}</Text>
       {section.type === "about" || section.type === "custom" ? (
         <Text style={s.sideText}>{String(c.text ?? "")}</Text>

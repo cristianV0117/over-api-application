@@ -138,8 +138,19 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
         Volver a mis CVs
       </Button>
 
-      <Stack direction={{ xs: "column", lg: "row" }} spacing={2} alignItems="stretch">
-        <Stack spacing={2} flex={live ? 1 : 1} minWidth={0}>
+      <Box
+        sx={{
+          display: "grid",
+          gap: 2,
+          alignItems: "start",
+          gridTemplateColumns: {
+            xs: "1fr",
+            lg: live ? "minmax(0, 1fr) minmax(0, 1fr)" : "1fr",
+            xl: live ? "minmax(0, 0.9fr) minmax(640px, 1.2fr)" : "1fr",
+          },
+        }}
+      >
+        <Stack spacing={2} minWidth={0}>
           <Card variant="outlined">
             <CardContent>
               <Stack spacing={2}>
@@ -406,11 +417,19 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
         </Stack>
 
         {live ? (
-          <Box sx={{ width: { xs: "100%", lg: 420 }, flexShrink: 0, minHeight: 640 }}>
-            <CvPreview config={snapshot} height={640} />
+          <Box
+            sx={{
+              position: { lg: "sticky" },
+              top: { lg: 16 },
+              height: { xs: "min(90vh, 1100px)", lg: "calc(100dvh - 140px)" },
+              minHeight: { xs: 640, lg: 760 },
+              width: "100%",
+            }}
+          >
+            <CvPreview config={snapshot} height="100%" />
           </Box>
         ) : null}
-      </Stack>
+      </Box>
     </Stack>
   );
 }

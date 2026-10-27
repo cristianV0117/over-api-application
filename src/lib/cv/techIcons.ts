@@ -72,34 +72,7 @@ export const TECH_ICONS_BY_ID = Object.fromEntries(TECH_ICONS.map((i) => [i.id, 
 
 export function iconSvg(def: TechIconDef, fill?: string) {
   const color = fill || def.hex;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="${color}" d="${def.path}"/></svg>`;
-}
-
-export function svgToPngDataUrl(svg: string, size = 64): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        URL.revokeObjectURL(url);
-        reject(new Error("canvas"));
-        return;
-      }
-      ctx.drawImage(img, 0, 0, size, size);
-      URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL("image/png"));
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("svg"));
-    };
-    img.src = url;
-  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="${color}" d="${def.path}"/></svg>`;
 }
 
 const pngCache = new Map<string, string>();
@@ -113,19 +86,32 @@ export function isDarkHex(hex: string) {
   return 0.299 * r + 0.587 * g + 0.114 * b < 160;
 }
 
-export async function techIconPng(id: string, light = true): Promise<string | null> {
+function drawIconPng(def: TechIconDef, fill: string, size = 128): string | null {
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.scale(size / 24, size / 24);
+  ctx.fillStyle = fill;
+  ctx.fill(new Path2D(def.path));
+  return canvas.toDataURL("image/png");
+}
+
+export function techIconPng(id: string, light = true): string | null {
   const def = TECH_ICONS_BY_ID[id];
   if (!def) return null;
   const key = `${id}:${light ? "l" : "d"}`;
   const hit = pngCache.get(key);
   if (hit) return hit;
   const fill = light ? "#FFFFFF" : def.hex;
-  const png = await svgToPngDataUrl(iconSvg(def, fill), 96);
+  const png = drawIconPng(def, fill);
+  if (!png) return null;
   pngCache.set(key, png);
   return png;
 }
 
-export async function resolveTechIconPngs(config: {
+export function resolveTechIconPngs(config: {
   theme: { sidebarBg: string };
   sections: {
     id: string;
@@ -134,22 +120,23 @@ export async function resolveTechIconPngs(config: {
     visible: boolean;
     config: Record<string, unknown>;
   }[];
-}): Promise<Record<string, string>> {
+}): Record<string, string> {
   const out: Record<string, string> = {};
   const sidebarLight = isDarkHex(config.theme.sidebarBg);
-  await Promise.all(
-    config.sections
-      .filter((section) => section.type === "icons" && section.visible)
-      .flatMap((section) => {
-        const items = Array.isArray(section.config.items)
-          ? section.config.items.map((x) => String(x ?? "")).filter(Boolean)
-          : [];
-        const light = section.column === "sidebar" ? sidebarLight : false;
-        return items.map(async (id) => {
-          const png = await techIconPng(id, light);
-          if (png) out[`${section.id}:${id}`] = png;
-        });
-      })
-  );
+  for (const section of config.sections) {
+    if (section.type !== "icons" || !section.visible) continue;
+    const items = Array.isArray(section.config.items)
+      ? section.config.items.map((x) => String(x ?? "")).filter(Boolean)
+      : [];
+    const light = section.column === "sidebar" ? sidebarLight : false;
+    for (const id of items) {
+      try {
+        const png = techIconPng(id, light);
+        if (png) out[`${section.id}:${id}`] = png;
+      } catch {
+        /* un icono no debe tumbar el PDF */
+      }
+    }
+  }
   return out;
 }

@@ -41,22 +41,35 @@ export function cvFontFaceCss() {
     .join("");
 }
 
-let registered = false;
+let fontsReady: Promise<void> | null = null;
 
-export function ensureCvFonts() {
-  if (registered || typeof window === "undefined") return;
-  registered = true;
-  for (const font of CV_FONTS) {
-    if (font.builtIn || !font.regular || !font.bold) continue;
-    const origin = window.location.origin;
-    Font.register({
-      family: font.family,
-      fonts: [
-        { src: `${origin}${font.regular}`, fontWeight: 400 },
-        { src: `${origin}${font.bold}`, fontWeight: 700 },
-      ],
+export function ensureCvFonts(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (!fontsReady) {
+    fontsReady = (async () => {
+      const origin = window.location.origin;
+      for (const font of CV_FONTS) {
+        if (font.builtIn || !font.regular || !font.bold) continue;
+        Font.register({
+          family: font.family,
+          fonts: [
+            { src: `${origin}${font.regular}`, fontWeight: 400 },
+            { src: `${origin}${font.bold}`, fontWeight: 700 },
+          ],
+        });
+      }
+      await Promise.all(
+        CV_FONTS.filter((font) => !font.builtIn).flatMap((font) => [
+          Font.load({ fontFamily: font.family, fontWeight: 400 }),
+          Font.load({ fontFamily: font.family, fontWeight: 700 }),
+        ])
+      );
+    })().catch((error) => {
+      fontsReady = null;
+      throw error;
     });
   }
+  return fontsReady;
 }
 
 export function fontFamilyOf(id: string | undefined): string {

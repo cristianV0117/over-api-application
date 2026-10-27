@@ -20,7 +20,10 @@ function payloadOf(config: CvConfig) {
   return JSON.stringify({
     name: config.name,
     theme: config.theme,
-    header: config.header,
+    header: {
+      ...config.header,
+      photoDataUrl: config.header.photoDataUrl ? `len:${config.header.photoDataUrl.length}` : "",
+    },
     sections: config.sections,
   });
 }
@@ -39,9 +42,9 @@ function CvPreview({ config, height = "100%" }: Props) {
     const timer = window.setTimeout(() => {
       void (async () => {
         try {
-          ensureCvFonts();
+          await ensureCvFonts();
           const current = configRef.current;
-          const iconPngs = await resolveTechIconPngs(current);
+          const iconPngs = resolveTechIconPngs(current);
           const blob = await pdf(<CvPdfDocument config={current} iconPngs={iconPngs} />).toBlob();
           if (gen !== genRef.current) return;
           const next = URL.createObjectURL(blob);
@@ -49,11 +52,11 @@ function CvPreview({ config, height = "100%" }: Props) {
           urlRef.current = next;
           setUrl(next);
           if (prev) window.setTimeout(() => URL.revokeObjectURL(prev), 1500);
-        } catch {
-          /* el visor conserva el PDF anterior */
+        } catch (error) {
+          console.error("No se pudo generar el PDF del CV", error);
         }
       })();
-    }, 550);
+    }, 350);
     return () => window.clearTimeout(timer);
   }, [payload]);
 
@@ -69,8 +72,8 @@ function CvPreview({ config, height = "100%" }: Props) {
     .replace(/\s+/g, "-")}.pdf`;
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height, minHeight: 480 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height, minHeight: 0 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1, gap: 1 }}>
         <Typography variant="caption" color="text.secondary">
           Vista previa en tiempo real
         </Typography>
@@ -92,21 +95,23 @@ function CvPreview({ config, height = "100%" }: Props) {
           overflow: "hidden",
           border: 1,
           borderColor: "divider",
-          bgcolor: "grey.200",
+          bgcolor: "grey.300",
           position: "relative",
         }}
       >
         {url ? (
           <Box
             component="iframe"
+            key={url}
             title="Vista previa del CV"
-            src={url}
+            src={`${url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
             sx={{
               position: "absolute",
               inset: 0,
               width: "100%",
               height: "100%",
               border: 0,
+              bgcolor: "grey.300",
             }}
           />
         ) : (
