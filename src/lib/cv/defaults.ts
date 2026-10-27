@@ -1,5 +1,28 @@
-import type { CvColumn, CvSection, CvSectionType } from "./types";
+import { CV_PALETTES } from "./palettes";
+import type { CvColumn, CvHeader, CvSection, CvSectionType, CvTheme } from "./types";
 import { SECTION_LABELS } from "./types";
+
+export const DEFAULT_CV_THEME: CvTheme = { ...CV_PALETTES[0].theme };
+
+export function normalizeTheme(theme?: Partial<CvTheme> | null): CvTheme {
+  return {
+    ...DEFAULT_CV_THEME,
+    ...theme,
+    fontFamily: theme?.fontFamily || DEFAULT_CV_THEME.fontFamily,
+  };
+}
+
+export function normalizeHeader(header?: Partial<CvHeader> | null): CvHeader {
+  return {
+    fullName: header?.fullName ?? "",
+    role: header?.role ?? "",
+    location: header?.location ?? "",
+    phone: header?.phone ?? "",
+    email: header?.email ?? "",
+    photoDataUrl: header?.photoDataUrl ?? "",
+    showPhoto: Boolean(header?.showPhoto),
+  };
+}
 
 export function emptyConfig(type: CvSectionType): Record<string, unknown> {
   switch (type) {
@@ -14,6 +37,8 @@ export function emptyConfig(type: CvSectionType): Record<string, unknown> {
       return { items: [{ title: "", place: "", year: "", detail: "" }] };
     case "skills":
       return { items: [""] };
+    case "icons":
+      return { items: ["php", "js", "ts", "mysql"] };
     case "languages":
       return { items: [{ name: "", level: "" }] };
     case "courses":

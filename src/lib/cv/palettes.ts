@@ -1,0 +1,138 @@
+import type { CvTheme } from "./types";
+
+export type CvPalette = {
+  id: string;
+  name: string;
+  theme: CvTheme;
+};
+
+export const CV_PALETTES: CvPalette[] = [
+  {
+    id: "burgundy",
+    name: "Borgoña",
+    theme: {
+      sidebarBg: "#4A1830",
+      sidebarText: "#FFFFFF",
+      sidebarMuted: "#E8D0D8",
+      accent: "#E8C9A8",
+      pageBg: "#F7F4F1",
+      heading: "#3D1528",
+      body: "#2C2426",
+      chipBg: "#6B2A44",
+      chipText: "#FFFFFF",
+      fontFamily: "calibri",
+    },
+  },
+  {
+    id: "navy",
+    name: "Azul marino",
+    theme: {
+      sidebarBg: "#1B365D",
+      sidebarText: "#FFFFFF",
+      sidebarMuted: "#C9D6E8",
+      accent: "#F0C36A",
+      pageBg: "#F5F7FA",
+      heading: "#1B365D",
+      body: "#243040",
+      chipBg: "#2E5A8F",
+      chipText: "#FFFFFF",
+      fontFamily: "calibri",
+    },
+  },
+  {
+    id: "forest",
+    name: "Bosque",
+    theme: {
+      sidebarBg: "#1F3D2B",
+      sidebarText: "#F4F7F2",
+      sidebarMuted: "#C9DCCF",
+      accent: "#D4AF77",
+      pageBg: "#F6F4EE",
+      heading: "#1F3D2B",
+      body: "#2A332C",
+      chipBg: "#3E6B4F",
+      chipText: "#FFFFFF",
+      fontFamily: "georgia",
+    },
+  },
+  {
+    id: "charcoal",
+    name: "Carbón",
+    theme: {
+      sidebarBg: "#1E1E1E",
+      sidebarText: "#F5F5F5",
+      sidebarMuted: "#C8C8C8",
+      accent: "#E0B15A",
+      pageBg: "#FAFAFA",
+      heading: "#1E1E1E",
+      body: "#333333",
+      chipBg: "#3A3A3A",
+      chipText: "#FFFFFF",
+      fontFamily: "arial",
+    },
+  },
+  {
+    id: "slate",
+    name: "Pizarra",
+    theme: {
+      sidebarBg: "#334155",
+      sidebarText: "#F8FAFC",
+      sidebarMuted: "#CBD5E1",
+      accent: "#7DD3FC",
+      pageBg: "#F8FAFC",
+      heading: "#0F172A",
+      body: "#334155",
+      chipBg: "#475569",
+      chipText: "#F8FAFC",
+      fontFamily: "calibri",
+    },
+  },
+  {
+    id: "teal",
+    name: "Teal",
+    theme: {
+      sidebarBg: "#115E59",
+      sidebarText: "#F0FDFA",
+      sidebarMuted: "#99F6E4",
+      accent: "#FDE68A",
+      pageBg: "#F8FFFE",
+      heading: "#134E4A",
+      body: "#1F2937",
+      chipBg: "#0F766E",
+      chipText: "#FFFFFF",
+      fontFamily: "arial",
+    },
+  },
+  {
+    id: "wine",
+    name: "Vino",
+    theme: {
+      sidebarBg: "#6B1D2A",
+      sidebarText: "#FFF7F7",
+      sidebarMuted: "#F0C9CF",
+      accent: "#E7C07A",
+      pageBg: "#FFFBF7",
+      heading: "#5C1722",
+      body: "#3F2A2D",
+      chipBg: "#8B2E3C",
+      chipText: "#FFFFFF",
+      fontFamily: "garamond",
+    },
+  },
+  {
+    id: "sand",
+    name: "Arena",
+    theme: {
+      sidebarBg: "#5C4A32",
+      sidebarText: "#FFF8EE",
+      sidebarMuted: "#E8D7C0",
+      accent: "#F0D9A8",
+      pageBg: "#FFFCF6",
+      heading: "#4A3B28",
+      body: "#3B3228",
+      chipBg: "#7A6344",
+      chipText: "#FFF8EE",
+      fontFamily: "georgia",
+    },
+  },
+];

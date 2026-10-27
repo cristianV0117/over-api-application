@@ -7,6 +7,7 @@ export type CvSectionType =
   | "languages"
   | "courses"
   | "experience"
+  | "icons"
   | "custom";
 
 export type CvColumn = "sidebar" | "main";
@@ -21,6 +22,7 @@ export type CvTheme = {
   body: string;
   chipBg: string;
   chipText: string;
+  fontFamily: string;
 };
 
 export type CvHeader = {
@@ -29,6 +31,8 @@ export type CvHeader = {
   location: string;
   phone: string;
   email: string;
+  photoDataUrl: string;
+  showPhoto: boolean;
 };
 
 export type CvSection = {
@@ -65,6 +69,7 @@ export const SECTION_LABELS: Record<CvSectionType, string> = {
   languages: "Idiomas",
   courses: "Cursos",
   experience: "Experiencia laboral",
+  icons: "Iconos tech",
   custom: "Texto libre",
 };
 
@@ -77,6 +82,7 @@ export const SECTION_TYPES: CvSectionType[] = [
   "languages",
   "courses",
   "experience",
+  "icons",
   "custom",
 ];
 

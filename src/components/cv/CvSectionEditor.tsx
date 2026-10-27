@@ -2,12 +2,14 @@
 
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { iconSvg, TECH_ICONS } from "@/lib/cv/techIcons";
 import type { CvColumn, CvSection } from "@/lib/cv/types";
 import { SECTION_LABELS } from "@/lib/cv/types";
 
@@ -109,6 +111,13 @@ export default function CvSectionEditor({ section, onChange }: Props) {
           onChange={(items) => setConfig("items", items)}
           blank=""
           primitive
+        />
+      )}
+
+      {type === "icons" && (
+        <IconPicker
+          selected={listOf<string>(config.items, "").map((x) => String(x))}
+          onChange={(items) => setConfig("items", items)}
         />
       )}
 
@@ -237,6 +246,50 @@ function ItemList<T>({
       <Button size="small" startIcon={<AddIcon />} onClick={() => onChange([...items, blank])}>
         Agregar
       </Button>
+    </Stack>
+  );
+}
+
+function IconPicker({
+  selected,
+  onChange,
+}: {
+  selected: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const toggle = (id: string) => {
+    onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id]);
+  };
+
+  return (
+    <Stack spacing={1}>
+      <Typography variant="caption" color="text.secondary">
+        Elige iconos de tecnologías. Los seleccionados aparecen en el PDF.
+      </Typography>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+        {TECH_ICONS.map((icon) => {
+          const active = selected.includes(icon.id);
+          return (
+            <Button
+              key={icon.id}
+              size="small"
+              variant={active ? "contained" : "outlined"}
+              onClick={() => toggle(icon.id)}
+              sx={{ textTransform: "none", minWidth: 0 }}
+              startIcon={
+                <Box
+                  component="img"
+                  src={`data:image/svg+xml;utf8,${encodeURIComponent(iconSvg(icon, active ? "#FFFFFF" : icon.hex))}`}
+                  alt=""
+                  sx={{ width: 16, height: 16 }}
+                />
+              }
+            >
+              {icon.label}
+            </Button>
+          );
+        })}
+      </Box>
     </Stack>
   );
 }

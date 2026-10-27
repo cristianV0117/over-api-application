@@ -1,20 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import TranslateIcon from "@mui/icons-material/Translate";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
+import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { createSection, hexOr } from "@/lib/cv/defaults";
+import { createSection, hexOr, normalizeHeader, normalizeTheme } from "@/lib/cv/defaults";
+import { CV_FONTS, cvFontFaceCss } from "@/lib/cv/fonts";
+import { CV_PALETTES } from "@/lib/cv/palettes";
+import { compressProfilePhoto } from "@/lib/cv/photo";
 import type { CvConfig, CvHeader, CvSection, CvSectionType, CvTheme } from "@/lib/cv/types";
 import { SECTION_TYPES, SECTION_LABELS, THEME_FIELDS } from "@/lib/cv/types";
 import CvSectionEditor from "./CvSectionEditor";
@@ -49,18 +55,23 @@ function withOrder(list: CvSection[], column: CvSection["column"]): CvSection[] 
 
 export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDelete }: Props) {
   const [name, setName] = useState(initial.name);
-  const [theme, setTheme] = useState(initial.theme);
-  const [header, setHeader] = useState(initial.header);
+  const [theme, setTheme] = useState(() => normalizeTheme(initial.theme));
+  const [header, setHeader] = useState(() => normalizeHeader(initial.header));
   const [sections, setSections] = useState(initial.sections);
   const [selectedId, setSelectedId] = useState<string | null>(initial.sections[0]?.id ?? null);
   const [newType, setNewType] = useState<CvSectionType>("experience");
   const [busy, setBusy] = useState(false);
   const [live, setLive] = useState(true);
-  const [preview, setPreview] = useState<CvConfig>(initial);
 
   const selected = sections.find((s) => s.id === selectedId) ?? null;
-  const sidebar = sections.filter((s) => s.column === "sidebar").sort((a, b) => a.order - b.order);
-  const main = sections.filter((s) => s.column === "main").sort((a, b) => a.order - b.order);
+  const sidebar = useMemo(
+    () => sections.filter((s) => s.column === "sidebar").sort((a, b) => a.order - b.order),
+    [sections]
+  );
+  const main = useMemo(
+    () => sections.filter((s) => s.column === "main").sort((a, b) => a.order - b.order),
+    [sections]
+  );
 
   const snapshot: CvConfig = useMemo(
     () => ({
@@ -72,11 +83,6 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
     }),
     [initial, name, theme, header, sidebar, main]
   );
-
-  useEffect(() => {
-    const t = window.setTimeout(() => setPreview(snapshot), 400);
-    return () => window.clearTimeout(t);
-  }, [snapshot]);
 
   const patchSection = (id: string, next: CvSection) => {
     setSections((prev) => prev.map((s) => (s.id === id ? next : s)));
@@ -180,6 +186,53 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
                   </Typography>
                 ) : null}
 
+                <Typography variant="subtitle2">Foto de perfil</Typography>
+                <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
+                  <Avatar
+                    src={header.photoDataUrl || undefined}
+                    alt={header.fullName || "Foto"}
+                    sx={{ width: 72, height: 72 }}
+                  />
+                  <Button component="label" variant="outlined" size="small">
+                    {header.photoDataUrl ? "Cambiar foto" : "Agregar foto"}
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!file) return;
+                        void compressProfilePhoto(file)
+                          .then((photoDataUrl) =>
+                            setHeader((prev) => ({ ...prev, photoDataUrl, showPhoto: true }))
+                          )
+                          .catch(() => undefined);
+                      }}
+                    />
+                  </Button>
+                  {header.photoDataUrl ? (
+                    <>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={header.showPhoto}
+                            onChange={(e) => setHeader({ ...header, showPhoto: e.target.checked })}
+                          />
+                        }
+                        label="Mostrar en el CV"
+                      />
+                      <Button
+                        size="small"
+                        color="error"
+                        onClick={() => setHeader({ ...header, photoDataUrl: "", showPhoto: false })}
+                      >
+                        Quitar
+                      </Button>
+                    </>
+                  ) : null}
+                </Stack>
+
                 <Typography variant="subtitle2">Cabecera</Typography>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1} flexWrap="wrap" useFlexGap>
                   {(
@@ -202,7 +255,66 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
                   ))}
                 </Stack>
 
-                <Typography variant="subtitle2">Colores</Typography>
+                <style>{cvFontFaceCss()}</style>
+                <Typography variant="subtitle2">Tipo de letra</Typography>
+                <TextField
+                  select
+                  size="small"
+                  label="Fuente"
+                  value={theme.fontFamily}
+                  onChange={(e) => setTheme({ ...theme, fontFamily: e.target.value })}
+                  sx={{ maxWidth: 320 }}
+                >
+                  {CV_FONTS.map((font) => (
+                    <MenuItem key={font.id} value={font.id} sx={{ fontFamily: font.css, fontSize: 16 }}>
+                      {font.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <Typography variant="subtitle2">Colores recomendados</Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {CV_PALETTES.map((palette) => {
+                    const selected =
+                      palette.theme.sidebarBg === theme.sidebarBg &&
+                      palette.theme.accent === theme.accent &&
+                      palette.theme.heading === theme.heading;
+                    return (
+                      <Button
+                        key={palette.id}
+                        size="small"
+                        variant={selected ? "contained" : "outlined"}
+                        onClick={() =>
+                          setTheme({
+                            ...palette.theme,
+                            fontFamily: theme.fontFamily || palette.theme.fontFamily,
+                          })
+                        }
+                        sx={{ textTransform: "none", pr: 1.5 }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                          {([palette.theme.sidebarBg, palette.theme.accent, palette.theme.heading, palette.theme.pageBg] as const).map(
+                            (color, i) => (
+                              <Box
+                                key={`${palette.id}-${i}`}
+                                sx={{
+                                  width: 14,
+                                  height: 14,
+                                  borderRadius: "50%",
+                                  bgcolor: color,
+                                  border: "1px solid rgba(0,0,0,0.2)",
+                                }}
+                              />
+                            )
+                          )}
+                          {palette.name}
+                        </Box>
+                      </Button>
+                    );
+                  })}
+                </Stack>
+
+                <Typography variant="subtitle2">Personalizar colores</Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   {THEME_FIELDS.map(({ key, label }) => (
                     <TextField
@@ -295,7 +407,7 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
 
         {live ? (
           <Box sx={{ width: { xs: "100%", lg: 420 }, flexShrink: 0, minHeight: 640 }}>
-            <CvPreview config={preview} height={640} />
+            <CvPreview config={snapshot} height={640} />
           </Box>
         ) : null}
       </Stack>
