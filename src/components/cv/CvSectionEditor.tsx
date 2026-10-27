@@ -1,8 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -206,6 +224,97 @@ function emptyExperience(): ExperienceItem {
   };
 }
 
+function nextRowId() {
+  return `row-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function SortableRow({
+  id,
+  children,
+  onDelete,
+}: {
+  id: string;
+  children: ReactNode;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  return (
+    <Stack
+      ref={setNodeRef}
+      direction="row"
+      spacing={1}
+      alignItems="flex-start"
+      sx={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        p: 1,
+        borderRadius: 1,
+        border: 1,
+        borderColor: "divider",
+      }}
+    >
+      <IconButton size="small" sx={{ cursor: "grab", mt: 0.5 }} {...attributes} {...listeners}>
+        <DragIndicatorIcon fontSize="small" />
+      </IconButton>
+      <Stack spacing={1} flex={1} minWidth={0}>
+        {children}
+      </Stack>
+      <IconButton size="small" color="error" onClick={onDelete}>
+        <DeleteOutlineIcon fontSize="small" />
+      </IconButton>
+    </Stack>
+  );
+}
+
+function SortableRows<T>({
+  items,
+  onChange,
+  renderItem,
+}: {
+  items: T[];
+  onChange: (next: T[]) => void;
+  renderItem: (item: T, index: number) => ReactNode;
+}) {
+  const idsRef = useRef<string[]>([]);
+  if (idsRef.current.length < items.length) {
+    while (idsRef.current.length < items.length) idsRef.current.push(nextRowId());
+  }
+  const ids = idsRef.current.slice(0, items.length);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = ids.indexOf(String(active.id));
+    const newIndex = ids.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    idsRef.current = arrayMove(ids, oldIndex, newIndex);
+    onChange(arrayMove(items, oldIndex, newIndex));
+  };
+
+  const removeAt = (index: number) => {
+    idsRef.current = ids.filter((_, j) => j !== index);
+    onChange(items.filter((_, j) => j !== index));
+  };
+
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+        <Stack spacing={1.5}>
+          {items.map((item, i) => (
+            <SortableRow key={ids[i]} id={ids[i]} onDelete={() => removeAt(i)}>
+              {renderItem(item, i)}
+            </SortableRow>
+          ))}
+        </Stack>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
 function ExperienceList({
   items,
   onChange,
@@ -221,7 +330,13 @@ function ExperienceList({
 
   return (
     <Stack spacing={2}>
-      {items.map((item, i) => {
+      <Typography variant="caption" color="text.secondary">
+        Arrastra el ícono para cambiar el orden. El de arriba sale primero en el PDF.
+      </Typography>
+      <SortableRows
+        items={items}
+        onChange={onChange}
+        renderItem={(item, i) => {
         const duration = formatDuration(item.startMonth, item.endMonth, Boolean(item.current));
         const range = formatDateRange(
           item.startMonth,
@@ -231,8 +346,7 @@ function ExperienceList({
           item.end
         );
         return (
-          <Stack key={i} direction="row" spacing={1} alignItems="flex-start">
-            <Stack spacing={1} flex={1}>
+            <Stack spacing={1}>
               <TextField
                 size="small"
                 label="Empresa"
@@ -301,12 +415,9 @@ function ExperienceList({
               />
               <TagInput tags={asTags(item.tags)} onChange={(tags) => patch(i, { ...item, tags })} />
             </Stack>
-            <IconButton size="small" color="error" onClick={() => onChange(items.filter((_, j) => j !== i))}>
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </Stack>
         );
-      })}
+        }}
+      />
       <Button size="small" startIcon={<AddIcon />} onClick={() => onChange([...items, emptyExperience()])}>
         Agregar
       </Button>
@@ -352,12 +463,14 @@ function ProjectList({
   return (
     <Stack spacing={2}>
       <Typography variant="caption" color="text.secondary">
-        El PDF muestra nombre, descripción, etiquetas y enlace. El iframe solo se ve aquí en el editor (los PDF no
-        pueden incrustar páginas web).
+        Arrastra para reordenar. El PDF muestra nombre, descripción, etiquetas y enlace. El iframe solo se ve aquí
+        (un PDF no puede incrustar una web).
       </Typography>
-      {items.map((item, i) => (
-        <Stack key={i} direction="row" spacing={1} alignItems="flex-start">
-          <Stack spacing={1} flex={1}>
+      <SortableRows
+        items={items}
+        onChange={onChange}
+        renderItem={(item, i) => (
+          <Stack spacing={1}>
             <TextField
               size="small"
               label="Nombre del proyecto"
@@ -406,11 +519,8 @@ function ProjectList({
               />
             ) : null}
           </Stack>
-          <IconButton size="small" color="error" onClick={() => onChange(items.filter((_, j) => j !== i))}>
-            <DeleteOutlineIcon fontSize="small" />
-          </IconButton>
-        </Stack>
-      ))}
+        )}
+      />
       <Button size="small" startIcon={<AddIcon />} onClick={() => onChange([...items, emptyProject()])}>
         Agregar
       </Button>
@@ -470,10 +580,14 @@ function ItemList<T>({
 }) {
   return (
     <Stack spacing={1.5}>
-      {items.map((item, i) => (
-        <Stack key={i} direction="row" spacing={1} alignItems="flex-start">
-          <Stack spacing={1} flex={1}>
-            {primitive ? (
+      <Typography variant="caption" color="text.secondary">
+        Arrastra el ícono para cambiar el orden.
+      </Typography>
+      <SortableRows
+        items={items}
+        onChange={onChange}
+        renderItem={(item, i) =>
+            primitive ? (
               <TextField
                 size="small"
                 fullWidth
@@ -486,7 +600,8 @@ function ItemList<T>({
                 }}
               />
             ) : (
-              fields?.map((f) => (
+              <Stack spacing={1}>
+              {fields?.map((f) => (
                 <TextField
                   key={f.key}
                   size="small"
@@ -501,14 +616,11 @@ function ItemList<T>({
                     onChange(next);
                   }}
                 />
-              ))
-            )}
-          </Stack>
-          <IconButton size="small" color="error" onClick={() => onChange(items.filter((_, j) => j !== i))}>
-            <DeleteOutlineIcon fontSize="small" />
-          </IconButton>
-        </Stack>
-      ))}
+              ))}
+              </Stack>
+            )
+        }
+      />
       <Button size="small" startIcon={<AddIcon />} onClick={() => onChange([...items, blank])}>
         Agregar
       </Button>
