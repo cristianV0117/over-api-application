@@ -12,6 +12,7 @@ const es = {
   "sidebar.vehicle": "Vehículo",
   "sidebar.files": "Archivos",
   "sidebar.portfolio": "Portafolio",
+  "sidebar.cv": "CV / PDF",
   "sidebar.profile": "Perfil",
   "sidebar.settings": "Configuración",
   "sidebar.viewProfile": "Ver perfil",

@@ -14,6 +14,7 @@ const en: Record<MessageKey, string> = {
   "sidebar.vehicle": "Vehicle",
   "sidebar.files": "Files",
   "sidebar.portfolio": "Portfolio",
+  "sidebar.cv": "CV / PDF",
   "sidebar.profile": "Profile",
   "sidebar.settings": "Settings",
   "sidebar.viewProfile": "View profile",

@@ -22,6 +22,7 @@ import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import DirectionsCarOutlinedIcon from "@mui/icons-material/DirectionsCarOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import WebOutlinedIcon from "@mui/icons-material/WebOutlined";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import { useUser } from "@/context/userContext";
 import { usePreferences } from "@/context/preferencesContext";
 import { avatarUrl } from "@/lib/api/profile";
@@ -40,6 +41,7 @@ const allItems = [
   { href: "/dashboard/vehiculo", labelKey: "sidebar.vehicle" as const, Icon: DirectionsCarOutlinedIcon },
   { href: "/dashboard/archivos", labelKey: "sidebar.files" as const, Icon: FolderOutlinedIcon },
   { href: "/dashboard/portafolio", labelKey: "sidebar.portfolio" as const, Icon: WebOutlinedIcon },
+  { href: "/dashboard/cv", labelKey: "sidebar.cv" as const, Icon: PictureAsPdfOutlinedIcon },
   { href: "/dashboard/profile", labelKey: "sidebar.profile" as const, Icon: PersonOutlineIcon },
   { href: "/dashboard/settings", labelKey: "sidebar.settings" as const, Icon: SettingsOutlinedIcon },
 ];
