@@ -318,6 +318,7 @@ type ExperienceItem = {
   description: string;
   tags?: string[];
   scale?: number;
+  breakBefore?: boolean;
 };
 
 function emptyExperience(): ExperienceItem {
@@ -331,6 +332,7 @@ function emptyExperience(): ExperienceItem {
     description: "",
     tags: [],
     scale: 100,
+    breakBefore: false,
   };
 }
 
@@ -524,6 +526,15 @@ function ExperienceList({
                 onChange={(e) => patch(i, { ...item, description: e.target.value })}
               />
               <TagInput tags={asTags(item.tags)} onChange={(tags) => patch(i, { ...item, tags })} />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={Boolean(item.breakBefore)}
+                    onChange={(e) => patch(i, { ...item, breakBefore: e.target.checked })}
+                  />
+                }
+                label="Empezar este puesto en una hoja nueva"
+              />
               <SectionSizeControl
                 compact
                 label={`Tamaño de ${item.company || item.role || "este puesto"}`}

@@ -530,6 +530,7 @@ function MainSection({
       description: string;
       tags?: string[];
       scale?: number;
+      breakBefore?: boolean;
     }>(c);
     return (
       <View>
@@ -546,7 +547,7 @@ function MainSection({
           const duration = jobDuration(job, locale);
           const tags = asTags(job.tags);
           return (
-            <View key={i}>
+            <View key={i} break={Boolean(job.breakBefore)}>
               <View wrap={false} minPresenceAhead={36}>
                 {i === 0 ? title : null}
                 <View style={js.timeline}>

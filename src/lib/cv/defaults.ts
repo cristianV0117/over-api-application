@@ -72,6 +72,7 @@ export function emptyConfig(type: CvSectionType): Record<string, unknown> {
             description: "",
             tags: [],
             scale: 100,
+            breakBefore: false,
           },
         ],
       };
