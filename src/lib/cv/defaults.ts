@@ -4,12 +4,20 @@ import { SECTION_LABELS } from "./types";
 
 export const DEFAULT_CV_THEME: CvTheme = { ...CV_PALETTES[0].theme };
 
+export function normalizeFontScale(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 100;
+  const pct = n > 0 && n <= 2 ? Math.round(n * 100) : Math.round(n);
+  return Math.min(125, Math.max(80, pct));
+}
+
 export function normalizeTheme(theme?: Partial<CvTheme> | null): CvTheme {
   return {
     ...DEFAULT_CV_THEME,
     ...theme,
     fontFamily: theme?.fontFamily || DEFAULT_CV_THEME.fontFamily,
     repeatSidebar: Boolean(theme?.repeatSidebar),
+    fontScale: normalizeFontScale(theme?.fontScale ?? DEFAULT_CV_THEME.fontScale),
   };
 }
 

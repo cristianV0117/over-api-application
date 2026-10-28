@@ -18,6 +18,7 @@ import {
   View,
 } from "@react-pdf/renderer";
 import { formatDateRange, jobDuration } from "@/lib/cv/dates";
+import { normalizeFontScale } from "@/lib/cv/defaults";
 import { fontFamilyOf } from "@/lib/cv/fonts";
 import type { CvConfig, CvSection, CvTheme } from "@/lib/cv/types";
 
@@ -59,9 +60,11 @@ function boldOf(family: string) {
 function stylesFor(theme: CvTheme, family: string) {
   const bold = boldOf(family);
   const weight = family === "Helvetica" || family === "Courier" ? undefined : 700;
+  const z = normalizeFontScale(theme.fontScale) / 100;
+  const fs = (n: number) => Math.round(n * z * 10) / 10;
   return StyleSheet.create({
     page: {
-      fontSize: 9,
+      fontSize: fs(9),
       fontFamily: family,
       paddingTop: 40,
       paddingBottom: 52,
@@ -99,7 +102,7 @@ function stylesFor(theme: CvTheme, family: string) {
       alignSelf: "center",
     },
     sideTitle: {
-      fontSize: 9,
+      fontSize: fs(9),
       letterSpacing: 1.4,
       textTransform: "uppercase",
       color: theme.accent,
@@ -108,12 +111,12 @@ function stylesFor(theme: CvTheme, family: string) {
       fontFamily: bold,
       fontWeight: weight,
     },
-    sideText: { color: theme.sidebarMuted, lineHeight: 1.45, fontSize: 8, fontFamily: family },
+    sideText: { color: theme.sidebarMuted, lineHeight: 1.45, fontSize: fs(8), fontFamily: family },
     chipWrap: { flexDirection: "row", flexWrap: "wrap" },
     chip: {
       backgroundColor: theme.chipBg,
       color: theme.chipText,
-      fontSize: 6.5,
+      fontSize: fs(6.5),
       letterSpacing: 0.4,
       textTransform: "uppercase",
       paddingVertical: 3,
@@ -126,7 +129,7 @@ function stylesFor(theme: CvTheme, family: string) {
       borderWidth: 0.6,
       borderColor: theme.heading,
       color: theme.heading,
-      fontSize: 6.5,
+      fontSize: fs(6.5),
       letterSpacing: 0.3,
       textTransform: "uppercase",
       paddingVertical: 2,
@@ -136,9 +139,9 @@ function stylesFor(theme: CvTheme, family: string) {
       fontFamily: family,
     },
     iconRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 4 },
-    icon: { width: 18, height: 18, marginRight: 7, marginBottom: 7 },
+    icon: { width: fs(18), height: fs(18), marginRight: 7, marginBottom: 7 },
     name: {
-      fontSize: 18,
+      fontSize: fs(18),
       fontFamily: bold,
       fontWeight: weight,
       color: theme.heading,
@@ -146,7 +149,7 @@ function stylesFor(theme: CvTheme, family: string) {
       textTransform: "uppercase",
     },
     role: {
-      fontSize: 10,
+      fontSize: fs(10),
       color: theme.heading,
       letterSpacing: 1.6,
       textTransform: "uppercase",
@@ -155,10 +158,10 @@ function stylesFor(theme: CvTheme, family: string) {
       fontFamily: family,
     },
     contactRow: { flexDirection: "row", alignItems: "center", marginBottom: 3 },
-    contact: { fontSize: 8, color: theme.body, fontFamily: family },
+    contact: { fontSize: fs(8), color: theme.body, fontFamily: family },
     contactIcon: { width: 11, height: 11, marginRight: 5 },
     mainTitle: {
-      fontSize: 10,
+      fontSize: fs(10),
       letterSpacing: 1.6,
       textTransform: "uppercase",
       color: theme.heading,
@@ -172,20 +175,27 @@ function stylesFor(theme: CvTheme, family: string) {
     },
     jobHead: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
     jobRoleTitle: {
-      fontSize: 9.5,
+      fontSize: fs(9.5),
       fontFamily: bold,
       fontWeight: weight,
       color: theme.heading,
     },
     company: {
-      fontSize: 8,
+      fontSize: fs(8),
       color: theme.body,
       marginTop: 1,
       fontFamily: family,
     },
-    jobRole: { fontSize: 8, color: theme.body, marginTop: 1, fontFamily: family },
-    jobMeta: { fontSize: 7.5, color: theme.body, textAlign: "right", fontFamily: family },
-    jobDesc: { fontSize: 8, color: theme.body, lineHeight: 1.4, marginTop: 5, fontFamily: family },
+    jobRole: { fontSize: fs(8), color: theme.body, marginTop: 1, fontFamily: family },
+    jobMeta: { fontSize: fs(7.5), color: theme.body, textAlign: "right", fontFamily: family },
+    jobDesc: { fontSize: fs(8), color: theme.body, lineHeight: 1.4, marginTop: 4, fontFamily: family },
+    jobContinue: {
+      marginLeft: 5.35,
+      paddingLeft: 14,
+      borderLeftWidth: 1.3,
+      borderLeftColor: "#B4BAC3",
+      paddingBottom: 14,
+    },
     jobBlock: { marginBottom: 4 },
     timeline: { flexDirection: "row", alignItems: "stretch" },
     timelineCol: { width: 12, alignItems: "center" },
@@ -203,7 +213,7 @@ function stylesFor(theme: CvTheme, family: string) {
       marginTop: 3,
       minHeight: 12,
     },
-    jobBody: { flex: 1, paddingLeft: 9, paddingBottom: 16 },
+    jobBody: { flex: 1, paddingLeft: 9, paddingBottom: 4 },
     projectRow: {
       flexDirection: "row",
       justifyContent: "space-between",
@@ -220,21 +230,28 @@ function stylesFor(theme: CvTheme, family: string) {
       marginBottom: 3,
     },
     projectName: {
-      fontSize: 8,
+      fontSize: fs(8),
       fontFamily: bold,
       fontWeight: weight,
       color: theme.heading,
       textTransform: "uppercase",
     },
     projectDesc: {
-      fontSize: 7,
+      fontSize: fs(7),
       color: theme.body,
       lineHeight: 1.3,
       marginTop: 3,
       fontFamily: family,
     },
-    eduTitle: { fontFamily: bold, fontWeight: weight, fontSize: 8, color: theme.sidebarText },
-    link: { fontSize: 7.5, color: theme.heading, textDecoration: "none", marginTop: 2, fontFamily: family },
+    eduTitle: { fontFamily: bold, fontWeight: weight, fontSize: fs(8), color: theme.sidebarText },
+    courseTitle: {
+      fontFamily: family,
+      fontSize: fs(7),
+      color: theme.sidebarMuted,
+      textTransform: "uppercase",
+    },
+    courseMeta: { fontFamily: family, fontSize: fs(7), color: theme.sidebarMuted },
+    link: { fontSize: fs(7.5), color: theme.heading, textDecoration: "none", marginTop: 2, fontFamily: family },
   });
 }
 
@@ -305,9 +322,19 @@ function ContactLine({
   );
 }
 
-function SoftTag({ label, family, id }: { label: string; family: string; id: string }) {
-  const width = Math.min(132, Math.max(36, label.length * 4.7 + 16));
-  const height = 14;
+function SoftTag({
+  label,
+  family,
+  id,
+  scale,
+}: {
+  label: string;
+  family: string;
+  id: string;
+  scale: number;
+}) {
+  const width = Math.min(132, Math.max(36, label.length * 4.7 * scale + 16 * scale));
+  const height = 14 * scale;
   return (
     <View style={{ width, height, marginRight: 4, marginBottom: 4, position: "relative" }}>
       <Svg width={width} height={height} style={{ position: "absolute", left: 0, top: 0 }}>
@@ -331,10 +358,10 @@ function SoftTag({ label, family, id }: { label: string; family: string; id: str
       </Svg>
       <Text
         style={{
-          fontSize: 6.3,
+          fontSize: 6.3 * scale,
           color: "#2E333A",
           textAlign: "center",
-          paddingTop: 3,
+          paddingTop: 3 * scale,
           fontFamily: family,
           letterSpacing: 0.12,
         }}
@@ -345,15 +372,26 @@ function SoftTag({ label, family, id }: { label: string; family: string; id: str
   );
 }
 
-function SoftTagRow({ tags, family, prefix }: { tags: string[]; family: string; prefix: string }) {
+function SoftTagRow({
+  tags,
+  family,
+  prefix,
+  scale,
+}: {
+  tags: string[];
+  family: string;
+  prefix: string;
+  scale: number;
+}) {
   if (!tags.length) return null;
   return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 6 }}>
+    <View wrap={false} style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 6 }}>
       {tags.map((tag, i) => (
         <SoftTag
           key={`${prefix}-${tag}-${i}`}
           label={tag}
           family={family}
+          scale={scale}
           id={`g${prefix}${i}`.replace(/[^A-Za-z0-9]/g, "")}
         />
       ))}
@@ -374,8 +412,10 @@ function SidebarSection({
 }) {
   const c = section.config;
   return (
-    <View wrap={false} minPresenceAhead={28}>
-      <Text style={s.sideTitle}>{section.title}</Text>
+    <View>
+      <Text style={s.sideTitle} minPresenceAhead={22}>
+        {section.title}
+      </Text>
       {section.type === "about" || section.type === "custom" ? (
         <Text style={s.sideText}>{String(c.text ?? "")}</Text>
       ) : null}
@@ -442,8 +482,8 @@ function SidebarSection({
       {section.type === "courses"
         ? asItems<{ title: string; provider?: string; date: string }>(c).map((item, i) => (
             <View key={i} style={{ marginBottom: 6 }} wrap={false}>
-              <Text style={[s.sideText, { textTransform: "uppercase", fontSize: 7 }]}>{item.title}</Text>
-              <Text style={[s.sideText, { fontSize: 7 }]}>
+              <Text style={s.courseTitle}>{item.title}</Text>
+              <Text style={s.courseMeta}>
                 {[item.provider, item.date].filter(Boolean).join(" · ")}
               </Text>
             </View>
@@ -460,6 +500,7 @@ function MainSection({
   locale,
   family,
   heading,
+  scale,
 }: {
   section: CvSection;
   s: ReturnType<typeof stylesFor>;
@@ -467,10 +508,11 @@ function MainSection({
   locale: "es" | "en";
   family: string;
   heading: string;
+  scale: number;
 }) {
   const c = section.config;
   const title = (
-    <Text style={s.mainTitle} minPresenceAhead={80}>
+    <Text style={s.mainTitle} minPresenceAhead={36}>
       {section.title}
     </Text>
   );
@@ -490,16 +532,25 @@ function MainSection({
     return (
       <View>
         {rows.map((pair, row) => (
-          <View key={row} wrap={false} minPresenceAhead={140}>
-            {row === 0 ? title : null}
+          <View key={row}>
+            <View wrap={false} minPresenceAhead={48}>
+              {row === 0 ? title : null}
+              <View style={[s.projectRow, { marginBottom: 2 }]}>
+                {pair.map((project, i) => (
+                  <View key={i} style={s.projectCard}>
+                    <Text style={s.projectName}>{project.name}</Text>
+                    {project.role ? <Text style={s.jobRole}>{project.role}</Text> : null}
+                    {project.imageDataUrl ? (
+                      <Image src={project.imageDataUrl} style={s.projectShot} />
+                    ) : null}
+                  </View>
+                ))}
+                {pair.length === 1 ? <View style={s.projectCard} /> : null}
+              </View>
+            </View>
             <View style={s.projectRow}>
               {pair.map((project, i) => (
                 <View key={i} style={s.projectCard}>
-                  <Text style={s.projectName}>{project.name}</Text>
-                  {project.role ? <Text style={s.jobRole}>{project.role}</Text> : null}
-                  {project.imageDataUrl ? (
-                    <Image src={project.imageDataUrl} style={s.projectShot} />
-                  ) : null}
                   {project.tagline ? <Text style={s.projectDesc}>{project.tagline}</Text> : null}
                   {project.description ? (
                     <Text style={s.projectDesc}>{project.description}</Text>
@@ -512,6 +563,7 @@ function MainSection({
                   <SoftTagRow
                     tags={asTags(project.tags)}
                     family={family}
+                    scale={scale}
                     prefix={`${section.id}p${row}${i}`}
                   />
                 </View>
@@ -550,40 +602,45 @@ function MainSection({
             locale
           );
           const duration = jobDuration(job, locale);
+          const tags = asTags(job.tags);
           return (
-            <View key={i} wrap={false} minPresenceAhead={80}>
-              {i === 0 ? title : null}
-              <View style={s.timeline}>
-                <View style={s.timelineCol}>
-                  <View style={s.timelineDot} />
-                  {i < jobs.length - 1 ? <View style={s.timelineLine} /> : null}
-                </View>
-                <View style={s.jobBody}>
-                  <View style={s.jobHead}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.jobRoleTitle}>{job.role || job.company}</Text>
-                      {job.role && job.company ? <Text style={s.company}>{job.company}</Text> : null}
-                      {job.location ? (
-                        <View style={[s.contactRow, { marginTop: 2, marginBottom: 0 }]}>
-                          <View style={{ width: 8, height: 8, marginRight: 3 }}>
-                            <RoundIcon kind="pin" color={heading} size={8} />
+            <View key={i}>
+              <View wrap={false} minPresenceAhead={36}>
+                {i === 0 ? title : null}
+                <View style={s.timeline}>
+                  <View style={s.timelineCol}>
+                    <View style={s.timelineDot} />
+                  </View>
+                  <View style={s.jobBody}>
+                    <View style={s.jobHead}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.jobRoleTitle}>{job.role || job.company}</Text>
+                        {job.role && job.company ? <Text style={s.company}>{job.company}</Text> : null}
+                        {job.location ? (
+                          <View style={[s.contactRow, { marginTop: 2, marginBottom: 0 }]}>
+                            <View style={{ width: 8, height: 8, marginRight: 3 }}>
+                              <RoundIcon kind="pin" color={heading} size={8} />
+                            </View>
+                            <Text style={[s.jobRole, { marginTop: 0 }]}>{job.location}</Text>
                           </View>
-                          <Text style={[s.jobRole, { marginTop: 0 }]}>{job.location}</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                    <View>
-                      {range ? <Text style={s.jobMeta}>{range}</Text> : null}
-                      {duration ? <Text style={s.jobMeta}>{duration}</Text> : null}
+                        ) : null}
+                      </View>
+                      <View>
+                        {range ? <Text style={s.jobMeta}>{range}</Text> : null}
+                        {duration ? <Text style={s.jobMeta}>{duration}</Text> : null}
+                      </View>
                     </View>
                   </View>
-                  {job.description ? <Text style={s.jobDesc}>{job.description}</Text> : null}
-                  <SoftTagRow
-                    tags={asTags(job.tags)}
-                    family={family}
-                    prefix={`${section.id}j${i}`}
-                  />
                 </View>
+              </View>
+              <View style={s.jobContinue}>
+                {job.description ? <Text style={s.jobDesc}>{job.description}</Text> : null}
+                <SoftTagRow
+                  tags={tags}
+                  family={family}
+                  scale={scale}
+                  prefix={`${section.id}j${i}`}
+                />
               </View>
             </View>
           );
@@ -620,6 +677,7 @@ export function CvPdfDocument({
 }) {
   const family = fontFamilyOf(config.theme.fontFamily);
   const repeat = Boolean(config.theme.repeatSidebar);
+  const scale = normalizeFontScale(config.theme.fontScale) / 100;
   const s = stylesFor(config.theme, family);
   const sidebar = config.sections
     .filter((x) => x.column === "sidebar" && x.visible)
@@ -670,6 +728,7 @@ export function CvPdfDocument({
           locale={locale}
           family={family}
           heading={config.theme.heading}
+          scale={scale}
         />
       ))}
     </>

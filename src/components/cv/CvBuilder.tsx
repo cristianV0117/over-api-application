@@ -13,6 +13,7 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import MenuItem from "@mui/material/MenuItem";
+import Slider from "@mui/material/Slider";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
@@ -293,6 +294,35 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
                   ))}
                 </TextField>
 
+                <Typography variant="subtitle2">Tamaño de letra</Typography>
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ maxWidth: 380 }}>
+                  <Typography variant="caption" sx={{ fontSize: 11 }}>
+                    A
+                  </Typography>
+                  <Slider
+                    min={80}
+                    max={125}
+                    step={5}
+                    value={theme.fontScale ?? 100}
+                    onChange={(_, value) =>
+                      setTheme({ ...theme, fontScale: Array.isArray(value) ? value[0] : value })
+                    }
+                    valueLabelDisplay="auto"
+                    valueLabelFormat={(value) => `${value}%`}
+                    marks={[
+                      { value: 80, label: "80%" },
+                      { value: 100, label: "100%" },
+                      { value: 125, label: "125%" },
+                    ]}
+                  />
+                  <Typography variant="caption" sx={{ fontSize: 16, fontWeight: 700 }}>
+                    A
+                  </Typography>
+                </Stack>
+                <Typography variant="caption" color="text.secondary">
+                  Si sobra espacio en blanco o no cabe el contenido, baja o sube el tamaño.
+                </Typography>
+
                 <Typography variant="subtitle2">Colores recomendados</Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   {CV_PALETTES.map((palette) => {
@@ -310,6 +340,7 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
                             ...palette.theme,
                             fontFamily: theme.fontFamily || palette.theme.fontFamily,
                             repeatSidebar: theme.repeatSidebar,
+                            fontScale: theme.fontScale,
                           })
                         }
                         sx={{ textTransform: "none", pr: 1.5 }}
