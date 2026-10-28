@@ -2,16 +2,12 @@
 
 import {
   Circle,
-  Defs,
   Document,
   G,
   Image,
-  LinearGradient,
   Link,
   Page,
   Path,
-  Rect,
-  Stop,
   StyleSheet,
   Svg,
   Text,
@@ -126,16 +122,16 @@ function stylesFor(theme: CvTheme, family: string) {
       fontFamily: family,
     },
     tagChip: {
-      borderWidth: 0.6,
+      borderWidth: 0.5,
       borderColor: theme.heading,
       color: theme.heading,
-      fontSize: fs(6.5),
-      letterSpacing: 0.3,
+      fontSize: fs(5.2),
+      letterSpacing: 0.2,
       textTransform: "uppercase",
-      paddingVertical: 2,
-      paddingHorizontal: 5,
-      marginRight: 3,
-      marginBottom: 3,
+      paddingVertical: 1,
+      paddingHorizontal: 3.5,
+      marginRight: 2.5,
+      marginBottom: 2.5,
       fontFamily: family,
     },
     iconRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 4 },
@@ -244,13 +240,14 @@ function stylesFor(theme: CvTheme, family: string) {
       fontFamily: family,
     },
     eduTitle: { fontFamily: bold, fontWeight: weight, fontSize: fs(8), color: theme.sidebarText },
-    courseTitle: {
+    courseLine: {
       fontFamily: family,
-      fontSize: fs(7),
+      fontSize: fs(6.5),
       color: theme.sidebarMuted,
+      lineHeight: 1.35,
+      marginBottom: 3,
       textTransform: "uppercase",
     },
-    courseMeta: { fontFamily: family, fontSize: fs(7), color: theme.sidebarMuted },
     link: { fontSize: fs(7.5), color: theme.heading, textDecoration: "none", marginTop: 2, fontFamily: family },
   });
 }
@@ -322,78 +319,14 @@ function ContactLine({
   );
 }
 
-function SoftTag({
-  label,
-  family,
-  id,
-  scale,
-}: {
-  label: string;
-  family: string;
-  id: string;
-  scale: number;
-}) {
-  const width = Math.min(132, Math.max(36, label.length * 4.7 * scale + 16 * scale));
-  const height = 14 * scale;
-  return (
-    <View style={{ width, height, marginRight: 4, marginBottom: 4, position: "relative" }}>
-      <Svg width={width} height={height} style={{ position: "absolute", left: 0, top: 0 }}>
-        <Defs>
-          <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#F3F4F6" />
-            <Stop offset="0.5" stopColor="#D9DDE3" />
-            <Stop offset="1" stopColor="#B7BDC6" />
-          </LinearGradient>
-        </Defs>
-        <Rect
-          x={0.4}
-          y={0.4}
-          width={width - 0.8}
-          height={height - 0.8}
-          rx={(height - 0.8) / 2}
-          fill={`url(#${id})`}
-          stroke="#C2C7CF"
-          strokeWidth={0.5}
-        />
-      </Svg>
-      <Text
-        style={{
-          fontSize: 6.3 * scale,
-          color: "#2E333A",
-          textAlign: "center",
-          paddingTop: 3 * scale,
-          fontFamily: family,
-          letterSpacing: 0.12,
-        }}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-function SoftTagRow({
-  tags,
-  family,
-  prefix,
-  scale,
-}: {
-  tags: string[];
-  family: string;
-  prefix: string;
-  scale: number;
-}) {
+function TagRow({ tags, style }: { tags: string[]; style: ReturnType<typeof stylesFor>["tagChip"] }) {
   if (!tags.length) return null;
   return (
-    <View wrap={false} style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 6 }}>
-      {tags.map((tag, i) => (
-        <SoftTag
-          key={`${prefix}-${tag}-${i}`}
-          label={tag}
-          family={family}
-          scale={scale}
-          id={`g${prefix}${i}`.replace(/[^A-Za-z0-9]/g, "")}
-        />
+    <View wrap={false} style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 4 }}>
+      {tags.map((tag) => (
+        <Text key={tag} style={style}>
+          {tag}
+        </Text>
       ))}
     </View>
   );
@@ -413,9 +346,11 @@ function SidebarSection({
   const c = section.config;
   return (
     <View>
-      <Text style={s.sideTitle} minPresenceAhead={22}>
-        {section.title}
-      </Text>
+      {section.type !== "courses" ? (
+        <Text style={s.sideTitle} minPresenceAhead={22}>
+          {section.title}
+        </Text>
+      ) : null}
       {section.type === "about" || section.type === "custom" ? (
         <Text style={s.sideText}>{String(c.text ?? "")}</Text>
       ) : null}
@@ -480,14 +415,18 @@ function SidebarSection({
           ))
         : null}
       {section.type === "courses"
-        ? asItems<{ title: string; provider?: string; date: string }>(c).map((item, i) => (
-            <View key={i} style={{ marginBottom: 6 }} wrap={false}>
-              <Text style={s.courseTitle}>{item.title}</Text>
-              <Text style={s.courseMeta}>
-                {[item.provider, item.date].filter(Boolean).join(" · ")}
-              </Text>
-            </View>
-          ))
+        ? asItems<{ title: string; provider?: string; date: string }>(c).map((item, i) => {
+            const meta = [item.provider, item.date].filter(Boolean).join(" · ");
+            return (
+              <View key={i} wrap={false} minPresenceAhead={16}>
+                {i === 0 ? <Text style={s.sideTitle}>{section.title}</Text> : null}
+                <Text style={s.courseLine}>
+                  {item.title}
+                  {meta ? `  ·  ${meta}` : ""}
+                </Text>
+              </View>
+            );
+          })
         : null}
     </View>
   );
@@ -498,17 +437,13 @@ function MainSection({
   s,
   iconPngs,
   locale,
-  family,
   heading,
-  scale,
 }: {
   section: CvSection;
   s: ReturnType<typeof stylesFor>;
   iconPngs: Record<string, string>;
   locale: "es" | "en";
-  family: string;
   heading: string;
-  scale: number;
 }) {
   const c = section.config;
   const title = (
@@ -560,12 +495,7 @@ function MainSection({
                       {project.url.replace(/^https?:\/\//, "")}
                     </Link>
                   ) : null}
-                  <SoftTagRow
-                    tags={asTags(project.tags)}
-                    family={family}
-                    scale={scale}
-                    prefix={`${section.id}p${row}${i}`}
-                  />
+                  <TagRow tags={asTags(project.tags)} style={s.tagChip} />
                 </View>
               ))}
               {pair.length === 1 ? <View style={s.projectCard} /> : null}
@@ -635,12 +565,7 @@ function MainSection({
               </View>
               <View style={s.jobContinue}>
                 {job.description ? <Text style={s.jobDesc}>{job.description}</Text> : null}
-                <SoftTagRow
-                  tags={tags}
-                  family={family}
-                  scale={scale}
-                  prefix={`${section.id}j${i}`}
-                />
+                <TagRow tags={tags} style={s.tagChip} />
               </View>
             </View>
           );
@@ -677,7 +602,6 @@ export function CvPdfDocument({
 }) {
   const family = fontFamilyOf(config.theme.fontFamily);
   const repeat = Boolean(config.theme.repeatSidebar);
-  const scale = normalizeFontScale(config.theme.fontScale) / 100;
   const s = stylesFor(config.theme, family);
   const sidebar = config.sections
     .filter((x) => x.column === "sidebar" && x.visible)
@@ -726,9 +650,7 @@ export function CvPdfDocument({
           s={s}
           iconPngs={iconPngs}
           locale={locale}
-          family={family}
           heading={config.theme.heading}
-          scale={scale}
         />
       ))}
     </>
