@@ -27,6 +27,12 @@ function asTags(value: unknown): string[] {
   return value.map((x) => String(x ?? "").trim()).filter(Boolean);
 }
 
+function chunk2<T>(items: T[]): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += 2) rows.push(items.slice(i, i + 2));
+  return rows;
+}
+
 function boldOf(family: string) {
   if (family === "Helvetica") return "Helvetica-Bold";
   if (family === "Times-Roman") return "Times-Bold";
@@ -34,7 +40,7 @@ function boldOf(family: string) {
   return family;
 }
 
-function stylesFor(theme: CvTheme, family: string, repeat: boolean) {
+function stylesFor(theme: CvTheme, family: string) {
   const bold = boldOf(family);
   const weight = family === "Helvetica" || family === "Courier" ? undefined : 700;
   return StyleSheet.create({
@@ -42,12 +48,11 @@ function stylesFor(theme: CvTheme, family: string, repeat: boolean) {
       fontSize: 9,
       fontFamily: family,
       paddingTop: 40,
-      paddingBottom: 32,
-      paddingRight: repeat ? 22 : 0,
-      paddingLeft: repeat ? "32%" : 0,
+      paddingBottom: 52,
+      paddingRight: 22,
+      paddingLeft: "32%",
       backgroundColor: theme.pageBg,
     },
-    bodyRow: { flexDirection: "row" },
     sidebarBg: {
       position: "absolute",
       left: 0,
@@ -63,26 +68,11 @@ function stylesFor(theme: CvTheme, family: string, repeat: boolean) {
       width: "32%",
       paddingTop: 40,
       paddingHorizontal: 16,
-      paddingBottom: 24,
+      paddingBottom: 52,
       color: theme.sidebarText,
-    },
-    sidebarFlow: {
-      width: "32%",
-      backgroundColor: theme.sidebarBg,
-      color: theme.sidebarText,
-      paddingTop: 40,
-      paddingHorizontal: 16,
-      paddingBottom: 32,
-      marginTop: -40,
-      marginBottom: -32,
     },
     main: {
       paddingLeft: 22,
-    },
-    mainFlow: {
-      width: "68%",
-      paddingLeft: 22,
-      paddingRight: 22,
     },
     photo: {
       width: 78,
@@ -174,12 +164,34 @@ function stylesFor(theme: CvTheme, family: string, repeat: boolean) {
     jobMeta: { fontSize: 7.5, color: theme.body, textAlign: "right", fontFamily: family },
     jobDesc: { fontSize: 8, color: theme.body, lineHeight: 1.4, marginTop: 4, fontFamily: family },
     jobBlock: { marginBottom: 12 },
+    projectRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: 10,
+    },
+    projectCard: {
+      width: "48%",
+    },
     projectShot: {
       width: "100%",
-      height: 118,
+      height: 72,
       objectFit: "cover",
-      marginTop: 6,
-      marginBottom: 4,
+      marginTop: 4,
+      marginBottom: 3,
+    },
+    projectName: {
+      fontSize: 8,
+      fontFamily: bold,
+      fontWeight: weight,
+      color: theme.heading,
+      textTransform: "uppercase",
+    },
+    projectDesc: {
+      fontSize: 7,
+      color: theme.body,
+      lineHeight: 1.3,
+      marginTop: 3,
+      fontFamily: family,
     },
     eduTitle: { fontFamily: bold, fontWeight: weight, fontSize: 8, color: theme.sidebarText },
     link: { fontSize: 7.5, color: theme.heading, textDecoration: "none", marginTop: 2, fontFamily: family },
@@ -353,29 +365,36 @@ function MainSection({
           })
         : null}
       {section.type === "projects"
-        ? asItems<{
-            name: string;
-            role: string;
-            tagline: string;
-            description: string;
-            url: string;
-            imageDataUrl?: string;
-            tags?: string[];
-          }>(c).map((project, i) => (
-            <View key={i} wrap={false} minPresenceAhead={96} style={s.jobBlock}>
-              <Text style={s.company}>{project.name}</Text>
-              {project.role ? <Text style={s.jobRole}>{project.role}</Text> : null}
-              {project.tagline ? <Text style={s.jobRole}>{project.tagline}</Text> : null}
-              {project.imageDataUrl ? (
-                <Image src={project.imageDataUrl} style={s.projectShot} />
-              ) : null}
-              {project.description ? <Text style={s.jobDesc}>{project.description}</Text> : null}
-              {project.url ? (
-                <Link src={project.url} style={s.link}>
-                  {project.url.replace(/^https?:\/\//, "")}
-                </Link>
-              ) : null}
-              <TagRow tags={asTags(project.tags)} style={s.tagChip} />
+        ? chunk2(
+            asItems<{
+              name: string;
+              role: string;
+              tagline: string;
+              description: string;
+              url: string;
+              imageDataUrl?: string;
+              tags?: string[];
+            }>(c)
+          ).map((pair, row) => (
+            <View key={row} wrap={false} minPresenceAhead={90} style={s.projectRow}>
+              {pair.map((project, i) => (
+                <View key={i} style={s.projectCard}>
+                  <Text style={s.projectName}>{project.name}</Text>
+                  {project.role ? <Text style={s.jobRole}>{project.role}</Text> : null}
+                  {project.imageDataUrl ? (
+                    <Image src={project.imageDataUrl} style={s.projectShot} />
+                  ) : null}
+                  {project.tagline ? <Text style={s.projectDesc}>{project.tagline}</Text> : null}
+                  {project.description ? <Text style={s.projectDesc}>{project.description}</Text> : null}
+                  {project.url ? (
+                    <Link src={project.url} style={s.link}>
+                      {project.url.replace(/^https?:\/\//, "")}
+                    </Link>
+                  ) : null}
+                  <TagRow tags={asTags(project.tags)} style={s.tagChip} />
+                </View>
+              ))}
+              {pair.length === 1 ? <View style={s.projectCard} /> : null}
             </View>
           ))
         : null}
@@ -404,7 +423,7 @@ export function CvPdfDocument({
 }) {
   const family = fontFamilyOf(config.theme.fontFamily);
   const repeat = Boolean(config.theme.repeatSidebar);
-  const s = stylesFor(config.theme, family, repeat);
+  const s = stylesFor(config.theme, family);
   const sidebar = config.sections
     .filter((x) => x.column === "sidebar" && x.visible)
     .sort((a, b) => a.order - b.order);
@@ -454,22 +473,15 @@ export function CvPdfDocument({
   return (
     <Document title={h.fullName || config.name} author={h.fullName}>
       <Page size="A4" wrap style={s.page}>
+        <View style={s.sidebarBg} fixed />
         {repeat ? (
-          <>
-            <View style={s.sidebarBg} fixed />
-            <View style={s.sidebar} fixed>
-              {sidebarInner}
-            </View>
-            <View style={s.main}>{mainInner}</View>
-          </>
-        ) : (
-          <View style={s.bodyRow}>
-            <View style={s.sidebarFlow} wrap={false}>
-              {sidebarInner}
-            </View>
-            <View style={s.mainFlow}>{mainInner}</View>
+          <View style={s.sidebar} fixed>
+            {sidebarInner}
           </View>
+        ) : (
+          <View style={s.sidebar}>{sidebarInner}</View>
         )}
+        <View style={s.main}>{mainInner}</View>
       </Page>
     </Document>
   );

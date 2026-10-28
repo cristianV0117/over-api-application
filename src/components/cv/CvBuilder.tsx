@@ -274,7 +274,7 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
                       onChange={(e) => setTheme({ ...theme, repeatSidebar: e.target.checked })}
                     />
                   }
-                  label="Repetir barra izquierda en todas las hojas"
+                  label="Repetir el contenido de la barra en todas las hojas"
                 />
 
                 <Typography variant="subtitle2">Tipo de letra</Typography>
