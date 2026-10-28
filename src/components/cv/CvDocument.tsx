@@ -1,6 +1,22 @@
 "use client";
 
-import { Document, Image, Link, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import {
+  Circle,
+  Defs,
+  Document,
+  G,
+  Image,
+  LinearGradient,
+  Link,
+  Page,
+  Path,
+  Rect,
+  Stop,
+  StyleSheet,
+  Svg,
+  Text,
+  View,
+} from "@react-pdf/renderer";
 import { formatDateRange, jobDuration } from "@/lib/cv/dates";
 import { fontFamilyOf } from "@/lib/cv/fonts";
 import type { CvConfig, CvSection, CvTheme } from "@/lib/cv/types";
@@ -138,7 +154,9 @@ function stylesFor(theme: CvTheme, family: string) {
       marginBottom: 8,
       fontFamily: family,
     },
-    contact: { fontSize: 8, color: theme.body, marginBottom: 2, fontFamily: family },
+    contactRow: { flexDirection: "row", alignItems: "center", marginBottom: 3 },
+    contact: { fontSize: 8, color: theme.body, fontFamily: family },
+    contactIcon: { width: 11, height: 11, marginRight: 5 },
     mainTitle: {
       fontSize: 10,
       letterSpacing: 1.6,
@@ -153,17 +171,39 @@ function stylesFor(theme: CvTheme, family: string) {
       marginTop: 14,
     },
     jobHead: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
-    company: {
-      fontSize: 9,
+    jobRoleTitle: {
+      fontSize: 9.5,
       fontFamily: bold,
       fontWeight: weight,
       color: theme.heading,
-      textTransform: "uppercase",
+    },
+    company: {
+      fontSize: 8,
+      color: theme.body,
+      marginTop: 1,
+      fontFamily: family,
     },
     jobRole: { fontSize: 8, color: theme.body, marginTop: 1, fontFamily: family },
     jobMeta: { fontSize: 7.5, color: theme.body, textAlign: "right", fontFamily: family },
-    jobDesc: { fontSize: 8, color: theme.body, lineHeight: 1.4, marginTop: 4, fontFamily: family },
-    jobBlock: { marginBottom: 12 },
+    jobDesc: { fontSize: 8, color: theme.body, lineHeight: 1.4, marginTop: 5, fontFamily: family },
+    jobBlock: { marginBottom: 4 },
+    timeline: { flexDirection: "row", alignItems: "stretch" },
+    timelineCol: { width: 12, alignItems: "center" },
+    timelineDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: theme.heading,
+      marginTop: 2,
+    },
+    timelineLine: {
+      width: 1.3,
+      flexGrow: 1,
+      backgroundColor: "#B4BAC3",
+      marginTop: 3,
+      minHeight: 12,
+    },
+    jobBody: { flex: 1, paddingLeft: 9, paddingBottom: 16 },
     projectRow: {
       flexDirection: "row",
       justifyContent: "space-between",
@@ -198,14 +238,124 @@ function stylesFor(theme: CvTheme, family: string) {
   });
 }
 
-function TagRow({ tags, style }: { tags: string[]; style: ReturnType<typeof stylesFor>["tagChip"] }) {
+function RoundIcon({
+  kind,
+  color,
+  size = 11,
+}: {
+  kind: "phone" | "email" | "pin";
+  color: string;
+  size?: number;
+}) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Circle cx="12" cy="12" r="12" fill={color} />
+      {kind === "phone" ? (
+        <G transform="translate(4.6 4.4) scale(0.62)">
+          <Path
+            fill="#FFFFFF"
+            d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.2 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V21c0 .6-.4 1-1 1C10.6 22 2 13.4 2 2.9 2 2.4 2.4 2 3 2h3.5c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1L6.6 10.8z"
+          />
+        </G>
+      ) : null}
+      {kind === "email" ? (
+        <G>
+          <Path
+            fill="none"
+            stroke="#FFFFFF"
+            strokeWidth="1.7"
+            d="M5.4 8.2h13.2v8.2H5.4V8.2z"
+          />
+          <Path
+            fill="none"
+            stroke="#FFFFFF"
+            strokeWidth="1.7"
+            d="M5.4 8.2l6.6 4.6 6.6-4.6"
+          />
+        </G>
+      ) : null}
+      {kind === "pin" ? (
+        <Path
+          fill="#FFFFFF"
+          d="M12 5.2c-2.3 0-4.2 1.8-4.2 4.1 0 3.1 4.2 9.5 4.2 9.5s4.2-6.4 4.2-9.5c0-2.3-1.9-4.1-4.2-4.1zm0 5.6a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"
+        />
+      ) : null}
+    </Svg>
+  );
+}
+
+function ContactLine({
+  kind,
+  text,
+  color,
+  s,
+}: {
+  kind: "phone" | "email" | "pin";
+  text: string;
+  color: string;
+  s: ReturnType<typeof stylesFor>;
+}) {
+  return (
+    <View style={s.contactRow}>
+      <View style={s.contactIcon}>
+        <RoundIcon kind={kind} color={color} />
+      </View>
+      <Text style={s.contact}>{text}</Text>
+    </View>
+  );
+}
+
+function SoftTag({ label, family, id }: { label: string; family: string; id: string }) {
+  const width = Math.min(132, Math.max(36, label.length * 4.7 + 16));
+  const height = 14;
+  return (
+    <View style={{ width, height, marginRight: 4, marginBottom: 4, position: "relative" }}>
+      <Svg width={width} height={height} style={{ position: "absolute", left: 0, top: 0 }}>
+        <Defs>
+          <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#F3F4F6" />
+            <Stop offset="0.5" stopColor="#D9DDE3" />
+            <Stop offset="1" stopColor="#B7BDC6" />
+          </LinearGradient>
+        </Defs>
+        <Rect
+          x={0.4}
+          y={0.4}
+          width={width - 0.8}
+          height={height - 0.8}
+          rx={(height - 0.8) / 2}
+          fill={`url(#${id})`}
+          stroke="#C2C7CF"
+          strokeWidth={0.5}
+        />
+      </Svg>
+      <Text
+        style={{
+          fontSize: 6.3,
+          color: "#2E333A",
+          textAlign: "center",
+          paddingTop: 3,
+          fontFamily: family,
+          letterSpacing: 0.12,
+        }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function SoftTagRow({ tags, family, prefix }: { tags: string[]; family: string; prefix: string }) {
   if (!tags.length) return null;
   return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 5 }}>
-      {tags.map((tag) => (
-        <Text key={tag} style={style}>
-          {tag}
-        </Text>
+    <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 6 }}>
+      {tags.map((tag, i) => (
+        <SoftTag
+          key={`${prefix}-${tag}-${i}`}
+          label={tag}
+          family={family}
+          id={`g${prefix}${i}`.replace(/[^A-Za-z0-9]/g, "")}
+        />
       ))}
     </View>
   );
@@ -308,11 +458,15 @@ function MainSection({
   s,
   iconPngs,
   locale,
+  family,
+  heading,
 }: {
   section: CvSection;
   s: ReturnType<typeof stylesFor>;
   iconPngs: Record<string, string>;
   locale: "es" | "en";
+  family: string;
+  heading: string;
 }) {
   const c = section.config;
   const title = (
@@ -355,7 +509,11 @@ function MainSection({
                       {project.url.replace(/^https?:\/\//, "")}
                     </Link>
                   ) : null}
-                  <TagRow tags={asTags(project.tags)} style={s.tagChip} />
+                  <SoftTagRow
+                    tags={asTags(project.tags)}
+                    family={family}
+                    prefix={`${section.id}p${row}${i}`}
+                  />
                 </View>
               ))}
               {pair.length === 1 ? <View style={s.projectCard} /> : null}
@@ -395,22 +553,37 @@ function MainSection({
           return (
             <View key={i} wrap={false} minPresenceAhead={80}>
               {i === 0 ? title : null}
-              <View style={s.jobBlock}>
-                <View style={s.jobHead}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.company}>
-                      {job.company}
-                      {job.role ? `   ${job.role}` : ""}
-                    </Text>
-                    {job.location ? <Text style={s.jobRole}>{job.location}</Text> : null}
-                  </View>
-                  <View>
-                    {range ? <Text style={s.jobMeta}>{range}</Text> : null}
-                    {duration ? <Text style={s.jobMeta}>{duration}</Text> : null}
-                  </View>
+              <View style={s.timeline}>
+                <View style={s.timelineCol}>
+                  <View style={s.timelineDot} />
+                  {i < jobs.length - 1 ? <View style={s.timelineLine} /> : null}
                 </View>
-                {job.description ? <Text style={s.jobDesc}>{job.description}</Text> : null}
-                <TagRow tags={asTags(job.tags)} style={s.tagChip} />
+                <View style={s.jobBody}>
+                  <View style={s.jobHead}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.jobRoleTitle}>{job.role || job.company}</Text>
+                      {job.role && job.company ? <Text style={s.company}>{job.company}</Text> : null}
+                      {job.location ? (
+                        <View style={[s.contactRow, { marginTop: 2, marginBottom: 0 }]}>
+                          <View style={{ width: 8, height: 8, marginRight: 3 }}>
+                            <RoundIcon kind="pin" color={heading} size={8} />
+                          </View>
+                          <Text style={[s.jobRole, { marginTop: 0 }]}>{job.location}</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <View>
+                      {range ? <Text style={s.jobMeta}>{range}</Text> : null}
+                      {duration ? <Text style={s.jobMeta}>{duration}</Text> : null}
+                    </View>
+                  </View>
+                  {job.description ? <Text style={s.jobDesc}>{job.description}</Text> : null}
+                  <SoftTagRow
+                    tags={asTags(job.tags)}
+                    family={family}
+                    prefix={`${section.id}j${i}`}
+                  />
+                </View>
               </View>
             </View>
           );
@@ -478,9 +651,15 @@ export function CvPdfDocument({
       <View wrap={false}>
         <Text style={s.name}>{h.fullName}</Text>
         <Text style={s.role}>{h.role}</Text>
-        {h.location ? <Text style={s.contact}>{h.location}</Text> : null}
-        {h.phone ? <Text style={s.contact}>{h.phone}</Text> : null}
-        {h.email ? <Text style={s.contact}>{h.email}</Text> : null}
+        {h.location ? (
+          <ContactLine kind="pin" text={h.location} color={config.theme.heading} s={s} />
+        ) : null}
+        {h.phone ? (
+          <ContactLine kind="phone" text={h.phone} color={config.theme.heading} s={s} />
+        ) : null}
+        {h.email ? (
+          <ContactLine kind="email" text={h.email} color={config.theme.heading} s={s} />
+        ) : null}
       </View>
       {main.map((section) => (
         <MainSection
@@ -489,6 +668,8 @@ export function CvPdfDocument({
           s={s}
           iconPngs={iconPngs}
           locale={locale}
+          family={family}
+          heading={config.theme.heading}
         />
       ))}
     </>
