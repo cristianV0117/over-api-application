@@ -1,5 +1,5 @@
 import { createSection, normalizeHeader, normalizeSectionScale, normalizeTheme } from "./defaults";
-import type { CvColumn, CvConfig, CvHeader, CvSection, CvSectionType, CvTheme } from "./types";
+import type { CvColumn, CvHeader, CvSection, CvSectionType, CvTheme } from "./types";
 import { SECTION_TYPES } from "./types";
 
 export const CV_EXPORT_KIND = "overapp-cv";

@@ -72,7 +72,7 @@ export default function Users() {
         setLoading(false);
       }
     })();
-  }, [ctxUser, router]);
+  }, [ctxUser, router, t]);
 
   const columns: GridColDef<AdminUserRow>[] = useMemo(
     () => [
