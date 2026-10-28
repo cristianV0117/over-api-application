@@ -434,6 +434,13 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
                         prev.map((s) => (s.id === id ? { ...s, visible: !s.visible } : s))
                       )
                     }
+                    onToggleBreak={(id) =>
+                      setSections((prev) =>
+                        prev.map((s) =>
+                          s.id === id ? { ...s, breakBefore: !s.breakBefore } : s
+                        )
+                      )
+                    }
                     onDelete={(id) => {
                       setSections((prev) => prev.filter((s) => s.id !== id));
                       if (selectedId === id) setSelectedId(null);

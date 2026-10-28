@@ -46,6 +46,7 @@ export type CvSection = {
   visible: boolean;
   title: string;
   scale?: number;
+  breakBefore?: boolean;
   config: Record<string, unknown>;
 };
 

@@ -108,6 +108,7 @@ export function createSection(type: CvSectionType, existing: CvSection[]): CvSec
     visible: true,
     title: SECTION_LABELS[type],
     scale: 100,
+    breakBefore: false,
     config: emptyConfig(type),
   };
 }

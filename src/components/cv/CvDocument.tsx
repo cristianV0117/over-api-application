@@ -655,15 +655,16 @@ export function CvPdfDocument({
         ) : null}
       </View>
       {main.map((section) => (
-        <MainSection
-          key={section.id}
-          section={section}
-          theme={config.theme}
-          family={family}
-          iconPngs={iconPngs}
-          locale={locale}
-          heading={config.theme.heading}
-        />
+        <View key={section.id} break={Boolean(section.breakBefore)}>
+          <MainSection
+            section={section}
+            theme={config.theme}
+            family={family}
+            iconPngs={iconPngs}
+            locale={locale}
+            heading={config.theme.heading}
+          />
+        </View>
       ))}
     </>
   );

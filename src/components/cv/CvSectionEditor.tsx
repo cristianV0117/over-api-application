@@ -167,6 +167,17 @@ export default function CvSectionEditor({ section, onChange }: Props) {
         value={section.scale ?? 100}
         onChange={(scale) => onChange({ ...section, scale })}
       />
+      {section.column === "main" ? (
+        <FormControlLabel
+          control={
+            <Switch
+              checked={Boolean(section.breakBefore)}
+              onChange={(e) => onChange({ ...section, breakBefore: e.target.checked })}
+            />
+          }
+          label="Empezar en una hoja nueva"
+        />
+      ) : null}
 
       {(type === "about" || type === "custom") && (
         <TextField

@@ -18,6 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import InsertPageBreakOutlinedIcon from "@mui/icons-material/InsertPageBreakOutlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -38,6 +39,7 @@ type Props = {
   onReorder: (next: CvSection[]) => void;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onToggleBreak?: (id: string) => void;
 };
 
 function SortableRow({
@@ -46,12 +48,14 @@ function SortableRow({
   onSelect,
   onToggle,
   onDelete,
+  onToggleBreak,
 }: {
   section: CvSection;
   selected: boolean;
   onSelect: () => void;
   onToggle: () => void;
   onDelete: () => void;
+  onToggleBreak?: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: section.id,
@@ -74,10 +78,30 @@ function SortableRow({
       </ListItemIcon>
       <ListItemText
         primary={section.title}
-        secondary={(section.scale ?? 100) !== 100 ? `${section.scale}%` : undefined}
+        secondary={
+          [
+            (section.scale ?? 100) !== 100 ? `${section.scale}%` : "",
+            section.breakBefore ? "Hoja nueva" : "",
+          ]
+            .filter(Boolean)
+            .join(" · ") || undefined
+        }
         primaryTypographyProps={{ variant: "body2", noWrap: true }}
         secondaryTypographyProps={{ variant: "caption" }}
       />
+      {onToggleBreak ? (
+        <IconButton
+          size="small"
+          color={section.breakBefore ? "primary" : "default"}
+          title={section.breakBefore ? "Quitar salto de hoja" : "Empezar en una hoja nueva"}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleBreak();
+          }}
+        >
+          <InsertPageBreakOutlinedIcon fontSize="small" />
+        </IconButton>
+      ) : null}
       <IconButton
         size="small"
         onClick={(e) => {
@@ -113,6 +137,7 @@ export default function CvSectionList({
   onReorder,
   onToggle,
   onDelete,
+  onToggleBreak,
 }: Props) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -133,6 +158,11 @@ export default function CvSectionList({
       <Typography variant="overline" color="text.secondary">
         {title}
       </Typography>
+      {onToggleBreak ? (
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5 }}>
+          Arrastra para reordenar. El icono de hoja manda la sección a una página nueva.
+        </Typography>
+      ) : null}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
           <List dense disablePadding>
@@ -144,6 +174,7 @@ export default function CvSectionList({
                 onSelect={() => onSelect(section.id)}
                 onToggle={() => onToggle(section.id)}
                 onDelete={() => onDelete(section.id)}
+                onToggleBreak={onToggleBreak ? () => onToggleBreak(section.id) : undefined}
               />
             ))}
           </List>
