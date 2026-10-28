@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 import TranslateIcon from "@mui/icons-material/Translate";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import Avatar from "@mui/material/Avatar";
@@ -19,6 +21,7 @@ import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { createSection, hexOr, normalizeHeader, normalizeTheme } from "@/lib/cv/defaults";
+import { downloadCvExport, readCvFile, toExportPayload } from "@/lib/cv/transfer";
 import { CV_FONTS, cvFontFaceCss } from "@/lib/cv/fonts";
 import { CV_PALETTES } from "@/lib/cv/palettes";
 import { compressProfilePhoto } from "@/lib/cv/photo";
@@ -56,6 +59,7 @@ function withOrder(list: CvSection[], column: CvSection["column"]): CvSection[] 
 
 export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDelete }: Props) {
   const [name, setName] = useState(initial.name);
+  const [locale, setLocale] = useState<"es" | "en">(initial.locale === "en" ? "en" : "es");
   const [theme, setTheme] = useState(() => normalizeTheme(initial.theme));
   const [header, setHeader] = useState(() => normalizeHeader(initial.header));
   const [sections, setSections] = useState(initial.sections);
@@ -107,7 +111,7 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
     try {
       await onSave({
         name: name.trim() || "Mi CV",
-        locale: initial.locale,
+        locale,
         theme,
         header,
         sections: snapshot.sections,
@@ -122,7 +126,7 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
     try {
       await onSave({
         name: name.trim() || "Mi CV",
-        locale: initial.locale,
+        locale,
         theme,
         header,
         sections: snapshot.sections,
@@ -169,7 +173,7 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
                   <Button
                     variant="outlined"
                     startIcon={<TranslateIcon />}
-                    disabled={busy || initial.locale === "en"}
+                    disabled={busy || locale === "en"}
                     onClick={translate}
                   >
                     Traducir a inglés
@@ -183,6 +187,59 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
                     {live ? "Ocultar preview" : "Ver PDF en vivo"}
                   </Button>
                   <Button
+                    variant="outlined"
+                    startIcon={<FileDownloadOutlinedIcon />}
+                    disabled={busy}
+                    onClick={() =>
+                      downloadCvExport(
+                        toExportPayload({
+                          name: name.trim() || "Mi CV",
+                          locale,
+                          theme,
+                          header,
+                          sections: snapshot.sections,
+                        })
+                      )
+                    }
+                  >
+                    Exportar
+                  </Button>
+                  <Button component="label" variant="outlined" startIcon={<FileUploadOutlinedIcon />} disabled={busy}>
+                    Importar
+                    <input
+                      type="file"
+                      hidden
+                      accept="application/json,.json,.overapp-cv.json"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!file) return;
+                        if (
+                          !window.confirm(
+                            "Esto reemplaza el contenido y la configuración de este CV. ¿Continuar?"
+                          )
+                        ) {
+                          return;
+                        }
+                        void (async () => {
+                          try {
+                            const payload = await readCvFile(file);
+                            setName(payload.name);
+                            setLocale(payload.locale);
+                            setTheme(payload.theme);
+                            setHeader(payload.header);
+                            setSections(payload.sections);
+                            setSelectedId(payload.sections[0]?.id ?? null);
+                          } catch (error) {
+                            window.alert(
+                              error instanceof Error ? error.message : "No se pudo importar el archivo"
+                            );
+                          }
+                        })();
+                      }}
+                    />
+                  </Button>
+                  <Button
                     color="error"
                     disabled={busy}
                     onClick={() => {
@@ -192,7 +249,7 @@ export default function CvBuilder({ initial, onBack, onSave, onTranslate, onDele
                     Eliminar
                   </Button>
                 </Stack>
-                {initial.locale === "en" ? (
+                {locale === "en" ? (
                   <Typography variant="caption" color="text.secondary">
                     Esta es la versión en inglés.
                   </Typography>

@@ -41,7 +41,13 @@ export async function fetchCv(id: string): Promise<CvConfig> {
   return res.json();
 }
 
-export async function createCv(payload?: { name?: string }): Promise<CvConfig> {
+export async function createCv(payload?: {
+  name?: string;
+  locale?: "es" | "en";
+  theme?: Partial<CvTheme>;
+  header?: Partial<CvHeader>;
+  sections?: CvSection[];
+}): Promise<CvConfig> {
   const res = await fetch(`${BASE}/cv/me`, {
     method: "POST",
     headers: getAuthHeaders(),

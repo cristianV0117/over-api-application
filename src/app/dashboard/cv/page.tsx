@@ -9,6 +9,7 @@ import CvBuilder from "@/components/cv/CvBuilder";
 import CvList from "@/components/cv/CvList";
 import type { CvConfig, CvSummary } from "@/lib/cv/types";
 import { createCv, deleteCv, fetchCv, fetchMyCvs, saveCv, translateCv } from "@/lib/api/cv";
+import { downloadCvExport, readCvFile, toExportPayload } from "@/lib/cv/transfer";
 
 type View = "list" | "edit";
 
@@ -42,6 +43,43 @@ export default function CvPage() {
       toast.error(e instanceof Error ? e.message : "Error al cargar");
     } finally {
       setLoadingEdit(false);
+    }
+  };
+
+  const handleExport = async (id: string) => {
+    setBusyId(id);
+    try {
+      const full = await fetchCv(id);
+      downloadCvExport(toExportPayload(full));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al exportar");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleImport = async (file: File) => {
+    setBusyId("import");
+    try {
+      const payload = await readCvFile(file);
+      const created = await createCv(payload);
+      setItems((prev) => [
+        {
+          id: created.id,
+          name: created.name,
+          locale: created.locale,
+          sectionCount: created.sections.length,
+          updatedAt: created.updatedAt,
+        },
+        ...prev,
+      ]);
+      setConfig(created);
+      setView("edit");
+      toast.success("CV importado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al importar");
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -161,6 +199,8 @@ export default function CvPage() {
         onCreate={handleCreate}
         onEdit={openEdit}
         onDelete={handleDeleteFromList}
+        onExport={handleExport}
+        onImport={handleImport}
       />
     </Box>
   );

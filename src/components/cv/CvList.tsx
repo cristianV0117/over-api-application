@@ -1,8 +1,11 @@
 "use client";
 
+import { useRef } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -24,9 +27,20 @@ type Props = {
   onCreate: () => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onExport: (id: string) => void;
+  onImport: (file: File) => void;
 };
 
-export default function CvList({ items, busyId, onCreate, onEdit, onDelete }: Props) {
+export default function CvList({
+  items,
+  busyId,
+  onCreate,
+  onEdit,
+  onDelete,
+  onExport,
+  onImport,
+}: Props) {
+  const fileRef = useRef<HTMLInputElement>(null);
   return (
     <Stack spacing={2}>
       <Stack
@@ -43,9 +57,30 @@ export default function CvList({ items, busyId, onCreate, onEdit, onDelete }: Pr
             Arma el PDF, cambia secciones y colores, y genera una versión en inglés.
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={onCreate}>
-          Nuevo CV
-        </Button>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <Button
+            variant="outlined"
+            startIcon={<FileUploadOutlinedIcon />}
+            disabled={Boolean(busyId)}
+            onClick={() => fileRef.current?.click()}
+          >
+            Importar CV
+          </Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={onCreate}>
+            Nuevo CV
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            hidden
+            accept="application/json,.json,.overapp-cv.json"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) onImport(file);
+            }}
+          />
+        </Stack>
       </Stack>
 
       {items.length === 0 ? (
@@ -53,9 +88,19 @@ export default function CvList({ items, busyId, onCreate, onEdit, onDelete }: Pr
           <Typography color="text.secondary" mb={2}>
             Aún no tienes CVs. Crea el primero para empezar.
           </Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={onCreate}>
-            Crear CV
-          </Button>
+          <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap" useFlexGap>
+            <Button
+              variant="outlined"
+              startIcon={<FileUploadOutlinedIcon />}
+              disabled={Boolean(busyId)}
+              onClick={() => fileRef.current?.click()}
+            >
+              Importar CV
+            </Button>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={onCreate}>
+              Crear CV
+            </Button>
+          </Stack>
         </Paper>
       ) : (
         <Paper variant="outlined" sx={{ overflow: "auto" }}>
@@ -85,6 +130,13 @@ export default function CvList({ items, busyId, onCreate, onEdit, onDelete }: Pr
                       {new Date(item.updatedAt).toLocaleString()}
                     </TableCell>
                     <TableCell align="right">
+                      <Tooltip title="Exportar">
+                        <span>
+                          <IconButton size="small" disabled={busy} onClick={() => onExport(item.id)}>
+                            <FileDownloadOutlinedIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
                       <Tooltip title="Editar">
                         <span>
                           <IconButton size="small" disabled={busy} onClick={() => onEdit(item.id)}>
