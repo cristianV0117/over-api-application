@@ -11,6 +11,13 @@ export function normalizeFontScale(value: unknown): number {
   return Math.min(125, Math.max(80, pct));
 }
 
+export function normalizeSectionScale(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 100;
+  const pct = n > 0 && n <= 2 ? Math.round(n * 100) : Math.round(n);
+  return Math.min(140, Math.max(70, pct));
+}
+
 export function normalizeTheme(theme?: Partial<CvTheme> | null): CvTheme {
   return {
     ...DEFAULT_CV_THEME,
@@ -100,6 +107,7 @@ export function createSection(type: CvSectionType, existing: CvSection[]): CvSec
     order,
     visible: true,
     title: SECTION_LABELS[type],
+    scale: 100,
     config: emptyConfig(type),
   };
 }

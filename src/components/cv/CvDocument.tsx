@@ -14,7 +14,7 @@ import {
   View,
 } from "@react-pdf/renderer";
 import { formatDateRange, jobDuration } from "@/lib/cv/dates";
-import { normalizeFontScale } from "@/lib/cv/defaults";
+import { normalizeFontScale, normalizeSectionScale } from "@/lib/cv/defaults";
 import { fontFamilyOf } from "@/lib/cv/fonts";
 import type { CvConfig, CvSection, CvTheme } from "@/lib/cv/types";
 
@@ -53,10 +53,11 @@ function boldOf(family: string) {
   return family;
 }
 
-function stylesFor(theme: CvTheme, family: string) {
+function stylesFor(theme: CvTheme, family: string, sectionScale?: unknown) {
   const bold = boldOf(family);
   const weight = family === "Helvetica" || family === "Courier" ? undefined : 700;
-  const z = normalizeFontScale(theme.fontScale) / 100;
+  const z =
+    (normalizeFontScale(theme.fontScale) / 100) * (normalizeSectionScale(sectionScale) / 100);
   const fs = (n: number) => Math.round(n * z * 10) / 10;
   return StyleSheet.create({
     page: {
@@ -245,9 +246,12 @@ function stylesFor(theme: CvTheme, family: string) {
       fontSize: fs(6.5),
       color: theme.sidebarMuted,
       lineHeight: 1.35,
-      marginBottom: 3,
+      marginBottom: fs(3),
       textTransform: "uppercase",
     },
+    itemGap: { marginBottom: fs(6) },
+    linkGap: { marginBottom: fs(5) },
+    eduGap: { marginBottom: fs(8) },
     link: { fontSize: fs(7.5), color: theme.heading, textDecoration: "none", marginTop: 2, fontFamily: family },
   });
 }
@@ -334,15 +338,18 @@ function TagRow({ tags, style }: { tags: string[]; style: ReturnType<typeof styl
 
 function SidebarSection({
   section,
-  s,
+  theme,
+  family,
   accent,
   iconPngs,
 }: {
   section: CvSection;
-  s: ReturnType<typeof stylesFor>;
+  theme: CvTheme;
+  family: string;
   accent: string;
   iconPngs: Record<string, string>;
 }) {
+  const s = stylesFor(theme, family, section.scale);
   const c = section.config;
   return (
     <View>
@@ -356,7 +363,7 @@ function SidebarSection({
       ) : null}
       {section.type === "personal"
         ? asItems<{ label: string; value: string }>(c).map((item, i) => (
-            <View key={i} style={{ marginBottom: 6 }} wrap={false}>
+            <View key={i} style={s.itemGap} wrap={false}>
               <Text style={[s.sideText, { color: accent }]}>{item.label}</Text>
               <Text style={s.sideText}>{item.value}</Text>
             </View>
@@ -364,7 +371,7 @@ function SidebarSection({
         : null}
       {section.type === "links"
         ? asItems<{ label: string; url: string }>(c).map((item, i) => (
-            <View key={i} style={{ marginBottom: 5 }} wrap={false}>
+            <View key={i} style={s.linkGap} wrap={false}>
               <Text style={s.sideText}>{item.label}</Text>
               <Text style={s.sideText}>{item.url}</Text>
             </View>
@@ -378,7 +385,7 @@ function SidebarSection({
             year: string;
             detail: string;
           }>(c).map((item, i) => (
-            <View key={i} style={{ marginBottom: 8 }} wrap={false}>
+            <View key={i} style={s.eduGap} wrap={false}>
               <Text style={s.eduTitle}>{item.title}</Text>
               {item.institution ? <Text style={s.sideText}>{item.institution}</Text> : null}
               <Text style={s.sideText}>
@@ -434,17 +441,20 @@ function SidebarSection({
 
 function MainSection({
   section,
-  s,
+  theme,
+  family,
   iconPngs,
   locale,
   heading,
 }: {
   section: CvSection;
-  s: ReturnType<typeof stylesFor>;
+  theme: CvTheme;
+  family: string;
   iconPngs: Record<string, string>;
   locale: "es" | "en";
   heading: string;
 }) {
+  const s = stylesFor(theme, family, section.scale);
   const c = section.config;
   const title = (
     <Text style={s.mainTitle} minPresenceAhead={36}>
@@ -620,7 +630,8 @@ export function CvPdfDocument({
         <SidebarSection
           key={section.id}
           section={section}
-          s={s}
+          theme={config.theme}
+          family={family}
           accent={config.theme.accent}
           iconPngs={iconPngs}
         />
@@ -647,7 +658,8 @@ export function CvPdfDocument({
         <MainSection
           key={section.id}
           section={section}
-          s={s}
+          theme={config.theme}
+          family={family}
           iconPngs={iconPngs}
           locale={locale}
           heading={config.theme.heading}

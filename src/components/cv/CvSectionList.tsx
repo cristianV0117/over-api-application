@@ -72,7 +72,12 @@ function SortableRow({
       <ListItemIcon sx={{ minWidth: 28 }} {...attributes} {...listeners}>
         <DragIndicatorIcon fontSize="small" sx={{ cursor: "grab" }} />
       </ListItemIcon>
-      <ListItemText primary={section.title} primaryTypographyProps={{ variant: "body2", noWrap: true }} />
+      <ListItemText
+        primary={section.title}
+        secondary={(section.scale ?? 100) !== 100 ? `${section.scale}%` : undefined}
+        primaryTypographyProps={{ variant: "body2", noWrap: true }}
+        secondaryTypographyProps={{ variant: "caption" }}
+      />
       <IconButton
         size="small"
         onClick={(e) => {

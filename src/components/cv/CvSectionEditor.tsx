@@ -27,11 +27,13 @@ import Chip from "@mui/material/Chip";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import IconButton from "@mui/material/IconButton";
 import MenuItem from "@mui/material/MenuItem";
+import Slider from "@mui/material/Slider";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { formatDateRange, formatDuration } from "@/lib/cv/dates";
+import { normalizeSectionScale } from "@/lib/cv/defaults";
 import { compressProjectShot } from "@/lib/cv/photo";
 import { iconSvg, TECH_ICONS } from "@/lib/cv/techIcons";
 import type { CvColumn, CvSection } from "@/lib/cv/types";
@@ -49,6 +51,88 @@ function listOf<T>(value: unknown, fallback: T): T[] {
 function asTags(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.map((x) => String(x ?? "").trim()).filter(Boolean);
+}
+
+function SectionSizeControl({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (next: number) => void;
+}) {
+  const scale = normalizeSectionScale(value);
+  const drag = useRef<{ x: number; y: number; scale: number } | null>(null);
+  const previewH = 48 + (scale - 70) * 0.85;
+
+  const setFromPointer = (clientX: number, clientY: number) => {
+    if (!drag.current) return;
+    const delta = Math.round((clientX - drag.current.x + clientY - drag.current.y) / 3);
+    onChange(normalizeSectionScale(drag.current.scale + delta));
+  };
+
+  return (
+    <Box>
+      <Typography variant="subtitle2">Tamaño del bloque</Typography>
+      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+        Arrastra la esquina inferior derecha, como al cambiar el tamaño de una imagen en Word.
+      </Typography>
+      <Box
+        sx={{
+          position: "relative",
+          height: previewH,
+          border: "1px dashed",
+          borderColor: "divider",
+          borderRadius: 1,
+          bgcolor: "action.hover",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          userSelect: "none",
+        }}
+      >
+        <Typography variant="body2" fontWeight={700}>
+          {scale}%
+        </Typography>
+        <Box
+          onPointerDown={(e) => {
+            e.currentTarget.setPointerCapture(e.pointerId);
+            drag.current = { x: e.clientX, y: e.clientY, scale };
+          }}
+          onPointerMove={(e) => setFromPointer(e.clientX, e.clientY)}
+          onPointerUp={() => {
+            drag.current = null;
+          }}
+          onPointerCancel={() => {
+            drag.current = null;
+          }}
+          sx={{
+            position: "absolute",
+            right: 6,
+            bottom: 6,
+            width: 16,
+            height: 16,
+            borderRight: "3px solid",
+            borderBottom: "3px solid",
+            borderColor: "primary.main",
+            cursor: "nwse-resize",
+          }}
+        />
+      </Box>
+      <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 1 }}>
+        <Typography variant="caption">Más chico</Typography>
+        <Slider
+          min={70}
+          max={140}
+          step={5}
+          value={scale}
+          onChange={(_, next) => onChange(Array.isArray(next) ? next[0] : next)}
+          valueLabelDisplay="auto"
+          valueLabelFormat={(v) => `${v}%`}
+        />
+        <Typography variant="caption">Más grande</Typography>
+      </Stack>
+    </Box>
+  );
 }
 
 export default function CvSectionEditor({ section, onChange }: Props) {
@@ -79,6 +163,10 @@ export default function CvSectionEditor({ section, onChange }: Props) {
         <MenuItem value="sidebar">Barra izquierda</MenuItem>
         <MenuItem value="main">Columna principal</MenuItem>
       </TextField>
+      <SectionSizeControl
+        value={section.scale ?? 100}
+        onChange={(scale) => onChange({ ...section, scale })}
+      />
 
       {(type === "about" || type === "custom") && (
         <TextField
