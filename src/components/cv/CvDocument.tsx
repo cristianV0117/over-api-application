@@ -529,10 +529,12 @@ function MainSection({
       duration?: string;
       description: string;
       tags?: string[];
+      scale?: number;
     }>(c);
     return (
       <View>
         {jobs.map((job, i) => {
+          const js = stylesFor(theme, family, job.scale);
           const range = formatDateRange(
             job.startMonth,
             job.endMonth,
@@ -547,35 +549,35 @@ function MainSection({
             <View key={i}>
               <View wrap={false} minPresenceAhead={36}>
                 {i === 0 ? title : null}
-                <View style={s.timeline}>
-                  <View style={s.timelineCol}>
-                    <View style={s.timelineDot} />
+                <View style={js.timeline}>
+                  <View style={js.timelineCol}>
+                    <View style={js.timelineDot} />
                   </View>
-                  <View style={s.jobBody}>
-                    <View style={s.jobHead}>
+                  <View style={js.jobBody}>
+                    <View style={js.jobHead}>
                       <View style={{ flex: 1 }}>
-                        <Text style={s.jobRoleTitle}>{job.role || job.company}</Text>
-                        {job.role && job.company ? <Text style={s.company}>{job.company}</Text> : null}
+                        <Text style={js.jobRoleTitle}>{job.role || job.company}</Text>
+                        {job.role && job.company ? <Text style={js.company}>{job.company}</Text> : null}
                         {job.location ? (
-                          <View style={[s.contactRow, { marginTop: 2, marginBottom: 0 }]}>
+                          <View style={[js.contactRow, { marginTop: 2, marginBottom: 0 }]}>
                             <View style={{ width: 8, height: 8, marginRight: 3 }}>
                               <RoundIcon kind="pin" color={heading} size={8} />
                             </View>
-                            <Text style={[s.jobRole, { marginTop: 0 }]}>{job.location}</Text>
+                            <Text style={[js.jobRole, { marginTop: 0 }]}>{job.location}</Text>
                           </View>
                         ) : null}
                       </View>
                       <View>
-                        {range ? <Text style={s.jobMeta}>{range}</Text> : null}
-                        {duration ? <Text style={s.jobMeta}>{duration}</Text> : null}
+                        {range ? <Text style={js.jobMeta}>{range}</Text> : null}
+                        {duration ? <Text style={js.jobMeta}>{duration}</Text> : null}
                       </View>
                     </View>
                   </View>
                 </View>
               </View>
-              <View style={s.jobContinue}>
-                {job.description ? <Text style={s.jobDesc}>{job.description}</Text> : null}
-                <TagRow tags={tags} style={s.tagChip} />
+              <View style={js.jobContinue}>
+                {job.description ? <Text style={js.jobDesc}>{job.description}</Text> : null}
+                <TagRow tags={tags} style={js.tagChip} />
               </View>
             </View>
           );

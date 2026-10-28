@@ -56,13 +56,17 @@ function asTags(value: unknown): string[] {
 function SectionSizeControl({
   value,
   onChange,
+  label = "Tamaño del bloque",
+  compact = false,
 }: {
   value: number;
   onChange: (next: number) => void;
+  label?: string;
+  compact?: boolean;
 }) {
   const scale = normalizeSectionScale(value);
   const drag = useRef<{ x: number; y: number; scale: number } | null>(null);
-  const previewH = 48 + (scale - 70) * 0.85;
+  const previewH = compact ? 36 + (scale - 70) * 0.45 : 48 + (scale - 70) * 0.85;
 
   const setFromPointer = (clientX: number, clientY: number) => {
     if (!drag.current) return;
@@ -72,10 +76,12 @@ function SectionSizeControl({
 
   return (
     <Box>
-      <Typography variant="subtitle2">Tamaño del bloque</Typography>
-      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-        Arrastra la esquina inferior derecha, como al cambiar el tamaño de una imagen en Word.
-      </Typography>
+      <Typography variant="subtitle2">{label}</Typography>
+      {compact ? null : (
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+          Arrastra la esquina inferior derecha, como al cambiar el tamaño de una imagen en Word.
+        </Typography>
+      )}
       <Box
         sx={{
           position: "relative",
@@ -163,10 +169,12 @@ export default function CvSectionEditor({ section, onChange }: Props) {
         <MenuItem value="sidebar">Barra izquierda</MenuItem>
         <MenuItem value="main">Columna principal</MenuItem>
       </TextField>
-      <SectionSizeControl
-        value={section.scale ?? 100}
-        onChange={(scale) => onChange({ ...section, scale })}
-      />
+      {type !== "experience" ? (
+        <SectionSizeControl
+          value={section.scale ?? 100}
+          onChange={(scale) => onChange({ ...section, scale })}
+        />
+      ) : null}
       {section.column === "main" ? (
         <FormControlLabel
           control={
@@ -309,6 +317,7 @@ type ExperienceItem = {
   duration?: string;
   description: string;
   tags?: string[];
+  scale?: number;
 };
 
 function emptyExperience(): ExperienceItem {
@@ -321,6 +330,7 @@ function emptyExperience(): ExperienceItem {
     current: false,
     description: "",
     tags: [],
+    scale: 100,
   };
 }
 
@@ -431,7 +441,7 @@ function ExperienceList({
   return (
     <Stack spacing={2}>
       <Typography variant="caption" color="text.secondary">
-        Arrastra el ícono para cambiar el orden. El de arriba sale primero en el PDF.
+        Arrastra el ícono para cambiar el orden. El tamaño se ajusta por cada puesto, no por toda la sección.
       </Typography>
       <SortableRows
         items={items}
@@ -514,6 +524,12 @@ function ExperienceList({
                 onChange={(e) => patch(i, { ...item, description: e.target.value })}
               />
               <TagInput tags={asTags(item.tags)} onChange={(tags) => patch(i, { ...item, tags })} />
+              <SectionSizeControl
+                compact
+                label={`Tamaño de ${item.company || item.role || "este puesto"}`}
+                value={item.scale ?? 100}
+                onChange={(scale) => patch(i, { ...item, scale })}
+              />
             </Stack>
         );
         }}

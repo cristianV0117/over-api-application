@@ -71,6 +71,7 @@ export function emptyConfig(type: CvSectionType): Record<string, unknown> {
             current: false,
             description: "",
             tags: [],
+            scale: 100,
           },
         ],
       };
