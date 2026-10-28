@@ -315,36 +315,87 @@ function MainSection({
   locale: "es" | "en";
 }) {
   const c = section.config;
-  return (
-    <View>
-      <Text style={s.mainTitle} minPresenceAhead={56}>
-        {section.title}
-      </Text>
-      {section.type === "experience"
-        ? asItems<{
-            company: string;
-            role: string;
-            location: string;
-            startMonth?: string;
-            endMonth?: string;
-            current?: boolean;
-            start?: string;
-            end?: string;
-            duration?: string;
-            description: string;
-            tags?: string[];
-          }>(c).map((job, i) => {
-            const range = formatDateRange(
-              job.startMonth,
-              job.endMonth,
-              Boolean(job.current),
-              job.start,
-              job.end,
-              locale
-            );
-            const duration = jobDuration(job, locale);
-            return (
-              <View key={i} wrap={false} minPresenceAhead={72} style={s.jobBlock}>
+  const title = (
+    <Text style={s.mainTitle} minPresenceAhead={80}>
+      {section.title}
+    </Text>
+  );
+
+  if (section.type === "projects") {
+    const rows = chunk2(
+      asItems<{
+        name: string;
+        role: string;
+        tagline: string;
+        description: string;
+        url: string;
+        imageDataUrl?: string;
+        tags?: string[];
+      }>(c)
+    );
+    return (
+      <View>
+        {rows.map((pair, row) => (
+          <View key={row} wrap={false} minPresenceAhead={140}>
+            {row === 0 ? title : null}
+            <View style={s.projectRow}>
+              {pair.map((project, i) => (
+                <View key={i} style={s.projectCard}>
+                  <Text style={s.projectName}>{project.name}</Text>
+                  {project.role ? <Text style={s.jobRole}>{project.role}</Text> : null}
+                  {project.imageDataUrl ? (
+                    <Image src={project.imageDataUrl} style={s.projectShot} />
+                  ) : null}
+                  {project.tagline ? <Text style={s.projectDesc}>{project.tagline}</Text> : null}
+                  {project.description ? (
+                    <Text style={s.projectDesc}>{project.description}</Text>
+                  ) : null}
+                  {project.url ? (
+                    <Link src={project.url} style={s.link}>
+                      {project.url.replace(/^https?:\/\//, "")}
+                    </Link>
+                  ) : null}
+                  <TagRow tags={asTags(project.tags)} style={s.tagChip} />
+                </View>
+              ))}
+              {pair.length === 1 ? <View style={s.projectCard} /> : null}
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  if (section.type === "experience") {
+    const jobs = asItems<{
+      company: string;
+      role: string;
+      location: string;
+      startMonth?: string;
+      endMonth?: string;
+      current?: boolean;
+      start?: string;
+      end?: string;
+      duration?: string;
+      description: string;
+      tags?: string[];
+    }>(c);
+    return (
+      <View>
+        {jobs.map((job, i) => {
+          const range = formatDateRange(
+            job.startMonth,
+            job.endMonth,
+            Boolean(job.current),
+            job.start,
+            job.end,
+            locale
+          );
+          const duration = jobDuration(job, locale);
+          return (
+            <View key={i} wrap={false} minPresenceAhead={80}>
+              {i === 0 ? title : null}
+              <View style={s.jobBlock}>
                 <View style={s.jobHead}>
                   <View style={{ flex: 1 }}>
                     <Text style={s.company}>
@@ -361,43 +412,16 @@ function MainSection({
                 {job.description ? <Text style={s.jobDesc}>{job.description}</Text> : null}
                 <TagRow tags={asTags(job.tags)} style={s.tagChip} />
               </View>
-            );
-          })
-        : null}
-      {section.type === "projects"
-        ? chunk2(
-            asItems<{
-              name: string;
-              role: string;
-              tagline: string;
-              description: string;
-              url: string;
-              imageDataUrl?: string;
-              tags?: string[];
-            }>(c)
-          ).map((pair, row) => (
-            <View key={row} wrap={false} minPresenceAhead={90} style={s.projectRow}>
-              {pair.map((project, i) => (
-                <View key={i} style={s.projectCard}>
-                  <Text style={s.projectName}>{project.name}</Text>
-                  {project.role ? <Text style={s.jobRole}>{project.role}</Text> : null}
-                  {project.imageDataUrl ? (
-                    <Image src={project.imageDataUrl} style={s.projectShot} />
-                  ) : null}
-                  {project.tagline ? <Text style={s.projectDesc}>{project.tagline}</Text> : null}
-                  {project.description ? <Text style={s.projectDesc}>{project.description}</Text> : null}
-                  {project.url ? (
-                    <Link src={project.url} style={s.link}>
-                      {project.url.replace(/^https?:\/\//, "")}
-                    </Link>
-                  ) : null}
-                  <TagRow tags={asTags(project.tags)} style={s.tagChip} />
-                </View>
-              ))}
-              {pair.length === 1 ? <View style={s.projectCard} /> : null}
             </View>
-          ))
-        : null}
+          );
+        })}
+      </View>
+    );
+  }
+
+  return (
+    <View>
+      {title}
       {section.type === "icons" ? (
         <View style={s.iconRow}>
           {asIconIds(c).map((id) =>
