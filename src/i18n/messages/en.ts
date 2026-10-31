@@ -457,6 +457,20 @@ const en: Record<MessageKey, string> = {
   "anime.status.planned": "Plan to watch",
   "anime.status.dropped": "Dropped",
   "anime.status.paused": "On hold",
+  "anime.scope": "Show",
+  "anime.scope.main": "Main titles",
+  "anime.scope.all": "All",
+  "anime.clear": "Clear library",
+  "anime.clearConfirm": "This deletes every anime in your library. This cannot be undone.",
+  "anime.clearOk": "Clear all",
+  "anime.clearDone": "Library cleared",
+  "anime.cancel": "Cancel",
+  "anime.airing": "Airing",
+  "anime.nextEp": "Next episode",
+  "anime.relSeasons": "Seasons",
+  "anime.relMovies": "Movies",
+  "anime.relOvas": "OVAs & specials",
+  "anime.relOthers": "Other related",
 };
 
 export default en;

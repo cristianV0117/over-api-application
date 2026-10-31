@@ -6,11 +6,15 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
 import FormControl from "@mui/material/FormControl";
 import IconButton from "@mui/material/IconButton";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
+import Pagination from "@mui/material/Pagination";
 import Paper from "@mui/material/Paper";
 import Rating from "@mui/material/Rating";
 import Select from "@mui/material/Select";
@@ -32,7 +36,9 @@ import { usePreferences } from "@/context/preferencesContext";
 import type { MessageKey } from "@/i18n/messages/es";
 import {
   addAnime,
+  clearMyAnime,
   deleteAnime,
+  fetchAnimeDetail,
   fetchAnimeGenres,
   fetchAnimeStats,
   fetchMyAnime,
@@ -40,6 +46,7 @@ import {
   searchAnime,
   updateAnime,
   WATCH_STATUSES,
+  type AnimeDetail,
   type AnimeEntry,
   type AnimeRecommendation,
   type AnimeSearchItem,
@@ -61,8 +68,24 @@ const GRID_SX = {
   gap: 1.5,
 } as const;
 
+const PAGE_SIZE = 24;
+
+function isAiring(status?: string) {
+  return status === "RELEASING";
+}
+
+function formatAiring(ts: number, locale: string) {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "es-CO", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(ts * 1000));
+}
+
 export default function AnimeLibraryPage() {
-  const { t } = usePreferences();
+  const { t, locale } = usePreferences();
   const [tab, setTab] = useState(0);
   const [library, setLibrary] = useState<AnimeEntry[]>([]);
   const [stats, setStats] = useState<AnimeStats | null>(null);
@@ -77,13 +100,21 @@ export default function AnimeLibraryPage() {
   const [appliedQ, setAppliedQ] = useState("");
   const [format, setFormat] = useState("");
   const [sort, setSort] = useState("POPULARITY_DESC");
+  const [mainOnly, setMainOnly] = useState(true);
   const [results, setResults] = useState<AnimeSearchItem[]>([]);
-  const [hasNext, setHasNext] = useState(false);
+  const [lastPage, setLastPage] = useState(1);
   const [page, setPage] = useState(1);
   const [searching, setSearching] = useState(true);
-  const [open, setOpen] = useState<AnimeEntry | null>(null);
   const [recs, setRecs] = useState<AnimeRecommendation[]>([]);
   const [recsLoading, setRecsLoading] = useState(false);
+  const [recsPage, setRecsPage] = useState(1);
+  const [libPage, setLibPage] = useState(1);
+  const [detailId, setDetailId] = useState<number | null>(null);
+  const [detail, setDetail] = useState<AnimeDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
+
   const inLibrary = useMemo(
     () => new Set(library.map((a) => a.anilistId)),
     [library]
@@ -109,6 +140,11 @@ export default function AnimeLibraryPage() {
     () => recs.filter((item) => !inLibrary.has(item.anilistId)),
     [recs, inLibrary]
   );
+  const recsPageCount = Math.max(1, Math.ceil(visibleRecs.length / PAGE_SIZE));
+  const libPageCount = Math.max(1, Math.ceil(visibleLibrary.length / PAGE_SIZE));
+  const pagedRecs = visibleRecs.slice((recsPage - 1) * PAGE_SIZE, recsPage * PAGE_SIZE);
+  const pagedLibrary = visibleLibrary.slice((libPage - 1) * PAGE_SIZE, libPage * PAGE_SIZE);
+  const openEntry = detailId != null ? library.find((a) => a.anilistId === detailId) : undefined;
 
   const loadRecs = useCallback(async () => {
     setRecsLoading(true);
@@ -143,8 +179,16 @@ export default function AnimeLibraryPage() {
       .catch(() => setGenres([]));
   }, []);
 
+  useEffect(() => {
+    setLibPage(1);
+  }, [status, onlyFav, libGenre, libQ]);
+
+  useEffect(() => {
+    setRecsPage(1);
+  }, [visibleRecs.length]);
+
   const loadCatalog = useCallback(
-    async (nextPage = 1, append = false) => {
+    async (nextPage = 1) => {
       setSearching(true);
       try {
         const res = await searchAnime(appliedQ, {
@@ -152,9 +196,10 @@ export default function AnimeLibraryPage() {
           genre: genre || undefined,
           format: format || undefined,
           sort: sort || undefined,
+          mainOnly,
         });
-        setResults((prev) => (append ? [...prev, ...res.items] : res.items));
-        setHasNext(res.hasNextPage);
+        setResults(res.items);
+        setLastPage(Math.max(1, res.lastPage || res.page));
         setPage(res.page);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t("anime.searchError"));
@@ -162,12 +207,34 @@ export default function AnimeLibraryPage() {
         setSearching(false);
       }
     },
-    [appliedQ, genre, format, sort, t]
+    [appliedQ, genre, format, sort, mainOnly, t]
   );
 
   useEffect(() => {
-    void loadCatalog(1, false);
+    void loadCatalog(1);
   }, [loadCatalog]);
+
+  useEffect(() => {
+    if (detailId == null) {
+      setDetail(null);
+      return;
+    }
+    let cancelled = false;
+    setDetailLoading(true);
+    fetchAnimeDetail(detailId)
+      .then((d) => {
+        if (!cancelled) setDetail(d);
+      })
+      .catch((e: Error) => {
+        if (!cancelled) toast.error(e.message);
+      })
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [detailId]);
 
   const runSearch = () => {
     setAppliedQ(q.trim());
@@ -186,10 +253,9 @@ export default function AnimeLibraryPage() {
   };
 
   const saveOpen = async (patch: Partial<AnimeEntry>) => {
-    if (!open) return;
+    if (!openEntry) return;
     try {
-      const updated = await updateAnime(open.id, patch);
-      setOpen(updated);
+      const updated = await updateAnime(openEntry.id, patch);
       setLibrary((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
       if (
         patch.watchStatus !== undefined ||
@@ -207,12 +273,40 @@ export default function AnimeLibraryPage() {
     try {
       await deleteAnime(id);
       setLibrary((prev) => prev.filter((x) => x.id !== id));
-      setOpen(null);
+      setDetailId(null);
       setStats(await fetchAnimeStats());
       setRecs([]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("anime.saveError"));
     }
+  };
+
+  const emptyLibrary = async () => {
+    setClearing(true);
+    try {
+      await clearMyAnime();
+      setLibrary([]);
+      setStats(await fetchAnimeStats());
+      setRecs([]);
+      setDetailId(null);
+      setConfirmClear(false);
+      toast.success(t("anime.clearDone"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t("anime.saveError"));
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  const airingLabel = (item: {
+    anilistStatus?: string;
+    nextEpisode?: { episode: number; airingAt: number } | null;
+  }) => {
+    if (!isAiring(item.anilistStatus) && !item.nextEpisode) return null;
+    if (item.nextEpisode) {
+      return `${t("anime.nextEp")} ${item.nextEpisode.episode} · ${formatAiring(item.nextEpisode.airingAt, locale)}`;
+    }
+    return t("anime.airing");
   };
 
   return (
@@ -264,66 +358,77 @@ export default function AnimeLibraryPage() {
       {tab === 0 && (
         <>
           <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-            <Stack direction={{ xs: "column", md: "row" }} spacing={1} flexWrap="wrap" useFlexGap>
-              <TextField
+            <Stack spacing={1.25}>
+              <Stack direction={{ xs: "column", md: "row" }} spacing={1} flexWrap="wrap" useFlexGap>
+                <TextField
+                  size="small"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && runSearch()}
+                  placeholder={t("anime.searchPh")}
+                  sx={{ flex: "1 1 220px" }}
+                />
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                  <InputLabel>{t("anime.genre")}</InputLabel>
+                  <Select
+                    value={genre}
+                    label={t("anime.genre")}
+                    onChange={(e) => setGenre(e.target.value)}
+                  >
+                    <MenuItem value="">{t("anime.allGenres")}</MenuItem>
+                    {genres.map((g) => (
+                      <MenuItem key={g} value={g}>
+                        {g}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                  <InputLabel>{t("anime.format")}</InputLabel>
+                  <Select
+                    value={format}
+                    label={t("anime.format")}
+                    onChange={(e) => setFormat(e.target.value)}
+                  >
+                    <MenuItem value="">{t("anime.allFormats")}</MenuItem>
+                    <MenuItem value="TV">TV</MenuItem>
+                    <MenuItem value="MOVIE">Movie</MenuItem>
+                    <MenuItem value="OVA">OVA</MenuItem>
+                    <MenuItem value="ONA">ONA</MenuItem>
+                    <MenuItem value="SPECIAL">Special</MenuItem>
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 160 }}>
+                  <InputLabel>{t("anime.sort")}</InputLabel>
+                  <Select
+                    value={sort}
+                    label={t("anime.sort")}
+                    onChange={(e) => setSort(e.target.value)}
+                  >
+                    <MenuItem value="POPULARITY_DESC">{t("anime.sort.popular")}</MenuItem>
+                    <MenuItem value="SCORE_DESC">{t("anime.sort.score")}</MenuItem>
+                    <MenuItem value="TRENDING_DESC">{t("anime.sort.trending")}</MenuItem>
+                    <MenuItem value="START_DATE_DESC">{t("anime.sort.newest")}</MenuItem>
+                  </Select>
+                </FormControl>
+                <Button
+                  variant="contained"
+                  startIcon={searching ? <CircularProgress size={16} color="inherit" /> : <SearchIcon />}
+                  onClick={runSearch}
+                  disabled={searching}
+                >
+                  {t("anime.search")}
+                </Button>
+              </Stack>
+              <ToggleButtonGroup
+                exclusive
                 size="small"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && runSearch()}
-                placeholder={t("anime.searchPh")}
-                sx={{ flex: "1 1 220px" }}
-              />
-              <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>{t("anime.genre")}</InputLabel>
-                <Select
-                  value={genre}
-                  label={t("anime.genre")}
-                  onChange={(e) => setGenre(e.target.value)}
-                >
-                  <MenuItem value="">{t("anime.allGenres")}</MenuItem>
-                  {genres.map((g) => (
-                    <MenuItem key={g} value={g}>
-                      {g}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>{t("anime.format")}</InputLabel>
-                <Select
-                  value={format}
-                  label={t("anime.format")}
-                  onChange={(e) => setFormat(e.target.value)}
-                >
-                  <MenuItem value="">{t("anime.allFormats")}</MenuItem>
-                  <MenuItem value="TV">TV</MenuItem>
-                  <MenuItem value="MOVIE">Movie</MenuItem>
-                  <MenuItem value="OVA">OVA</MenuItem>
-                  <MenuItem value="ONA">ONA</MenuItem>
-                  <MenuItem value="SPECIAL">Special</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl size="small" sx={{ minWidth: 160 }}>
-                <InputLabel>{t("anime.sort")}</InputLabel>
-                <Select
-                  value={sort}
-                  label={t("anime.sort")}
-                  onChange={(e) => setSort(e.target.value)}
-                >
-                  <MenuItem value="POPULARITY_DESC">{t("anime.sort.popular")}</MenuItem>
-                  <MenuItem value="SCORE_DESC">{t("anime.sort.score")}</MenuItem>
-                  <MenuItem value="TRENDING_DESC">{t("anime.sort.trending")}</MenuItem>
-                  <MenuItem value="START_DATE_DESC">{t("anime.sort.newest")}</MenuItem>
-                </Select>
-              </FormControl>
-              <Button
-                variant="contained"
-                startIcon={searching ? <CircularProgress size={16} color="inherit" /> : <SearchIcon />}
-                onClick={runSearch}
-                disabled={searching}
+                value={mainOnly ? "main" : "all"}
+                onChange={(_, v: "main" | "all" | null) => v && setMainOnly(v === "main")}
               >
-                {t("anime.search")}
-              </Button>
+                <ToggleButton value="main">{t("anime.scope.main")}</ToggleButton>
+                <ToggleButton value="all">{t("anime.scope.all")}</ToggleButton>
+              </ToggleButtonGroup>
             </Stack>
           </Paper>
 
@@ -333,57 +438,29 @@ export default function AnimeLibraryPage() {
             </Box>
           ) : (
             <>
-              <Box sx={{ ...GRID_SX, mb: 2 }}>
+              <Box sx={{ ...GRID_SX, mb: 2, opacity: searching ? 0.6 : 1 }}>
                 {results.map((item) => (
-                  <Paper key={item.anilistId} variant="outlined" sx={{ overflow: "hidden" }}>
-                    <Box
-                      component="img"
-                      src={item.coverImage}
-                      alt=""
-                      sx={{ width: "100%", height: 230, objectFit: "cover", display: "block" }}
-                    />
-                    <Box sx={{ p: 1.1 }}>
-                      <Typography fontWeight={700} noWrap variant="body2">
-                        {item.title}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        {item.seasonYear ?? "—"}
-                        {item.anilistScore != null ? ` · ${item.anilistScore}%` : ""}
-                        {item.format ? ` · ${item.format}` : ""}
-                      </Typography>
-                      {inLibrary.has(item.anilistId) ? (
-                        <Chip size="small" label={t("anime.inLibrary")} sx={{ mt: 0.5 }} />
-                      ) : (
-                        <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
-                          <Button
-                            size="small"
-                            sx={{ px: 0.5, minWidth: 0 }}
-                            onClick={() => void add(item, "completed")}
-                          >
-                            {t("anime.addSeen")}
-                          </Button>
-                          <Button
-                            size="small"
-                            sx={{ px: 0.5, minWidth: 0 }}
-                            onClick={() => void add(item, "planned")}
-                          >
-                            {t("anime.status.planned")}
-                          </Button>
-                        </Stack>
-                      )}
-                    </Box>
-                  </Paper>
+                  <CatalogCard
+                    key={item.anilistId}
+                    item={item}
+                    inLibrary={inLibrary.has(item.anilistId)}
+                    airing={airingLabel(item)}
+                    because={null}
+                    t={t}
+                    onOpen={() => setDetailId(item.anilistId)}
+                    onAdd={(s) => void add(item, s)}
+                  />
                 ))}
               </Box>
-              {hasNext && (
+              {lastPage > 1 && (
                 <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
-                  <Button
-                    variant="outlined"
+                  <Pagination
+                    color="primary"
+                    count={lastPage}
+                    page={page}
                     disabled={searching}
-                    onClick={() => void loadCatalog(page + 1, true)}
-                  >
-                    {t("anime.loadMore")}
-                  </Button>
+                    onChange={(_, p) => void loadCatalog(p)}
+                  />
                 </Box>
               )}
             </>
@@ -404,56 +481,32 @@ export default function AnimeLibraryPage() {
               </Typography>
             </Paper>
           ) : (
-            <Box sx={GRID_SX}>
-              {visibleRecs.map((item) => (
-                <Paper key={item.anilistId} variant="outlined" sx={{ overflow: "hidden" }}>
-                  <Box
-                    component="img"
-                    src={item.coverImage}
-                    alt=""
-                    sx={{ width: "100%", height: 230, objectFit: "cover", display: "block" }}
+            <>
+              <Box sx={GRID_SX}>
+                {pagedRecs.map((item) => (
+                  <CatalogCard
+                    key={item.anilistId}
+                    item={item}
+                    inLibrary={false}
+                    airing={airingLabel(item)}
+                    because={item.because.length ? `${t("anime.because")}: ${item.because.join(" · ")}` : null}
+                    t={t}
+                    onOpen={() => setDetailId(item.anilistId)}
+                    onAdd={(s) => void add(item, s)}
                   />
-                  <Box sx={{ p: 1.1 }}>
-                    <Typography fontWeight={700} noWrap variant="body2">
-                      {item.title}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" display="block" noWrap>
-                      {item.seasonYear ?? "—"}
-                      {item.anilistScore != null ? ` · ${item.anilistScore}%` : ""}
-                      {item.format ? ` · ${item.format}` : ""}
-                    </Typography>
-                    {item.because.length > 0 && (
-                      <Typography
-                        variant="caption"
-                        color="primary"
-                        display="block"
-                        noWrap
-                        title={item.because.join(" · ")}
-                        sx={{ mt: 0.25 }}
-                      >
-                        {t("anime.because")}: {item.because.join(" · ")}
-                      </Typography>
-                    )}
-                    <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
-                      <Button
-                        size="small"
-                        sx={{ px: 0.5, minWidth: 0 }}
-                        onClick={() => void add(item, "completed")}
-                      >
-                        {t("anime.addSeen")}
-                      </Button>
-                      <Button
-                        size="small"
-                        sx={{ px: 0.5, minWidth: 0 }}
-                        onClick={() => void add(item, "planned")}
-                      >
-                        {t("anime.status.planned")}
-                      </Button>
-                    </Stack>
-                  </Box>
-                </Paper>
-              ))}
-            </Box>
+                ))}
+              </Box>
+              {recsPageCount > 1 && (
+                <Box sx={{ display: "flex", justifyContent: "center", mt: 2, mb: 3 }}>
+                  <Pagination
+                    color="primary"
+                    count={recsPageCount}
+                    page={Math.min(recsPage, recsPageCount)}
+                    onChange={(_, p) => setRecsPage(p)}
+                  />
+                </Box>
+              )}
+            </>
           )}
         </>
       )}
@@ -513,6 +566,15 @@ export default function AnimeLibraryPage() {
             >
               {t("anime.favorites")}
             </ToggleButton>
+            <Button
+              color="error"
+              variant="outlined"
+              size="small"
+              disabled={!library.length}
+              onClick={() => setConfirmClear(true)}
+            >
+              {t("anime.clear")}
+            </Button>
           </Stack>
 
           {loading ? (
@@ -524,150 +586,374 @@ export default function AnimeLibraryPage() {
               <Typography color="text.secondary">{t("anime.empty")}</Typography>
             </Paper>
           ) : (
-            <Box sx={GRID_SX}>
-              {visibleLibrary.map((a) => (
-                <Paper
-                  key={a.id}
-                  variant="outlined"
-                  onClick={() => setOpen(a)}
-                  sx={{
-                    cursor: "pointer",
-                    overflow: "hidden",
-                    "&:hover": { borderColor: "primary.main" },
-                  }}
-                >
-                  <Box sx={{ position: "relative" }}>
-                    <Box
-                      component="img"
-                      src={a.coverImage}
-                      alt=""
-                      sx={{ width: "100%", height: 230, objectFit: "cover", display: "block" }}
-                    />
-                    {a.favorite && (
-                      <FavoriteIcon
-                        sx={{ position: "absolute", top: 8, right: 8, color: "#f43f5e", fontSize: 22 }}
+            <>
+              <Box sx={GRID_SX}>
+                {pagedLibrary.map((a) => (
+                  <Paper
+                    key={a.id}
+                    variant="outlined"
+                    onClick={() => setDetailId(a.anilistId)}
+                    sx={{
+                      cursor: "pointer",
+                      overflow: "hidden",
+                      "&:hover": { borderColor: "primary.main" },
+                    }}
+                  >
+                    <Box sx={{ position: "relative" }}>
+                      <Box
+                        component="img"
+                        src={a.coverImage}
+                        alt=""
+                        sx={{ width: "100%", height: 230, objectFit: "cover", display: "block" }}
                       />
-                    )}
-                  </Box>
-                  <Box sx={{ p: 1.1 }}>
-                    <Typography fontWeight={700} noWrap variant="body2">
-                      {a.title}
-                    </Typography>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Typography variant="caption" color="text.secondary">
-                        {t(STATUS_KEY[a.watchStatus])}
-                      </Typography>
-                      {a.score != null && (
-                        <Typography variant="caption" fontWeight={700}>
-                          {a.score}/10
-                        </Typography>
+                      {isAiring(a.anilistStatus) && (
+                        <Chip
+                          size="small"
+                          color="success"
+                          label={t("anime.airing")}
+                          sx={{ position: "absolute", top: 8, left: 8 }}
+                        />
                       )}
-                    </Stack>
-                  </Box>
-                </Paper>
-              ))}
-            </Box>
+                      {a.favorite && (
+                        <FavoriteIcon
+                          sx={{ position: "absolute", top: 8, right: 8, color: "#f43f5e", fontSize: 22 }}
+                        />
+                      )}
+                    </Box>
+                    <Box sx={{ p: 1.1 }}>
+                      <Typography fontWeight={700} noWrap variant="body2">
+                        {a.title}
+                      </Typography>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="caption" color="text.secondary">
+                          {t(STATUS_KEY[a.watchStatus])}
+                        </Typography>
+                        {a.score != null && (
+                          <Typography variant="caption" fontWeight={700}>
+                            {a.score}/10
+                          </Typography>
+                        )}
+                      </Stack>
+                    </Box>
+                  </Paper>
+                ))}
+              </Box>
+              {libPageCount > 1 && (
+                <Box sx={{ display: "flex", justifyContent: "center", mt: 2, mb: 3 }}>
+                  <Pagination
+                    color="primary"
+                    count={libPageCount}
+                    page={Math.min(libPage, libPageCount)}
+                    onChange={(_, p) => setLibPage(p)}
+                  />
+                </Box>
+              )}
+            </>
           )}
         </>
       )}
 
-      <Dialog open={Boolean(open)} onClose={() => setOpen(null)} maxWidth="sm" fullWidth>
-        {open && (
-          <DialogContent sx={{ p: 0 }}>
-            {open.bannerImage && (
-              <Box
-                component="img"
-                src={open.bannerImage}
-                alt=""
-                sx={{ width: "100%", height: 140, objectFit: "cover", display: "block" }}
-              />
-            )}
-            <Box sx={{ p: 2.5 }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                <Box>
-                  <Typography variant="h6" fontWeight={800}>
-                    {open.title}
-                  </Typography>
-                  {open.titleEnglish && open.titleEnglish !== open.title && (
-                    <Typography variant="body2" color="text.secondary">
-                      {open.titleEnglish}
-                    </Typography>
-                  )}
-                </Box>
-                <IconButton
-                  onClick={() => void saveOpen({ favorite: !open.favorite })}
-                  color={open.favorite ? "error" : "default"}
-                >
-                  {open.favorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-                </IconButton>
-              </Stack>
-              <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ my: 1 }}>
-                {open.genres.map((g) => (
-                  <Chip key={g} size="small" label={g} />
-                ))}
-              </Stack>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {open.description}
-              </Typography>
-              <ToggleButtonGroup
-                exclusive
-                fullWidth
-                size="small"
-                value={open.watchStatus}
-                onChange={(_, v: AnimeWatchStatus | null) => v && void saveOpen({ watchStatus: v })}
-                sx={{ mb: 2, flexWrap: "wrap" }}
-              >
-                {WATCH_STATUSES.map((s) => (
-                  <ToggleButton key={s} value={s} sx={{ flex: "1 1 30%" }}>
-                    {t(STATUS_KEY[s])}
-                  </ToggleButton>
-                ))}
-              </ToggleButtonGroup>
-              <Typography variant="caption" color="text.secondary">
-                {t("anime.yourScore")}
-              </Typography>
-              <Rating
-                max={10}
-                value={open.score ?? 0}
-                onChange={(_, v) => void saveOpen({ score: v || null })}
-                sx={{ display: "flex", mb: 2 }}
-              />
-              <TextField
-                size="small"
-                type="number"
-                label={t("anime.episodes")}
-                value={open.watchedEpisodes}
-                onChange={(e) =>
-                  void saveOpen({ watchedEpisodes: Math.max(0, Number(e.target.value) || 0) })
-                }
-                helperText={open.episodes ? `${t("anime.of")} ${open.episodes}` : undefined}
-                sx={{ mb: 2, width: 160 }}
-              />
-              <TextField
-                label={t("anime.notes")}
-                value={open.notes}
-                onChange={(e) => setOpen({ ...open, notes: e.target.value })}
-                onBlur={() => void saveOpen({ notes: open.notes })}
-                multiline
-                minRows={2}
-                fullWidth
-              />
-              <Stack direction="row" justifyContent="space-between" sx={{ mt: 2 }}>
-                {open.siteUrl ? (
-                  <Button href={open.siteUrl} target="_blank" rel="noopener noreferrer">
-                    AniList
-                  </Button>
-                ) : (
-                  <span />
-                )}
-                <Button color="error" onClick={() => void remove(open.id)}>
-                  {t("anime.remove")}
-                </Button>
-              </Stack>
+      <Dialog
+        open={detailId != null}
+        onClose={() => setDetailId(null)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogContent sx={{ p: 0 }}>
+          {detailLoading && !detail ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+              <CircularProgress />
             </Box>
-          </DialogContent>
-        )}
+          ) : detail ? (
+            <>
+              {(detail.bannerImage || openEntry?.bannerImage) && (
+                <Box
+                  component="img"
+                  src={detail.bannerImage || openEntry?.bannerImage}
+                  alt=""
+                  sx={{ width: "100%", height: 160, objectFit: "cover", display: "block" }}
+                />
+              )}
+              <Box sx={{ p: 2.5 }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                  <Box>
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                      <Typography variant="h6" fontWeight={800}>
+                        {detail.title}
+                      </Typography>
+                      {isAiring(detail.anilistStatus) && (
+                        <Chip size="small" color="success" label={t("anime.airing")} />
+                      )}
+                    </Stack>
+                    {detail.titleEnglish && detail.titleEnglish !== detail.title && (
+                      <Typography variant="body2" color="text.secondary">
+                        {detail.titleEnglish}
+                      </Typography>
+                    )}
+                    {detail.nextEpisode && (
+                      <Typography variant="body2" color="primary" sx={{ mt: 0.5 }}>
+                        {t("anime.nextEp")} {detail.nextEpisode.episode} ·{" "}
+                        {formatAiring(detail.nextEpisode.airingAt, locale)}
+                      </Typography>
+                    )}
+                  </Box>
+                  {openEntry && (
+                    <IconButton
+                      onClick={() => void saveOpen({ favorite: !openEntry.favorite })}
+                      color={openEntry.favorite ? "error" : "default"}
+                    >
+                      {openEntry.favorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                    </IconButton>
+                  )}
+                </Stack>
+                <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ my: 1 }}>
+                  {detail.genres.map((g) => (
+                    <Chip key={g} size="small" label={g} />
+                  ))}
+                </Stack>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  {detail.description}
+                </Typography>
+
+                <RelationRow
+                  title={t("anime.relSeasons")}
+                  items={detail.relations.seasons}
+                  onOpen={setDetailId}
+                />
+                <RelationRow
+                  title={t("anime.relMovies")}
+                  items={detail.relations.movies}
+                  onOpen={setDetailId}
+                />
+                <RelationRow
+                  title={t("anime.relOvas")}
+                  items={detail.relations.ovas}
+                  onOpen={setDetailId}
+                />
+                <RelationRow
+                  title={t("anime.relOthers")}
+                  items={detail.relations.others}
+                  onOpen={setDetailId}
+                />
+
+                {openEntry ? (
+                  <>
+                    <ToggleButtonGroup
+                      exclusive
+                      fullWidth
+                      size="small"
+                      value={openEntry.watchStatus}
+                      onChange={(_, v: AnimeWatchStatus | null) =>
+                        v && void saveOpen({ watchStatus: v })
+                      }
+                      sx={{ mb: 2, mt: 1, flexWrap: "wrap" }}
+                    >
+                      {WATCH_STATUSES.map((s) => (
+                        <ToggleButton key={s} value={s} sx={{ flex: "1 1 30%" }}>
+                          {t(STATUS_KEY[s])}
+                        </ToggleButton>
+                      ))}
+                    </ToggleButtonGroup>
+                    <Typography variant="caption" color="text.secondary">
+                      {t("anime.yourScore")}
+                    </Typography>
+                    <Rating
+                      max={10}
+                      value={openEntry.score ?? 0}
+                      onChange={(_, v) => void saveOpen({ score: v || null })}
+                      sx={{ display: "flex", mb: 2 }}
+                    />
+                    <TextField
+                      size="small"
+                      type="number"
+                      label={t("anime.episodes")}
+                      value={openEntry.watchedEpisodes}
+                      onChange={(e) =>
+                        void saveOpen({
+                          watchedEpisodes: Math.max(0, Number(e.target.value) || 0),
+                        })
+                      }
+                      helperText={
+                        openEntry.episodes ? `${t("anime.of")} ${openEntry.episodes}` : undefined
+                      }
+                      sx={{ mb: 2, width: 160 }}
+                    />
+                    <TextField
+                      label={t("anime.notes")}
+                      defaultValue={openEntry.notes}
+                      key={openEntry.id}
+                      onBlur={(e) => void saveOpen({ notes: e.target.value })}
+                      multiline
+                      minRows={2}
+                      fullWidth
+                    />
+                    <Stack direction="row" justifyContent="space-between" sx={{ mt: 2 }}>
+                      {detail.siteUrl ? (
+                        <Button href={detail.siteUrl} target="_blank" rel="noopener noreferrer">
+                          AniList
+                        </Button>
+                      ) : (
+                        <span />
+                      )}
+                      <Button color="error" onClick={() => void remove(openEntry.id)}>
+                        {t("anime.remove")}
+                      </Button>
+                    </Stack>
+                  </>
+                ) : (
+                  <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                    <Button variant="contained" onClick={() => void add(detail, "completed")}>
+                      {t("anime.addSeen")}
+                    </Button>
+                    <Button variant="outlined" onClick={() => void add(detail, "planned")}>
+                      {t("anime.status.planned")}
+                    </Button>
+                    {detail.siteUrl && (
+                      <Button href={detail.siteUrl} target="_blank" rel="noopener noreferrer">
+                        AniList
+                      </Button>
+                    )}
+                  </Stack>
+                )}
+              </Box>
+            </>
+          ) : null}
+        </DialogContent>
       </Dialog>
+
+      <Dialog open={confirmClear} onClose={() => setConfirmClear(false)}>
+        <DialogTitle>{t("anime.clear")}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>{t("anime.clearConfirm")}</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmClear(false)}>{t("anime.cancel")}</Button>
+          <Button color="error" variant="contained" disabled={clearing} onClick={() => void emptyLibrary()}>
+            {t("anime.clearOk")}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
+
+function CatalogCard({
+  item,
+  inLibrary,
+  airing,
+  because,
+  t,
+  onOpen,
+  onAdd,
+}: {
+  item: AnimeSearchItem;
+  inLibrary: boolean;
+  airing: string | null;
+  because: string | null;
+  t: (key: MessageKey) => string;
+  onOpen: () => void;
+  onAdd: (status: AnimeWatchStatus) => void;
+}) {
+  return (
+    <Paper
+      variant="outlined"
+      onClick={onOpen}
+      sx={{ cursor: "pointer", overflow: "hidden", "&:hover": { borderColor: "primary.main" } }}
+    >
+      <Box sx={{ position: "relative" }}>
+        <Box
+          component="img"
+          src={item.coverImage}
+          alt=""
+          sx={{ width: "100%", height: 230, objectFit: "cover", display: "block" }}
+        />
+        {isAiring(item.anilistStatus) && (
+          <Chip
+            size="small"
+            color="success"
+            label={t("anime.airing")}
+            sx={{ position: "absolute", top: 8, left: 8 }}
+          />
+        )}
+      </Box>
+      <Box sx={{ p: 1.1 }}>
+        <Typography fontWeight={700} noWrap variant="body2">
+          {item.title}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" display="block" noWrap>
+          {item.seasonYear ?? "—"}
+          {item.anilistScore != null ? ` · ${item.anilistScore}%` : ""}
+          {item.format ? ` · ${item.format}` : ""}
+        </Typography>
+        {airing && (
+          <Typography variant="caption" color="primary" display="block" noWrap title={airing}>
+            {airing}
+          </Typography>
+        )}
+        {because && (
+          <Typography variant="caption" color="primary" display="block" noWrap title={because} sx={{ mt: 0.25 }}>
+            {because}
+          </Typography>
+        )}
+        {inLibrary ? (
+          <Chip size="small" label={t("anime.inLibrary")} sx={{ mt: 0.5 }} />
+        ) : (
+          <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }} onClick={(e) => e.stopPropagation()}>
+            <Button size="small" sx={{ px: 0.5, minWidth: 0 }} onClick={() => onAdd("completed")}>
+              {t("anime.addSeen")}
+            </Button>
+            <Button size="small" sx={{ px: 0.5, minWidth: 0 }} onClick={() => onAdd("planned")}>
+              {t("anime.status.planned")}
+            </Button>
+          </Stack>
+        )}
+      </Box>
+    </Paper>
+  );
+}
+
+function RelationRow({
+  title,
+  items,
+  onOpen,
+}: {
+  title: string;
+  items: AnimeSearchItem[];
+  onOpen: (id: number) => void;
+}) {
+  if (!items.length) return null;
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
+        {title}
+      </Typography>
+      <Stack direction="row" spacing={1} sx={{ overflowX: "auto", pb: 1 }}>
+        {items.map((item) => (
+          <Paper
+            key={item.anilistId}
+            variant="outlined"
+            onClick={() => onOpen(item.anilistId)}
+            sx={{
+              minWidth: 112,
+              maxWidth: 112,
+              cursor: "pointer",
+              overflow: "hidden",
+              flex: "0 0 auto",
+              "&:hover": { borderColor: "primary.main" },
+            }}
+          >
+            <Box
+              component="img"
+              src={item.coverImage}
+              alt=""
+              sx={{ width: "100%", height: 148, objectFit: "cover", display: "block" }}
+            />
+            <Typography variant="caption" fontWeight={700} noWrap display="block" sx={{ px: 0.75, py: 0.5 }}>
+              {item.title}
+            </Typography>
+          </Paper>
+        ))}
+      </Stack>
     </Box>
   );
 }

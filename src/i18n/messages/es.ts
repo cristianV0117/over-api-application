@@ -455,6 +455,20 @@ const es = {
   "anime.status.planned": "Pendientes",
   "anime.status.dropped": "Abandonados",
   "anime.status.paused": "En pausa",
+  "anime.scope": "Mostrar",
+  "anime.scope.main": "Obras principales",
+  "anime.scope.all": "Todas",
+  "anime.clear": "Vaciar biblioteca",
+  "anime.clearConfirm": "Esto elimina todos los animes de tu biblioteca. No se puede deshacer.",
+  "anime.clearOk": "Vaciar todo",
+  "anime.clearDone": "Biblioteca vaciada",
+  "anime.cancel": "Cancelar",
+  "anime.airing": "En emisión",
+  "anime.nextEp": "Próximo episodio",
+  "anime.relSeasons": "Temporadas",
+  "anime.relMovies": "Películas",
+  "anime.relOvas": "OVAs y especiales",
+  "anime.relOthers": "Otros relacionados",
 } as const;
 
 export default es;

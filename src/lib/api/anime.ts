@@ -36,17 +36,25 @@ export const WATCH_STATUSES: AnimeWatchStatus[] = [
   "paused",
 ];
 
+export type AnimeNextEpisode = {
+  episode: number;
+  airingAt: number;
+};
+
 export type AnimeSearchItem = {
   anilistId: number;
   title: string;
   titleEnglish: string;
   coverImage: string;
+  bannerImage?: string;
   genres: string[];
   format: string;
   episodes: number | null;
   anilistScore: number | null;
   seasonYear: number | null;
+  anilistStatus?: string;
   description: string;
+  nextEpisode?: AnimeNextEpisode | null;
 };
 
 export type AnimeEntry = {
@@ -82,17 +90,56 @@ export type AnimeStats = {
   scoredCount: number;
 };
 
+export type AnimeRecommendation = AnimeSearchItem & {
+  score: number;
+  because: string[];
+};
+
+export type AnimeDetail = AnimeSearchItem & {
+  titleNative: string;
+  season: string;
+  studios: string[];
+  siteUrl: string;
+  relations: {
+    seasons: AnimeSearchItem[];
+    movies: AnimeSearchItem[];
+    ovas: AnimeSearchItem[];
+    others: AnimeSearchItem[];
+  };
+};
+
 export async function searchAnime(
   q: string,
-  opts?: { page?: number; genre?: string; format?: string; sort?: string }
-): Promise<{ items: AnimeSearchItem[]; page: number; hasNextPage: boolean }> {
+  opts?: {
+    page?: number;
+    genre?: string;
+    format?: string;
+    sort?: string;
+    mainOnly?: boolean;
+  }
+): Promise<{
+  items: AnimeSearchItem[];
+  page: number;
+  hasNextPage: boolean;
+  lastPage: number;
+}> {
   const p = new URLSearchParams();
   if (q.trim()) p.set("q", q.trim());
   if (opts?.page) p.set("page", String(opts.page));
   if (opts?.genre) p.set("genre", opts.genre);
   if (opts?.format) p.set("format", opts.format);
   if (opts?.sort) p.set("sort", opts.sort);
+  if (opts?.mainOnly) p.set("mainOnly", "1");
   const res = await fetch(`${BASE}/anime/search?${p.toString()}`, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) await parseError(res);
+  return res.json();
+}
+
+export async function fetchAnimeDetail(anilistId: number): Promise<AnimeDetail> {
+  const res = await fetch(`${BASE}/anime/media/${anilistId}`, {
     headers: getAuthHeaders(),
     cache: "no-store",
   });
@@ -127,11 +174,6 @@ export async function fetchMyAnime(opts?: {
   if (!res.ok) await parseError(res);
   return res.json();
 }
-
-export type AnimeRecommendation = AnimeSearchItem & {
-  score: number;
-  because: string[];
-};
 
 export async function fetchRecommendations(): Promise<AnimeRecommendation[]> {
   const res = await fetch(`${BASE}/anime/me/recommendations`, {
@@ -186,4 +228,13 @@ export async function deleteAnime(id: string): Promise<void> {
     headers: getAuthHeaders(),
   });
   if (!res.ok) await parseError(res);
+}
+
+export async function clearMyAnime(): Promise<{ deleted: number }> {
+  const res = await fetch(`${BASE}/anime/me/all`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) await parseError(res);
+  return res.json();
 }
