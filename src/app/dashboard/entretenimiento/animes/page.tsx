@@ -21,6 +21,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import SearchIcon from "@mui/icons-material/Search";
 import { toast } from "react-toastify";
 import { usePreferences } from "@/context/preferencesContext";
@@ -31,10 +32,12 @@ import {
   fetchAnimeGenres,
   fetchAnimeStats,
   fetchMyAnime,
+  fetchRecommendations,
   searchAnime,
   updateAnime,
   WATCH_STATUSES,
   type AnimeEntry,
+  type AnimeRecommendation,
   type AnimeSearchItem,
   type AnimeStats,
   type AnimeWatchStatus,
@@ -67,10 +70,23 @@ export default function AnimeLibraryPage() {
   const [page, setPage] = useState(1);
   const [searching, setSearching] = useState(true);
   const [open, setOpen] = useState<AnimeEntry | null>(null);
+  const [recs, setRecs] = useState<AnimeRecommendation[]>([]);
+  const [recsLoading, setRecsLoading] = useState(false);
   const inLibrary = useMemo(
     () => new Set(library.map((a) => a.anilistId)),
     [library]
   );
+
+  const loadRecs = useCallback(async () => {
+    setRecsLoading(true);
+    try {
+      setRecs(await fetchRecommendations());
+    } catch {
+      setRecs([]);
+    } finally {
+      setRecsLoading(false);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     const [list, st] = await Promise.all([
@@ -91,6 +107,10 @@ export default function AnimeLibraryPage() {
       .catch((e: Error) => toast.error(e.message))
       .finally(() => setLoading(false));
   }, [load]);
+
+  useEffect(() => {
+    void loadRecs();
+  }, [loadRecs]);
 
   useEffect(() => {
     fetchAnimeGenres()
@@ -133,6 +153,7 @@ export default function AnimeLibraryPage() {
       const created = await addAnime({ anilistId: item.anilistId, watchStatus });
       setLibrary((prev) => [created, ...prev]);
       setStats(await fetchAnimeStats());
+      void loadRecs();
       toast.success(t("anime.added"));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("anime.addError"));
@@ -145,6 +166,13 @@ export default function AnimeLibraryPage() {
       const updated = await updateAnime(open.id, patch);
       setOpen(updated);
       setLibrary((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+      if (
+        patch.watchStatus !== undefined ||
+        patch.score !== undefined ||
+        patch.favorite !== undefined
+      ) {
+        void loadRecs();
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("anime.saveError"));
     }
@@ -156,6 +184,7 @@ export default function AnimeLibraryPage() {
       setLibrary((prev) => prev.filter((x) => x.id !== id));
       setOpen(null);
       setStats(await fetchAnimeStats());
+      void loadRecs();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("anime.saveError"));
     }
@@ -185,6 +214,84 @@ export default function AnimeLibraryPage() {
             <Chip color="primary" label={`${t("anime.avg")}: ${stats.avgScore.toFixed(1)}`} />
           )}
         </Stack>
+      )}
+
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5, mt: 0.5 }}>
+        <AutoAwesomeIcon color="primary" fontSize="small" />
+        <Typography variant="h6" fontWeight={800}>
+          {t("anime.recs")}
+        </Typography>
+      </Stack>
+      {recsLoading && recs.length === 0 ? (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 3, mb: 2 }}>
+          <CircularProgress size={28} />
+        </Box>
+      ) : recs.filter((r) => !inLibrary.has(r.anilistId)).length === 0 ? (
+        <Paper variant="outlined" sx={{ p: 2.5, mb: 2, textAlign: "center" }}>
+          <Typography color="text.secondary">
+            {stats?.total ? t("anime.recsError") : t("anime.recsHint")}
+          </Typography>
+        </Paper>
+      ) : (
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+            gap: 1.5,
+            mb: 3,
+          }}
+        >
+          {recs
+            .filter((item) => !inLibrary.has(item.anilistId))
+            .map((item) => (
+              <Paper key={item.anilistId} variant="outlined" sx={{ overflow: "hidden" }}>
+                <Box
+                  component="img"
+                  src={item.coverImage}
+                  alt=""
+                  sx={{ width: "100%", height: 230, objectFit: "cover", display: "block" }}
+                />
+                <Box sx={{ p: 1.1 }}>
+                  <Typography fontWeight={700} noWrap variant="body2">
+                    {item.title}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block" noWrap>
+                    {item.seasonYear ?? "—"}
+                    {item.anilistScore != null ? ` · ${item.anilistScore}%` : ""}
+                    {item.format ? ` · ${item.format}` : ""}
+                  </Typography>
+                  {item.because.length > 0 && (
+                    <Typography
+                      variant="caption"
+                      color="primary"
+                      display="block"
+                      noWrap
+                      title={item.because.join(" · ")}
+                      sx={{ mt: 0.25 }}
+                    >
+                      {t("anime.because")}: {item.because.join(" · ")}
+                    </Typography>
+                  )}
+                  <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
+                    <Button
+                      size="small"
+                      sx={{ px: 0.5, minWidth: 0 }}
+                      onClick={() => void add(item, "completed")}
+                    >
+                      {t("anime.addSeen")}
+                    </Button>
+                    <Button
+                      size="small"
+                      sx={{ px: 0.5, minWidth: 0 }}
+                      onClick={() => void add(item, "planned")}
+                    >
+                      {t("anime.status.planned")}
+                    </Button>
+                  </Stack>
+                </Box>
+              </Paper>
+            ))}
+        </Box>
       )}
 
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>

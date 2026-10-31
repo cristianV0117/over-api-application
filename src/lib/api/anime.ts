@@ -128,6 +128,20 @@ export async function fetchMyAnime(opts?: {
   return res.json();
 }
 
+export type AnimeRecommendation = AnimeSearchItem & {
+  score: number;
+  because: string[];
+};
+
+export async function fetchRecommendations(): Promise<AnimeRecommendation[]> {
+  const res = await fetch(`${BASE}/anime/me/recommendations`, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) await parseError(res);
+  return res.json();
+}
+
 export async function fetchAnimeStats(): Promise<AnimeStats> {
   const res = await fetch(`${BASE}/anime/me/stats`, {
     headers: getAuthHeaders(),
