@@ -15,14 +15,18 @@ import Paper from "@mui/material/Paper";
 import Rating from "@mui/material/Rating";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import LiveTvOutlinedIcon from "@mui/icons-material/LiveTvOutlined";
 import SearchIcon from "@mui/icons-material/Search";
+import VideoLibraryOutlinedIcon from "@mui/icons-material/VideoLibraryOutlined";
 import { toast } from "react-toastify";
 import { usePreferences } from "@/context/preferencesContext";
 import type { MessageKey } from "@/i18n/messages/es";
@@ -51,13 +55,21 @@ const STATUS_KEY: Record<AnimeWatchStatus, MessageKey> = {
   paused: "anime.status.paused",
 };
 
+const GRID_SX = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+  gap: 1.5,
+} as const;
+
 export default function AnimeLibraryPage() {
   const { t } = usePreferences();
+  const [tab, setTab] = useState(0);
   const [library, setLibrary] = useState<AnimeEntry[]>([]);
   const [stats, setStats] = useState<AnimeStats | null>(null);
   const [genres, setGenres] = useState<string[]>([]);
   const [status, setStatus] = useState<AnimeWatchStatus | "">("");
   const [genre, setGenre] = useState("");
+  const [libGenre, setLibGenre] = useState("");
   const [onlyFav, setOnlyFav] = useState(false);
   const [libQ, setLibQ] = useState("");
   const [loading, setLoading] = useState(true);
@@ -76,6 +88,27 @@ export default function AnimeLibraryPage() {
     () => new Set(library.map((a) => a.anilistId)),
     [library]
   );
+  const visibleLibrary = useMemo(() => {
+    const query = libQ.trim().toLowerCase();
+    return library.filter((a) => {
+      if (status && a.watchStatus !== status) return false;
+      if (onlyFav && !a.favorite) return false;
+      if (libGenre && !a.genres.includes(libGenre)) return false;
+      if (
+        query &&
+        !a.title.toLowerCase().includes(query) &&
+        !a.titleEnglish.toLowerCase().includes(query) &&
+        !a.titleNative.toLowerCase().includes(query)
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [library, status, onlyFav, libGenre, libQ]);
+  const visibleRecs = useMemo(
+    () => recs.filter((item) => !inLibrary.has(item.anilistId)),
+    [recs, inLibrary]
+  );
 
   const loadRecs = useCallback(async () => {
     setRecsLoading(true);
@@ -89,18 +122,10 @@ export default function AnimeLibraryPage() {
   }, []);
 
   const load = useCallback(async () => {
-    const [list, st] = await Promise.all([
-      fetchMyAnime({
-        status: status || undefined,
-        genre: genre || undefined,
-        favorite: onlyFav,
-        q: libQ || undefined,
-      }),
-      fetchAnimeStats(),
-    ]);
+    const [list, st] = await Promise.all([fetchMyAnime(), fetchAnimeStats()]);
     setLibrary(list);
     setStats(st);
-  }, [status, genre, onlyFav, libQ]);
+  }, []);
 
   useEffect(() => {
     load()
@@ -109,8 +134,8 @@ export default function AnimeLibraryPage() {
   }, [load]);
 
   useEffect(() => {
-    void loadRecs();
-  }, [loadRecs]);
+    if (tab === 1) void loadRecs();
+  }, [tab, loadRecs]);
 
   useEffect(() => {
     fetchAnimeGenres()
@@ -153,7 +178,7 @@ export default function AnimeLibraryPage() {
       const created = await addAnime({ anilistId: item.anilistId, watchStatus });
       setLibrary((prev) => [created, ...prev]);
       setStats(await fetchAnimeStats());
-      void loadRecs();
+      if (tab === 1) void loadRecs();
       toast.success(t("anime.added"));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("anime.addError"));
@@ -171,7 +196,7 @@ export default function AnimeLibraryPage() {
         patch.score !== undefined ||
         patch.favorite !== undefined
       ) {
-        void loadRecs();
+        setRecs([]);
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("anime.saveError"));
@@ -184,7 +209,7 @@ export default function AnimeLibraryPage() {
       setLibrary((prev) => prev.filter((x) => x.id !== id));
       setOpen(null);
       setStats(await fetchAnimeStats());
-      void loadRecs();
+      setRecs([]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("anime.saveError"));
     }
@@ -199,297 +224,351 @@ export default function AnimeLibraryPage() {
         {t("anime.subtitle")}
       </Typography>
 
-      {stats && (
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
-          <Chip label={`${stats.total} ${t("anime.total")}`} />
-          {WATCH_STATUSES.map((s) => (
-            <Chip
-              key={s}
-              label={`${t(STATUS_KEY[s])}: ${stats.byStatus[s]?.count ?? 0}`}
-              variant={status === s ? "filled" : "outlined"}
-              onClick={() => setStatus((cur) => (cur === s ? "" : s))}
-            />
-          ))}
-          {stats.avgScore != null && (
-            <Chip color="primary" label={`${t("anime.avg")}: ${stats.avgScore.toFixed(1)}`} />
-          )}
-        </Stack>
-      )}
-
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5, mt: 0.5 }}>
-        <AutoAwesomeIcon color="primary" fontSize="small" />
-        <Typography variant="h6" fontWeight={800}>
-          {t("anime.recs")}
-        </Typography>
-      </Stack>
-      {recsLoading && recs.length === 0 ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 3, mb: 2 }}>
-          <CircularProgress size={28} />
-        </Box>
-      ) : recs.filter((r) => !inLibrary.has(r.anilistId)).length === 0 ? (
-        <Paper variant="outlined" sx={{ p: 2.5, mb: 2, textAlign: "center" }}>
-          <Typography color="text.secondary">
-            {stats?.total ? t("anime.recsError") : t("anime.recsHint")}
-          </Typography>
-        </Paper>
-      ) : (
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-            gap: 1.5,
-            mb: 3,
-          }}
+      <Box
+        sx={{
+          mb: 2,
+          borderBottom: 1,
+          borderColor: "divider",
+          width: "100%",
+          minWidth: 0,
+        }}
+      >
+        <Tabs
+          value={tab}
+          onChange={(_, v: number) => setTab(v)}
+          aria-label={t("anime.tabAria")}
+          variant="scrollable"
+          allowScrollButtonsMobile
         >
-          {recs
-            .filter((item) => !inLibrary.has(item.anilistId))
-            .map((item) => (
-              <Paper key={item.anilistId} variant="outlined" sx={{ overflow: "hidden" }}>
-                <Box
-                  component="img"
-                  src={item.coverImage}
-                  alt=""
-                  sx={{ width: "100%", height: 230, objectFit: "cover", display: "block" }}
-                />
-                <Box sx={{ p: 1.1 }}>
-                  <Typography fontWeight={700} noWrap variant="body2">
-                    {item.title}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" display="block" noWrap>
-                    {item.seasonYear ?? "—"}
-                    {item.anilistScore != null ? ` · ${item.anilistScore}%` : ""}
-                    {item.format ? ` · ${item.format}` : ""}
-                  </Typography>
-                  {item.because.length > 0 && (
-                    <Typography
-                      variant="caption"
-                      color="primary"
-                      display="block"
-                      noWrap
-                      title={item.because.join(" · ")}
-                      sx={{ mt: 0.25 }}
-                    >
-                      {t("anime.because")}: {item.because.join(" · ")}
-                    </Typography>
-                  )}
-                  <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
-                    <Button
-                      size="small"
-                      sx={{ px: 0.5, minWidth: 0 }}
-                      onClick={() => void add(item, "completed")}
-                    >
-                      {t("anime.addSeen")}
-                    </Button>
-                    <Button
-                      size="small"
-                      sx={{ px: 0.5, minWidth: 0 }}
-                      onClick={() => void add(item, "planned")}
-                    >
-                      {t("anime.status.planned")}
-                    </Button>
-                  </Stack>
+          <Tab
+            icon={<LiveTvOutlinedIcon />}
+            iconPosition="start"
+            label={t("anime.tabCatalog")}
+            id="page-tab-animes"
+          />
+          <Tab
+            icon={<AutoAwesomeOutlinedIcon />}
+            iconPosition="start"
+            label={t("anime.tabRecs")}
+            id="page-tab-recomendados"
+          />
+          <Tab
+            icon={<VideoLibraryOutlinedIcon />}
+            iconPosition="start"
+            label={t("anime.tabLibrary")}
+            id="page-tab-biblioteca"
+          />
+        </Tabs>
+      </Box>
+
+      {tab === 0 && (
+        <>
+          <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1} flexWrap="wrap" useFlexGap>
+              <TextField
+                size="small"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && runSearch()}
+                placeholder={t("anime.searchPh")}
+                sx={{ flex: "1 1 220px" }}
+              />
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>{t("anime.genre")}</InputLabel>
+                <Select
+                  value={genre}
+                  label={t("anime.genre")}
+                  onChange={(e) => setGenre(e.target.value)}
+                >
+                  <MenuItem value="">{t("anime.allGenres")}</MenuItem>
+                  {genres.map((g) => (
+                    <MenuItem key={g} value={g}>
+                      {g}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>{t("anime.format")}</InputLabel>
+                <Select
+                  value={format}
+                  label={t("anime.format")}
+                  onChange={(e) => setFormat(e.target.value)}
+                >
+                  <MenuItem value="">{t("anime.allFormats")}</MenuItem>
+                  <MenuItem value="TV">TV</MenuItem>
+                  <MenuItem value="MOVIE">Movie</MenuItem>
+                  <MenuItem value="OVA">OVA</MenuItem>
+                  <MenuItem value="ONA">ONA</MenuItem>
+                  <MenuItem value="SPECIAL">Special</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel>{t("anime.sort")}</InputLabel>
+                <Select
+                  value={sort}
+                  label={t("anime.sort")}
+                  onChange={(e) => setSort(e.target.value)}
+                >
+                  <MenuItem value="POPULARITY_DESC">{t("anime.sort.popular")}</MenuItem>
+                  <MenuItem value="SCORE_DESC">{t("anime.sort.score")}</MenuItem>
+                  <MenuItem value="TRENDING_DESC">{t("anime.sort.trending")}</MenuItem>
+                  <MenuItem value="START_DATE_DESC">{t("anime.sort.newest")}</MenuItem>
+                </Select>
+              </FormControl>
+              <Button
+                variant="contained"
+                startIcon={searching ? <CircularProgress size={16} color="inherit" /> : <SearchIcon />}
+                onClick={runSearch}
+                disabled={searching}
+              >
+                {t("anime.search")}
+              </Button>
+            </Stack>
+          </Paper>
+
+          {searching && results.length === 0 ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              <Box sx={{ ...GRID_SX, mb: 2 }}>
+                {results.map((item) => (
+                  <Paper key={item.anilistId} variant="outlined" sx={{ overflow: "hidden" }}>
+                    <Box
+                      component="img"
+                      src={item.coverImage}
+                      alt=""
+                      sx={{ width: "100%", height: 230, objectFit: "cover", display: "block" }}
+                    />
+                    <Box sx={{ p: 1.1 }}>
+                      <Typography fontWeight={700} noWrap variant="body2">
+                        {item.title}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        {item.seasonYear ?? "—"}
+                        {item.anilistScore != null ? ` · ${item.anilistScore}%` : ""}
+                        {item.format ? ` · ${item.format}` : ""}
+                      </Typography>
+                      {inLibrary.has(item.anilistId) ? (
+                        <Chip size="small" label={t("anime.inLibrary")} sx={{ mt: 0.5 }} />
+                      ) : (
+                        <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
+                          <Button
+                            size="small"
+                            sx={{ px: 0.5, minWidth: 0 }}
+                            onClick={() => void add(item, "completed")}
+                          >
+                            {t("anime.addSeen")}
+                          </Button>
+                          <Button
+                            size="small"
+                            sx={{ px: 0.5, minWidth: 0 }}
+                            onClick={() => void add(item, "planned")}
+                          >
+                            {t("anime.status.planned")}
+                          </Button>
+                        </Stack>
+                      )}
+                    </Box>
+                  </Paper>
+                ))}
+              </Box>
+              {hasNext && (
+                <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+                  <Button
+                    variant="outlined"
+                    disabled={searching}
+                    onClick={() => void loadCatalog(page + 1, true)}
+                  >
+                    {t("anime.loadMore")}
+                  </Button>
                 </Box>
-              </Paper>
-            ))}
-        </Box>
+              )}
+            </>
+          )}
+        </>
       )}
 
-      <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Stack direction={{ xs: "column", md: "row" }} spacing={1} flexWrap="wrap" useFlexGap>
-          <TextField
-            size="small"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && runSearch()}
-            placeholder={t("anime.searchPh")}
-            sx={{ flex: "1 1 220px" }}
-          />
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>{t("anime.genre")}</InputLabel>
-            <Select value={genre} label={t("anime.genre")} onChange={(e) => setGenre(e.target.value)}>
-              <MenuItem value="">{t("anime.allGenres")}</MenuItem>
-              {genres.map((g) => (
-                <MenuItem key={g} value={g}>
-                  {g}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>{t("anime.format")}</InputLabel>
-            <Select value={format} label={t("anime.format")} onChange={(e) => setFormat(e.target.value)}>
-              <MenuItem value="">{t("anime.allFormats")}</MenuItem>
-              <MenuItem value="TV">TV</MenuItem>
-              <MenuItem value="MOVIE">Movie</MenuItem>
-              <MenuItem value="OVA">OVA</MenuItem>
-              <MenuItem value="ONA">ONA</MenuItem>
-              <MenuItem value="SPECIAL">Special</MenuItem>
-            </Select>
-          </FormControl>
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel>{t("anime.sort")}</InputLabel>
-            <Select value={sort} label={t("anime.sort")} onChange={(e) => setSort(e.target.value)}>
-              <MenuItem value="POPULARITY_DESC">{t("anime.sort.popular")}</MenuItem>
-              <MenuItem value="SCORE_DESC">{t("anime.sort.score")}</MenuItem>
-              <MenuItem value="TRENDING_DESC">{t("anime.sort.trending")}</MenuItem>
-              <MenuItem value="START_DATE_DESC">{t("anime.sort.newest")}</MenuItem>
-            </Select>
-          </FormControl>
-          <Button
-            variant="contained"
-            startIcon={searching ? <CircularProgress size={16} color="inherit" /> : <SearchIcon />}
-            onClick={runSearch}
-            disabled={searching}
-          >
-            {t("anime.search")}
-          </Button>
-        </Stack>
-      </Paper>
-
-      <Typography variant="h6" fontWeight={800} sx={{ mb: 1.5 }}>
-        {t("anime.explore")}
-      </Typography>
-      {searching && results.length === 0 ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
+      {tab === 1 && (
         <>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-              gap: 1.5,
-              mb: 2,
-            }}
-          >
-            {results.map((item) => (
-              <Paper key={item.anilistId} variant="outlined" sx={{ overflow: "hidden" }}>
-                <Box
-                  component="img"
-                  src={item.coverImage}
-                  alt=""
-                  sx={{ width: "100%", height: 230, objectFit: "cover", display: "block" }}
-                />
-                <Box sx={{ p: 1.1 }}>
-                  <Typography fontWeight={700} noWrap variant="body2">
-                    {item.title}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    {item.seasonYear ?? "—"}
-                    {item.anilistScore != null ? ` · ${item.anilistScore}%` : ""}
-                    {item.format ? ` · ${item.format}` : ""}
-                  </Typography>
-                  {inLibrary.has(item.anilistId) ? (
-                    <Chip size="small" label={t("anime.inLibrary")} sx={{ mt: 0.5 }} />
-                  ) : (
+          {recsLoading && visibleRecs.length === 0 ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+              <CircularProgress />
+            </Box>
+          ) : visibleRecs.length === 0 ? (
+            <Paper variant="outlined" sx={{ p: 4, textAlign: "center" }}>
+              <Typography color="text.secondary">
+                {stats?.total ? t("anime.recsError") : t("anime.recsHint")}
+              </Typography>
+            </Paper>
+          ) : (
+            <Box sx={GRID_SX}>
+              {visibleRecs.map((item) => (
+                <Paper key={item.anilistId} variant="outlined" sx={{ overflow: "hidden" }}>
+                  <Box
+                    component="img"
+                    src={item.coverImage}
+                    alt=""
+                    sx={{ width: "100%", height: 230, objectFit: "cover", display: "block" }}
+                  />
+                  <Box sx={{ p: 1.1 }}>
+                    <Typography fontWeight={700} noWrap variant="body2">
+                      {item.title}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block" noWrap>
+                      {item.seasonYear ?? "—"}
+                      {item.anilistScore != null ? ` · ${item.anilistScore}%` : ""}
+                      {item.format ? ` · ${item.format}` : ""}
+                    </Typography>
+                    {item.because.length > 0 && (
+                      <Typography
+                        variant="caption"
+                        color="primary"
+                        display="block"
+                        noWrap
+                        title={item.because.join(" · ")}
+                        sx={{ mt: 0.25 }}
+                      >
+                        {t("anime.because")}: {item.because.join(" · ")}
+                      </Typography>
+                    )}
                     <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
-                      <Button size="small" sx={{ px: 0.5, minWidth: 0 }} onClick={() => void add(item, "completed")}>
+                      <Button
+                        size="small"
+                        sx={{ px: 0.5, minWidth: 0 }}
+                        onClick={() => void add(item, "completed")}
+                      >
                         {t("anime.addSeen")}
                       </Button>
-                      <Button size="small" sx={{ px: 0.5, minWidth: 0 }} onClick={() => void add(item, "planned")}>
+                      <Button
+                        size="small"
+                        sx={{ px: 0.5, minWidth: 0 }}
+                        onClick={() => void add(item, "planned")}
+                      >
                         {t("anime.status.planned")}
                       </Button>
                     </Stack>
-                  )}
-                </Box>
-              </Paper>
-            ))}
-          </Box>
-          {hasNext && (
-            <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
-              <Button
-                variant="outlined"
-                disabled={searching}
-                onClick={() => void loadCatalog(page + 1, true)}
-              >
-                {t("anime.loadMore")}
-              </Button>
+                  </Box>
+                </Paper>
+              ))}
             </Box>
           )}
         </>
       )}
 
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        spacing={1}
-        alignItems={{ sm: "center" }}
-        sx={{ mb: 1.5, mt: 1 }}
-      >
-        <Typography variant="h6" fontWeight={800} sx={{ mr: "auto" }}>
-          {t("anime.myList")}
-        </Typography>
-        <TextField
-          size="small"
-          value={libQ}
-          onChange={(e) => setLibQ(e.target.value)}
-          placeholder={t("anime.filterPh")}
-          sx={{ minWidth: 200 }}
-        />
-        <ToggleButton
-          value="fav"
-          selected={onlyFav}
-          onChange={() => setOnlyFav((v) => !v)}
-          size="small"
-        >
-          {t("anime.favorites")}
-        </ToggleButton>
-      </Stack>
-
-      {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-          <CircularProgress />
-        </Box>
-      ) : library.length === 0 ? (
-        <Paper variant="outlined" sx={{ p: 4, textAlign: "center" }}>
-          <Typography color="text.secondary">{t("anime.empty")}</Typography>
-        </Paper>
-      ) : (
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-            gap: 1.5,
-          }}
-        >
-          {library.map((a) => (
-            <Paper
-              key={a.id}
-              variant="outlined"
-              onClick={() => setOpen(a)}
-              sx={{ cursor: "pointer", overflow: "hidden", "&:hover": { borderColor: "primary.main" } }}
-            >
-              <Box sx={{ position: "relative" }}>
-                <Box
-                  component="img"
-                  src={a.coverImage}
-                  alt=""
-                  sx={{ width: "100%", height: 230, objectFit: "cover", display: "block" }}
+      {tab === 2 && (
+        <>
+          {stats && (
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
+              <Chip label={`${stats.total} ${t("anime.total")}`} />
+              {WATCH_STATUSES.map((s) => (
+                <Chip
+                  key={s}
+                  label={`${t(STATUS_KEY[s])}: ${stats.byStatus[s]?.count ?? 0}`}
+                  variant={status === s ? "filled" : "outlined"}
+                  onClick={() => setStatus((cur) => (cur === s ? "" : s))}
                 />
-                {a.favorite && (
-                  <FavoriteIcon
-                    sx={{ position: "absolute", top: 8, right: 8, color: "#f43f5e", fontSize: 22 }}
-                  />
-                )}
-              </Box>
-              <Box sx={{ p: 1.1 }}>
-                <Typography fontWeight={700} noWrap variant="body2">
-                  {a.title}
-                </Typography>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="caption" color="text.secondary">
-                    {t(STATUS_KEY[a.watchStatus])}
-                  </Typography>
-                  {a.score != null && (
-                    <Typography variant="caption" fontWeight={700}>
-                      {a.score}/10
-                    </Typography>
-                  )}
-                </Stack>
-              </Box>
+              ))}
+              {stats.avgScore != null && (
+                <Chip color="primary" label={`${t("anime.avg")}: ${stats.avgScore.toFixed(1)}`} />
+              )}
+            </Stack>
+          )}
+
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            alignItems={{ sm: "center" }}
+            sx={{ mb: 1.5 }}
+          >
+            <TextField
+              size="small"
+              value={libQ}
+              onChange={(e) => setLibQ(e.target.value)}
+              placeholder={t("anime.filterPh")}
+              sx={{ minWidth: 200, flex: "1 1 180px" }}
+            />
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>{t("anime.genre")}</InputLabel>
+              <Select
+                value={libGenre}
+                label={t("anime.genre")}
+                onChange={(e) => setLibGenre(e.target.value)}
+              >
+                <MenuItem value="">{t("anime.allGenres")}</MenuItem>
+                {genres.map((g) => (
+                  <MenuItem key={g} value={g}>
+                    {g}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <ToggleButton
+              value="fav"
+              selected={onlyFav}
+              onChange={() => setOnlyFav((v) => !v)}
+              size="small"
+            >
+              {t("anime.favorites")}
+            </ToggleButton>
+          </Stack>
+
+          {loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+              <CircularProgress />
+            </Box>
+          ) : visibleLibrary.length === 0 ? (
+            <Paper variant="outlined" sx={{ p: 4, textAlign: "center" }}>
+              <Typography color="text.secondary">{t("anime.empty")}</Typography>
             </Paper>
-          ))}
-        </Box>
+          ) : (
+            <Box sx={GRID_SX}>
+              {visibleLibrary.map((a) => (
+                <Paper
+                  key={a.id}
+                  variant="outlined"
+                  onClick={() => setOpen(a)}
+                  sx={{
+                    cursor: "pointer",
+                    overflow: "hidden",
+                    "&:hover": { borderColor: "primary.main" },
+                  }}
+                >
+                  <Box sx={{ position: "relative" }}>
+                    <Box
+                      component="img"
+                      src={a.coverImage}
+                      alt=""
+                      sx={{ width: "100%", height: 230, objectFit: "cover", display: "block" }}
+                    />
+                    {a.favorite && (
+                      <FavoriteIcon
+                        sx={{ position: "absolute", top: 8, right: 8, color: "#f43f5e", fontSize: 22 }}
+                      />
+                    )}
+                  </Box>
+                  <Box sx={{ p: 1.1 }}>
+                    <Typography fontWeight={700} noWrap variant="body2">
+                      {a.title}
+                    </Typography>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Typography variant="caption" color="text.secondary">
+                        {t(STATUS_KEY[a.watchStatus])}
+                      </Typography>
+                      {a.score != null && (
+                        <Typography variant="caption" fontWeight={700}>
+                          {a.score}/10
+                        </Typography>
+                      )}
+                    </Stack>
+                  </Box>
+                </Paper>
+              ))}
+            </Box>
+          )}
+        </>
       )}
 
       <Dialog open={Boolean(open)} onClose={() => setOpen(null)} maxWidth="sm" fullWidth>
