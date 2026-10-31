@@ -16,6 +16,7 @@ import LayersIcon from "@mui/icons-material/Layers";
 import { useLogout } from "@/hooks/useLogout";
 import { usePreferences } from "@/context/preferencesContext";
 import PreferenceToggles from "@/components/prefs/PreferenceToggles";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 type NavbarProps = {
   onMenuClick?: () => void;
@@ -129,6 +130,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
           </Button>
         </Stack>
 
+        <NotificationBell />
         <PreferenceToggles />
 
         <Button

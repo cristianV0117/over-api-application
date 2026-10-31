@@ -23,6 +23,8 @@ import DirectionsCarOutlinedIcon from "@mui/icons-material/DirectionsCarOutlined
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import WebOutlinedIcon from "@mui/icons-material/WebOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
+import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
+import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
 import { useUser } from "@/context/userContext";
 import { usePreferences } from "@/context/preferencesContext";
 import { avatarUrl } from "@/lib/api/profile";
@@ -42,6 +44,8 @@ const allItems = [
   { href: "/dashboard/archivos", labelKey: "sidebar.files" as const, Icon: FolderOutlinedIcon },
   { href: "/dashboard/portafolio", labelKey: "sidebar.portfolio" as const, Icon: WebOutlinedIcon },
   { href: "/dashboard/cv", labelKey: "sidebar.cv" as const, Icon: PictureAsPdfOutlinedIcon },
+  { href: "/dashboard/notificaciones", labelKey: "sidebar.notifications" as const, Icon: NotificationsNoneOutlinedIcon },
+  { href: "/dashboard/workana", labelKey: "sidebar.workana" as const, Icon: WorkOutlineOutlinedIcon, adminOnly: true },
   { href: "/dashboard/profile", labelKey: "sidebar.profile" as const, Icon: PersonOutlineIcon },
   { href: "/dashboard/settings", labelKey: "sidebar.settings" as const, Icon: SettingsOutlinedIcon },
 ];
