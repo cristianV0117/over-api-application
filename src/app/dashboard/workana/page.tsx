@@ -15,8 +15,10 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { toast } from "react-toastify";
 import { useUser } from "@/context/userContext";
 import { usePreferences } from "@/context/preferencesContext";
+import TextField from "@mui/material/TextField";
 import {
   fetchWorkanaJobs,
+  ingestWorkana,
   syncWorkana,
   type WorkanaJob,
 } from "@/lib/api/workana";
@@ -26,10 +28,11 @@ export default function WorkanaPage() {
   const user = useUser();
   const { t, locale } = usePreferences();
   const [jobs, setJobs] = useState<WorkanaJob[]>([]);
-  const [configured, setConfigured] = useState(true);
   const [lastFetchedAt, setLastFetchedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [paste, setPaste] = useState("");
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     if (user && user.role !== "admin") router.replace("/dashboard");
@@ -38,7 +41,6 @@ export default function WorkanaPage() {
   const load = useCallback(async () => {
     const data = await fetchWorkanaJobs({ limit: 60 });
     setJobs(data.jobs);
-    setConfigured(data.configured);
     setLastFetchedAt(data.lastFetchedAt);
   }, []);
 
@@ -53,6 +55,10 @@ export default function WorkanaPage() {
     setSyncing(true);
     try {
       const res = await syncWorkana();
+      if (res.error) {
+        toast.error(t("workana.syncError"));
+        return;
+      }
       await load();
       toast.success(
         t("workana.synced")
@@ -107,11 +113,59 @@ export default function WorkanaPage() {
         </Button>
       </Stack>
 
-      {!configured && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          {t("workana.noCookie")}
-        </Alert>
-      )}
+      <Alert severity="warning" sx={{ mb: 2 }}>
+        {t("workana.noCookie")}
+      </Alert>
+
+      <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Typography fontWeight={700} sx={{ mb: 0.5 }}>
+          {t("workana.importTitle")}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          {t("workana.importHelp")}
+        </Typography>
+        <TextField
+          value={paste}
+          onChange={(e) => setPaste(e.target.value)}
+          multiline
+          minRows={5}
+          fullWidth
+          placeholder='{ "results": { "results": [ ... ] } }'
+        />
+        <Button
+          sx={{ mt: 1.5 }}
+          variant="contained"
+          disabled={importing || !paste.trim()}
+          onClick={() => {
+            void (async () => {
+              setImporting(true);
+              try {
+                const parsed: unknown = JSON.parse(paste);
+                const res = await ingestWorkana(parsed);
+                setPaste("");
+                await load();
+                toast.success(
+                  t("workana.synced")
+                    .replace("{fetched}", String(res.fetched))
+                    .replace("{new}", String(res.newHighlighted))
+                );
+              } catch (e) {
+                toast.error(
+                  e instanceof SyntaxError
+                    ? t("workana.importError")
+                    : e instanceof Error
+                      ? e.message
+                      : t("workana.importError")
+                );
+              } finally {
+                setImporting(false);
+              }
+            })();
+          }}
+        >
+          {importing ? t("workana.importing") : t("workana.import")}
+        </Button>
+      </Paper>
 
       {jobs.length === 0 ? (
         <Paper variant="outlined" sx={{ p: 4, textAlign: "center" }}>

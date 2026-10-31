@@ -67,10 +67,28 @@ export async function fetchWorkanaJobs(opts?: {
 export async function syncWorkana(): Promise<{
   fetched: number;
   newHighlighted: number;
+  error?: string;
 }> {
   const res = await fetch(`${BASE}/workana/sync`, {
     method: "POST",
     headers: getAuthHeaders(),
+  });
+  if (!res.ok) await parseError(res);
+  return res.json();
+}
+
+export async function ingestWorkana(
+  payload: unknown,
+  query = "php"
+): Promise<{ fetched: number; newHighlighted: number }> {
+  const results =
+    payload && typeof payload === "object" && "results" in payload
+      ? (payload as { results: unknown }).results
+      : payload;
+  const res = await fetch(`${BASE}/workana/ingest`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ results, query }),
   });
   if (!res.ok) await parseError(res);
   return res.json();
