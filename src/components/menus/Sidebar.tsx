@@ -24,7 +24,8 @@ import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import WebOutlinedIcon from "@mui/icons-material/WebOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
-import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
+import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined";
+import LiveTvOutlinedIcon from "@mui/icons-material/LiveTvOutlined";
 import { useUser } from "@/context/userContext";
 import { usePreferences } from "@/context/preferencesContext";
 import { avatarUrl } from "@/lib/api/profile";
@@ -45,7 +46,6 @@ const allItems = [
   { href: "/dashboard/portafolio", labelKey: "sidebar.portfolio" as const, Icon: WebOutlinedIcon },
   { href: "/dashboard/cv", labelKey: "sidebar.cv" as const, Icon: PictureAsPdfOutlinedIcon },
   { href: "/dashboard/notificaciones", labelKey: "sidebar.notifications" as const, Icon: NotificationsNoneOutlinedIcon },
-  { href: "/dashboard/workana", labelKey: "sidebar.workana" as const, Icon: WorkOutlineOutlinedIcon, adminOnly: true },
   { href: "/dashboard/profile", labelKey: "sidebar.profile" as const, Icon: PersonOutlineIcon },
   { href: "/dashboard/settings", labelKey: "sidebar.settings" as const, Icon: SettingsOutlinedIcon },
 ];
@@ -61,6 +61,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const { t } = usePreferences();
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up("md"));
+  const entActive = pathname.startsWith("/dashboard/entretenimiento");
 
   const items = allItems.filter(
     (i) => !("adminOnly" in i && i.adminOnly) || user?.role === "admin"
@@ -105,6 +106,49 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
             </ListItemButton>
           );
         })}
+        <ListItemButton
+          component={NextLink}
+          href="/dashboard/entretenimiento"
+          onClick={() => !isMdUp && onMobileClose()}
+          selected={entActive && !pathname.startsWith("/dashboard/entretenimiento/animes")}
+          sx={{
+            borderRadius: 2,
+            mb: 0.5,
+            "&.Mui-selected": {
+              bgcolor: "primary.main",
+              color: "primary.contrastText",
+              "& .MuiListItemIcon-root": { color: "inherit" },
+              "&:hover": { bgcolor: "primary.dark" },
+            },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 40, color: entActive ? "inherit" : "text.secondary" }}>
+            <SportsEsportsOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary={t("sidebar.entertainment")} primaryTypographyProps={{ fontWeight: 600 }} />
+        </ListItemButton>
+        <ListItemButton
+          component={NextLink}
+          href="/dashboard/entretenimiento/animes"
+          selected={pathname.startsWith("/dashboard/entretenimiento/animes")}
+          onClick={() => !isMdUp && onMobileClose()}
+          sx={{
+            borderRadius: 2,
+            mb: 0.5,
+            pl: 4,
+            "&.Mui-selected": {
+              bgcolor: "primary.main",
+              color: "primary.contrastText",
+              "& .MuiListItemIcon-root": { color: "inherit" },
+              "&:hover": { bgcolor: "primary.dark" },
+            },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 40, color: pathname.startsWith("/dashboard/entretenimiento/animes") ? "inherit" : "text.secondary" }}>
+            <LiveTvOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary={t("sidebar.anime")} primaryTypographyProps={{ fontWeight: 600 }} />
+        </ListItemButton>
       </List>
       <Divider sx={{ borderColor: "divider" }} />
       <Box

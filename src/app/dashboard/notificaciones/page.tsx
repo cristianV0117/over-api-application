@@ -27,8 +27,6 @@ const TYPE_COLOR: Record<NotificationType, "default" | "primary" | "warning" | "
   task: "primary",
   vehicle: "error",
   cron: "error",
-  workana: "info",
-  workana_session: "error",
 };
 
 const TYPE_LABEL: Record<NotificationType, MessageKey> = {
@@ -38,8 +36,6 @@ const TYPE_LABEL: Record<NotificationType, MessageKey> = {
   task: "notif.type.task",
   vehicle: "notif.type.vehicle",
   cron: "notif.type.cron",
-  workana: "notif.type.workana",
-  workana_session: "notif.type.workana_session",
 };
 
 export default function NotificationsPage() {

@@ -27,9 +27,7 @@ export type NotificationType =
   | "recurring_income"
   | "task"
   | "vehicle"
-  | "cron"
-  | "workana"
-  | "workana_session";
+  | "cron";
 
 export type NotificationSeverity = "info" | "warning" | "urgent";
 
