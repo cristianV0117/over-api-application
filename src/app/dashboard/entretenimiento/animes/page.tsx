@@ -59,8 +59,13 @@ export default function AnimeLibraryPage() {
   const [libQ, setLibQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [appliedQ, setAppliedQ] = useState("");
+  const [format, setFormat] = useState("");
+  const [sort, setSort] = useState("POPULARITY_DESC");
   const [results, setResults] = useState<AnimeSearchItem[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [hasNext, setHasNext] = useState(false);
+  const [page, setPage] = useState(1);
+  const [searching, setSearching] = useState(true);
   const [open, setOpen] = useState<AnimeEntry | null>(null);
   const inLibrary = useMemo(
     () => new Set(library.map((a) => a.anilistId)),
@@ -93,16 +98,34 @@ export default function AnimeLibraryPage() {
       .catch(() => setGenres([]));
   }, []);
 
-  const runSearch = async () => {
-    setSearching(true);
-    try {
-      const res = await searchAnime(q);
-      setResults(res.items);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("anime.searchError"));
-    } finally {
-      setSearching(false);
-    }
+  const loadCatalog = useCallback(
+    async (nextPage = 1, append = false) => {
+      setSearching(true);
+      try {
+        const res = await searchAnime(appliedQ, {
+          page: nextPage,
+          genre: genre || undefined,
+          format: format || undefined,
+          sort: sort || undefined,
+        });
+        setResults((prev) => (append ? [...prev, ...res.items] : res.items));
+        setHasNext(res.hasNextPage);
+        setPage(res.page);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : t("anime.searchError"));
+      } finally {
+        setSearching(false);
+      }
+    },
+    [appliedQ, genre, format, sort, t]
+  );
+
+  useEffect(() => {
+    void loadCatalog(1, false);
+  }, [loadCatalog]);
+
+  const runSearch = () => {
+    setAppliedQ(q.trim());
   };
 
   const add = async (item: AnimeSearchItem, watchStatus: AnimeWatchStatus) => {
@@ -165,41 +188,90 @@ export default function AnimeLibraryPage() {
       )}
 
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+        <Stack direction={{ xs: "column", md: "row" }} spacing={1} flexWrap="wrap" useFlexGap>
           <TextField
-            fullWidth
             size="small"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && void runSearch()}
+            onKeyDown={(e) => e.key === "Enter" && runSearch()}
             placeholder={t("anime.searchPh")}
+            sx={{ flex: "1 1 220px" }}
           />
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>{t("anime.genre")}</InputLabel>
+            <Select value={genre} label={t("anime.genre")} onChange={(e) => setGenre(e.target.value)}>
+              <MenuItem value="">{t("anime.allGenres")}</MenuItem>
+              {genres.map((g) => (
+                <MenuItem key={g} value={g}>
+                  {g}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>{t("anime.format")}</InputLabel>
+            <Select value={format} label={t("anime.format")} onChange={(e) => setFormat(e.target.value)}>
+              <MenuItem value="">{t("anime.allFormats")}</MenuItem>
+              <MenuItem value="TV">TV</MenuItem>
+              <MenuItem value="MOVIE">Movie</MenuItem>
+              <MenuItem value="OVA">OVA</MenuItem>
+              <MenuItem value="ONA">ONA</MenuItem>
+              <MenuItem value="SPECIAL">Special</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel>{t("anime.sort")}</InputLabel>
+            <Select value={sort} label={t("anime.sort")} onChange={(e) => setSort(e.target.value)}>
+              <MenuItem value="POPULARITY_DESC">{t("anime.sort.popular")}</MenuItem>
+              <MenuItem value="SCORE_DESC">{t("anime.sort.score")}</MenuItem>
+              <MenuItem value="TRENDING_DESC">{t("anime.sort.trending")}</MenuItem>
+              <MenuItem value="START_DATE_DESC">{t("anime.sort.newest")}</MenuItem>
+            </Select>
+          </FormControl>
           <Button
             variant="contained"
             startIcon={searching ? <CircularProgress size={16} color="inherit" /> : <SearchIcon />}
-            onClick={() => void runSearch()}
+            onClick={runSearch}
             disabled={searching}
           >
             {t("anime.search")}
           </Button>
         </Stack>
-        {results.length > 0 && (
-          <Stack direction="row" spacing={1.5} sx={{ mt: 2, overflowX: "auto", pb: 1 }}>
+      </Paper>
+
+      <Typography variant="h6" fontWeight={800} sx={{ mb: 1.5 }}>
+        {t("anime.explore")}
+      </Typography>
+      {searching && results.length === 0 ? (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+              gap: 1.5,
+              mb: 2,
+            }}
+          >
             {results.map((item) => (
-              <Paper key={item.anilistId} variant="outlined" sx={{ width: 148, flex: "0 0 auto" }}>
+              <Paper key={item.anilistId} variant="outlined" sx={{ overflow: "hidden" }}>
                 <Box
                   component="img"
                   src={item.coverImage}
                   alt=""
-                  sx={{ width: "100%", height: 210, objectFit: "cover", display: "block" }}
+                  sx={{ width: "100%", height: 230, objectFit: "cover", display: "block" }}
                 />
-                <Box sx={{ p: 1 }}>
-                  <Typography variant="caption" fontWeight={700} noWrap display="block">
+                <Box sx={{ p: 1.1 }}>
+                  <Typography fontWeight={700} noWrap variant="body2">
                     {item.title}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" display="block">
                     {item.seasonYear ?? "—"}
                     {item.anilistScore != null ? ` · ${item.anilistScore}%` : ""}
+                    {item.format ? ` · ${item.format}` : ""}
                   </Typography>
                   {inLibrary.has(item.anilistId) ? (
                     <Chip size="small" label={t("anime.inLibrary")} sx={{ mt: 0.5 }} />
@@ -216,11 +288,30 @@ export default function AnimeLibraryPage() {
                 </Box>
               </Paper>
             ))}
-          </Stack>
-        )}
-      </Paper>
+          </Box>
+          {hasNext && (
+            <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+              <Button
+                variant="outlined"
+                disabled={searching}
+                onClick={() => void loadCatalog(page + 1, true)}
+              >
+                {t("anime.loadMore")}
+              </Button>
+            </Box>
+          )}
+        </>
+      )}
 
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mb: 2 }}>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={1}
+        alignItems={{ sm: "center" }}
+        sx={{ mb: 1.5, mt: 1 }}
+      >
+        <Typography variant="h6" fontWeight={800} sx={{ mr: "auto" }}>
+          {t("anime.myList")}
+        </Typography>
         <TextField
           size="small"
           value={libQ}
@@ -228,21 +319,6 @@ export default function AnimeLibraryPage() {
           placeholder={t("anime.filterPh")}
           sx={{ minWidth: 200 }}
         />
-        <FormControl size="small" sx={{ minWidth: 180 }}>
-          <InputLabel>{t("anime.genre")}</InputLabel>
-          <Select
-            value={genre}
-            label={t("anime.genre")}
-            onChange={(e) => setGenre(e.target.value)}
-          >
-            <MenuItem value="">{t("anime.allGenres")}</MenuItem>
-            {genres.map((g) => (
-              <MenuItem key={g} value={g}>
-                {g}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
         <ToggleButton
           value="fav"
           selected={onlyFav}

@@ -84,12 +84,14 @@ export type AnimeStats = {
 
 export async function searchAnime(
   q: string,
-  opts?: { page?: number; genre?: string }
+  opts?: { page?: number; genre?: string; format?: string; sort?: string }
 ): Promise<{ items: AnimeSearchItem[]; page: number; hasNextPage: boolean }> {
   const p = new URLSearchParams();
   if (q.trim()) p.set("q", q.trim());
   if (opts?.page) p.set("page", String(opts.page));
   if (opts?.genre) p.set("genre", opts.genre);
+  if (opts?.format) p.set("format", opts.format);
+  if (opts?.sort) p.set("sort", opts.sort);
   const res = await fetch(`${BASE}/anime/search?${p.toString()}`, {
     headers: getAuthHeaders(),
     cache: "no-store",
