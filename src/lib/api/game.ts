@@ -37,16 +37,16 @@ export const PLAY_STATUSES: GamePlayStatus[] = [
 ];
 
 export type GameSearchItem = {
-  rawgId: number;
+  steamId: number;
   title: string;
   coverImage: string;
   bannerImage?: string;
   genres: string[];
   platforms: string[];
-  rawgScore: number | null;
+  steamScore: number | null;
   metacritic: number | null;
   released: string;
-  rawgStatus: string;
+  steamStatus: string;
   description: string;
   playtime: number | null;
 };
@@ -116,8 +116,8 @@ export async function searchGames(
   return res.json();
 }
 
-export async function fetchGameDetail(rawgId: number): Promise<GameDetail> {
-  const res = await fetch(`${BASE}/games/media/${rawgId}`, {
+export async function fetchGameDetail(steamId: number): Promise<GameDetail> {
+  const res = await fetch(`${BASE}/games/media/${steamId}`, {
     headers: getAuthHeaders(),
     cache: "no-store",
   });
@@ -162,7 +162,7 @@ export async function fetchGameStats(): Promise<GameStats> {
 }
 
 export async function addGame(data: {
-  rawgId: number;
+  steamId: number;
   playStatus?: GamePlayStatus;
   score?: number;
 }): Promise<GameEntry> {

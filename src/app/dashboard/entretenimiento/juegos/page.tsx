@@ -64,12 +64,9 @@ const STATUS_KEY: Record<GamePlayStatus, MessageKey> = {
 };
 
 const PLATFORMS = [
-  { id: "1", name: "PC" },
-  { id: "2", name: "PlayStation" },
-  { id: "3", name: "Xbox" },
-  { id: "7", name: "Nintendo" },
-  { id: "8", name: "Android" },
-  { id: "4", name: "iOS" },
+  { id: "windows", name: "Windows" },
+  { id: "mac", name: "Mac" },
+  { id: "linux", name: "Linux" },
 ];
 
 const GRID_SX = {
@@ -118,7 +115,7 @@ export default function GameLibraryPage() {
   const [clearing, setClearing] = useState(false);
 
   const inLibrary = useMemo(
-    () => new Set(library.map((a) => a.rawgId)),
+    () => new Set(library.map((a) => a.steamId)),
     [library]
   );
   const visibleLibrary = useMemo(() => {
@@ -132,14 +129,14 @@ export default function GameLibraryPage() {
     });
   }, [library, status, onlyFav, libGenre, libQ]);
   const visibleRecs = useMemo(
-    () => recs.filter((item) => !inLibrary.has(item.rawgId)),
+    () => recs.filter((item) => !inLibrary.has(item.steamId)),
     [recs, inLibrary]
   );
   const recsPageCount = Math.max(1, Math.ceil(visibleRecs.length / PAGE_SIZE));
   const libPageCount = Math.max(1, Math.ceil(visibleLibrary.length / PAGE_SIZE));
   const pagedRecs = visibleRecs.slice((recsPage - 1) * PAGE_SIZE, recsPage * PAGE_SIZE);
   const pagedLibrary = visibleLibrary.slice((libPage - 1) * PAGE_SIZE, libPage * PAGE_SIZE);
-  const openEntry = detailId != null ? library.find((a) => a.rawgId === detailId) : undefined;
+  const openEntry = detailId != null ? library.find((a) => a.steamId === detailId) : undefined;
 
   const loadRecs = useCallback(async () => {
     setRecsLoading(true);
@@ -228,7 +225,7 @@ export default function GameLibraryPage() {
 
   const add = async (item: GameSearchItem, playStatus: GamePlayStatus) => {
     try {
-      const created = await addGame({ rawgId: item.rawgId, playStatus });
+      const created = await addGame({ steamId: item.steamId, playStatus });
       setLibrary((prev) => [created, ...prev]);
       setStats(await fetchGameStats());
       if (tab === 1) void loadRecs();
@@ -385,12 +382,12 @@ export default function GameLibraryPage() {
               <Box sx={{ ...GRID_SX, mb: 2, opacity: searching ? 0.6 : 1 }}>
                 {results.map((item) => (
                   <CatalogCard
-                    key={item.rawgId}
+                    key={item.steamId}
                     item={item}
-                    inLibrary={inLibrary.has(item.rawgId)}
+                    inLibrary={inLibrary.has(item.steamId)}
                     because={null}
                     t={t}
-                    onOpen={() => setDetailId(item.rawgId)}
+                    onOpen={() => setDetailId(item.steamId)}
                     onAdd={(s) => void add(item, s)}
                   />
                 ))}
@@ -428,12 +425,12 @@ export default function GameLibraryPage() {
               <Box sx={GRID_SX}>
                 {pagedRecs.map((item) => (
                   <CatalogCard
-                    key={item.rawgId}
+                    key={item.steamId}
                     item={item}
                     inLibrary={false}
                     because={item.because.length ? `${t("game.because")}: ${item.because.join(" · ")}` : null}
                     t={t}
-                    onOpen={() => setDetailId(item.rawgId)}
+                    onOpen={() => setDetailId(item.steamId)}
                     onAdd={(s) => void add(item, s)}
                   />
                 ))}
@@ -518,7 +515,7 @@ export default function GameLibraryPage() {
                   <Paper
                     key={a.id}
                     variant="outlined"
-                    onClick={() => setDetailId(a.rawgId)}
+                    onClick={() => setDetailId(a.steamId)}
                     sx={{ cursor: "pointer", overflow: "hidden", "&:hover": { borderColor: "primary.main" } }}
                   >
                     <Box sx={{ position: "relative" }}>
@@ -528,11 +525,11 @@ export default function GameLibraryPage() {
                         alt=""
                         sx={{ width: "100%", height: 230, objectFit: "cover", display: "block" }}
                       />
-                      {statusChip(a.rawgStatus, t) && (
+                      {statusChip(a.steamStatus, t) && (
                         <Chip
                           size="small"
-                          color={a.rawgStatus === "COMING" ? "info" : "success"}
-                          label={statusChip(a.rawgStatus, t)}
+                          color={a.steamStatus === "COMING" ? "info" : "success"}
+                          label={statusChip(a.steamStatus, t)}
                           sx={{ position: "absolute", top: 8, left: 8 }}
                         />
                       )}
@@ -596,11 +593,11 @@ export default function GameLibraryPage() {
                       <Typography variant="h6" fontWeight={800}>
                         {detail.title}
                       </Typography>
-                      {statusChip(detail.rawgStatus, t) && (
+                      {statusChip(detail.steamStatus, t) && (
                         <Chip
                           size="small"
-                          color={detail.rawgStatus === "COMING" ? "info" : "success"}
-                          label={statusChip(detail.rawgStatus, t)}
+                          color={detail.steamStatus === "COMING" ? "info" : "success"}
+                          label={statusChip(detail.steamStatus, t)}
                         />
                       )}
                     </Stack>
@@ -608,7 +605,7 @@ export default function GameLibraryPage() {
                       {[detail.released || "—", detail.platforms.slice(0, 3).join(" · ")]
                         .filter(Boolean)
                         .join(" · ")}
-                      {detail.rawgScore != null ? ` · ${detail.rawgScore}%` : ""}
+                      {detail.steamScore != null ? ` · ${detail.steamScore}%` : ""}
                     </Typography>
                   </Box>
                   {openEntry && (
@@ -677,7 +674,7 @@ export default function GameLibraryPage() {
                     <Stack direction="row" justifyContent="space-between" sx={{ mt: 2 }}>
                       {detail.siteUrl ? (
                         <Button href={detail.siteUrl} target="_blank" rel="noopener noreferrer">
-                          RAWG
+                          Steam
                         </Button>
                       ) : (
                         <span />
@@ -697,7 +694,7 @@ export default function GameLibraryPage() {
                     </Button>
                     {detail.siteUrl && (
                       <Button href={detail.siteUrl} target="_blank" rel="noopener noreferrer">
-                        RAWG
+                        Steam
                       </Button>
                     )}
                   </Stack>
@@ -739,7 +736,7 @@ function CatalogCard({
   onOpen: () => void;
   onAdd: (status: GamePlayStatus) => void;
 }) {
-  const badge = statusChip(item.rawgStatus, t);
+  const badge = statusChip(item.steamStatus, t);
   return (
     <Paper
       variant="outlined"
@@ -751,12 +748,16 @@ function CatalogCard({
           component="img"
           src={item.coverImage}
           alt=""
+          onError={(e) => {
+            const img = e.currentTarget;
+            if (item.bannerImage && img.src !== item.bannerImage) img.src = item.bannerImage;
+          }}
           sx={{ width: "100%", height: 230, objectFit: "cover", display: "block", bgcolor: "action.hover" }}
         />
         {badge && (
           <Chip
             size="small"
-            color={item.rawgStatus === "COMING" ? "info" : "success"}
+            color={item.steamStatus === "COMING" ? "info" : "success"}
             label={badge}
             sx={{ position: "absolute", top: 8, left: 8 }}
           />
@@ -768,7 +769,7 @@ function CatalogCard({
         </Typography>
         <Typography variant="caption" color="text.secondary" display="block" noWrap>
           {(item.released || "—").slice(0, 4)}
-          {item.rawgScore != null ? ` · ${item.rawgScore}%` : ""}
+          {item.steamScore != null ? ` · ${item.steamScore}%` : ""}
           {item.platforms[0] ? ` · ${item.platforms[0]}` : ""}
         </Typography>
         {because && (
@@ -811,9 +812,9 @@ function RelationRow({
       <Stack direction="row" spacing={1} sx={{ overflowX: "auto", pb: 1 }}>
         {items.map((item) => (
           <Paper
-            key={item.rawgId}
+            key={item.steamId}
             variant="outlined"
-            onClick={() => onOpen(item.rawgId)}
+            onClick={() => onOpen(item.steamId)}
             sx={{
               minWidth: 112,
               maxWidth: 112,
