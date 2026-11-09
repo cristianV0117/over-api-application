@@ -26,6 +26,7 @@ import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined";
 import LiveTvOutlinedIcon from "@mui/icons-material/LiveTvOutlined";
+import VideogameAssetOutlinedIcon from "@mui/icons-material/VideogameAssetOutlined";
 import { useUser } from "@/context/userContext";
 import { usePreferences } from "@/context/preferencesContext";
 import { avatarUrl } from "@/lib/api/profile";
@@ -62,6 +63,9 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up("md"));
   const entActive = pathname.startsWith("/dashboard/entretenimiento");
+  const entChild =
+    pathname.startsWith("/dashboard/entretenimiento/animes") ||
+    pathname.startsWith("/dashboard/entretenimiento/juegos");
 
   const items = allItems.filter(
     (i) => !("adminOnly" in i && i.adminOnly) || user?.role === "admin"
@@ -110,7 +114,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
           component={NextLink}
           href="/dashboard/entretenimiento"
           onClick={() => !isMdUp && onMobileClose()}
-          selected={entActive && !pathname.startsWith("/dashboard/entretenimiento/animes")}
+          selected={entActive && !entChild}
           sx={{
             borderRadius: 2,
             mb: 0.5,
@@ -148,6 +152,28 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
             <LiveTvOutlinedIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText primary={t("sidebar.anime")} primaryTypographyProps={{ fontWeight: 600 }} />
+        </ListItemButton>
+        <ListItemButton
+          component={NextLink}
+          href="/dashboard/entretenimiento/juegos"
+          selected={pathname.startsWith("/dashboard/entretenimiento/juegos")}
+          onClick={() => !isMdUp && onMobileClose()}
+          sx={{
+            borderRadius: 2,
+            mb: 0.5,
+            pl: 4,
+            "&.Mui-selected": {
+              bgcolor: "primary.main",
+              color: "primary.contrastText",
+              "& .MuiListItemIcon-root": { color: "inherit" },
+              "&:hover": { bgcolor: "primary.dark" },
+            },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 40, color: pathname.startsWith("/dashboard/entretenimiento/juegos") ? "inherit" : "text.secondary" }}>
+            <VideogameAssetOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary={t("sidebar.games")} primaryTypographyProps={{ fontWeight: 600 }} />
         </ListItemButton>
       </List>
       <Divider sx={{ borderColor: "divider" }} />
