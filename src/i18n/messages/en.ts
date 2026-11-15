@@ -351,6 +351,7 @@ const en: Record<MessageKey, string> = {
   "files.emptyBody": "Create a folder (Personal, Work…) or drop PDFs and images here.",
   "files.dropHere": "Drop images or files here",
   "files.preview": "Preview",
+  "files.openTab": "Open in tab",
   "files.loadError": "Could not load files",
   "files.actionFail": "Could not complete the action",
   "files.openFail": "Could not open the file",

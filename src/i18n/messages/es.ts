@@ -349,6 +349,7 @@ const es = {
   "files.emptyBody": "Crea una carpeta (Personal, Laboral…) o arrastra PDFs e imágenes aquí.",
   "files.dropHere": "Suelta imágenes o archivos aquí",
   "files.preview": "Vista previa",
+  "files.openTab": "Abrir en pestaña",
   "files.loadError": "Error al cargar archivos",
   "files.actionFail": "No se pudo completar la acción",
   "files.openFail": "No se pudo abrir el archivo",

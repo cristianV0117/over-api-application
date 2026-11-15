@@ -33,6 +33,7 @@ import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import DriveFileRenameOutlineOutlinedIcon from "@mui/icons-material/DriveFileRenameOutlineOutlined";
 import {
@@ -42,6 +43,7 @@ import {
   fetchDriveFileBlob,
   findNode,
   isDriveImage,
+  isDrivePdf,
   listDriveTree,
   renameDriveNode,
   uploadDriveFile,
@@ -251,8 +253,11 @@ export default function ArchivosPage() {
   } | null>(null);
   const [preview, setPreview] = useState<{
     node: DriveNode;
-    url: string;
+    url: string | null;
+    kind: "image" | "pdf";
   } | null>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewReq = useRef(0);
 
   const load = async () => {
     const next = await listDriveTree();
@@ -363,26 +368,79 @@ export default function ArchivosPage() {
     });
   };
 
+  const closePreview = () => {
+    previewReq.current += 1;
+    setPreview((prev) => {
+      if (prev?.url) URL.revokeObjectURL(prev.url);
+      return null;
+    });
+  };
+
+  const openPreview = async (node: DriveNode, kind: "image" | "pdf") => {
+    const req = ++previewReq.current;
+    setPreview((prev) => {
+      if (prev?.url) URL.revokeObjectURL(prev.url);
+      return { node, url: null, kind };
+    });
+    try {
+      const blob = await fetchDriveFileBlob(node.id);
+      const typed =
+        kind === "pdf" && !blob.type.includes("pdf")
+          ? new Blob([blob], { type: "application/pdf" })
+          : blob;
+      const url = URL.createObjectURL(typed);
+      if (req !== previewReq.current) {
+        URL.revokeObjectURL(url);
+        return;
+      }
+      setPreview({ node, url, kind });
+    } catch (e) {
+      if (req !== previewReq.current) return;
+      setPreview(null);
+      toast.error(e instanceof Error ? e.message : t("files.openFail"));
+    }
+  };
+
+  const clearPdfHover = () => {
+    if (hoverTimer.current) {
+      clearTimeout(hoverTimer.current);
+      hoverTimer.current = null;
+    }
+  };
+
+  const handlePdfHoverStart = (node: DriveNode) => {
+    if (!isDrivePdf(node) || preview) return;
+    clearPdfHover();
+    hoverTimer.current = setTimeout(() => {
+      hoverTimer.current = null;
+      void openPreview(node, "pdf");
+    }, 2000);
+  };
+
   const handleOpen = async (node: DriveNode) => {
+    clearPdfHover();
     if (node.kind === "folder") {
       openFolder(node.id);
+      return;
+    }
+    if (isDriveImage(node)) {
+      await openPreview(node, "image");
+      return;
+    }
+    if (isDrivePdf(node)) {
+      await openPreview(node, "pdf");
       return;
     }
     try {
       const blob = await fetchDriveFileBlob(node.id);
       const url = URL.createObjectURL(blob);
-      if (isDriveImage(node)) {
-        setPreview((prev) => {
-          if (prev?.url) URL.revokeObjectURL(prev.url);
-          return { node, url };
-        });
-        return;
-      }
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("files.openFail"));
     }
   };
+
+  useEffect(() => () => clearPdfHover(), []);
 
   return (
     <Box>
@@ -590,6 +648,8 @@ export default function ArchivosPage() {
                   key={node.id}
                   variant="outlined"
                   onClick={() => void handleOpen(node)}
+                  onMouseEnter={() => handlePdfHoverStart(node)}
+                  onMouseLeave={clearPdfHover}
                   sx={{
                     p: 1.25,
                     borderRadius: 2.5,
@@ -605,8 +665,11 @@ export default function ArchivosPage() {
                   <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 0.25 }}>
                     <IconButton
                       size="small"
+                      onMouseEnter={clearPdfHover}
+                      onMouseLeave={() => handlePdfHoverStart(node)}
                       onClick={(e) => {
                         e.stopPropagation();
+                        clearPdfHover();
                         setMenu({ anchor: e.currentTarget, node });
                       }}
                     >
@@ -749,40 +812,77 @@ export default function ArchivosPage() {
 
       <Dialog
         open={Boolean(preview)}
-        onClose={() => {
-          if (preview?.url) URL.revokeObjectURL(preview.url);
-          setPreview(null);
+        onClose={closePreview}
+        maxWidth={false}
+        slotProps={{
+          paper: {
+            sx: {
+              width: { xs: "96vw", md: preview?.kind === "pdf" ? "92vw" : "min(920px, 92vw)" },
+              maxWidth: preview?.kind === "pdf" ? 1280 : 920,
+              height: { xs: "90vh", md: preview?.kind === "pdf" ? "90vh" : "auto" },
+              maxHeight: "92vh",
+              m: 1,
+              display: "flex",
+              flexDirection: "column",
+            },
+          },
         }}
-        maxWidth="md"
-        fullWidth
       >
-        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, pr: 1 }}>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, pr: 1, py: 1.25 }}>
           <Typography component="span" fontWeight={700} noWrap sx={{ flex: 1 }}>
             {preview?.node.name ?? t("files.preview")}
           </Typography>
-          <IconButton
-            onClick={() => {
-              if (preview?.url) URL.revokeObjectURL(preview.url);
-              setPreview(null);
-            }}
-          >
+          {preview?.url && (
+            <IconButton
+              aria-label={t("files.openTab")}
+              onClick={() => window.open(preview.url!, "_blank", "noopener,noreferrer")}
+            >
+              <OpenInNewOutlinedIcon />
+            </IconButton>
+          )}
+          <IconButton onClick={closePreview}>
             <CloseOutlinedIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ display: "flex", justifyContent: "center", pb: 3 }}>
-          {preview && (
+        <DialogContent
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            flex: 1,
+            minHeight: 0,
+            p: preview?.kind === "pdf" ? 0 : 2,
+            pb: preview?.kind === "pdf" ? 0 : 3,
+            overflow: "hidden",
+          }}
+        >
+          {preview && !preview.url && <CircularProgress />}
+          {preview?.kind === "image" && preview.url && (
             <Box
               component="img"
               src={preview.url}
               alt={preview.node.name}
               onError={() => {
-                window.open(preview.url, "_blank", "noopener,noreferrer");
+                window.open(preview.url!, "_blank", "noopener,noreferrer");
               }}
               sx={{
                 maxWidth: "100%",
-                maxHeight: "75vh",
+                maxHeight: "78vh",
                 objectFit: "contain",
                 borderRadius: 2,
+              }}
+            />
+          )}
+          {preview?.kind === "pdf" && preview.url && (
+            <Box
+              component="iframe"
+              title={preview.node.name}
+              src={`${preview.url}#toolbar=1&navpanes=0`}
+              sx={{
+                width: "100%",
+                height: "100%",
+                border: 0,
+                bgcolor: "#111",
               }}
             />
           )}

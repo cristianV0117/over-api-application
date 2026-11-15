@@ -108,6 +108,12 @@ export function isDriveImage(node: DriveNode): boolean {
   );
 }
 
+export function isDrivePdf(node: DriveNode): boolean {
+  if (node.kind !== "file") return false;
+  const mime = (node.mimeType ?? "").toLowerCase();
+  return mime.includes("pdf") || node.name.toLowerCase().endsWith(".pdf");
+}
+
 export function findNode(
   nodes: DriveNode[],
   id: string | null
